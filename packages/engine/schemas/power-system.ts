@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { defineMechanic, forwardIssues, type MechanicDefinition, type MechanicKit } from './mechanics/registry'
+import { defineMechanic, tiered, type MechanicDefinition, type MechanicKit } from './mechanics/registry'
 import type { Primitives } from './primitives'
-import { flag, Id, mergeDeep } from './primitives'
+import { flag, Id } from './primitives'
 
 /**
  * Power system: how a game's powers (spells) are cast and paid for.
@@ -123,16 +123,7 @@ export function castingEntry(k: MechanicKit, config: PowerSystemConfig) {
  * are checked as merged, and only issues inside keys the delta sets are reported.
  */
 function castingList(entry: z.ZodType, config: PowerSystemConfig) {
-  return z.array(z.looseObject({})).min(1).superRefine((entries, ctx) => {
-    const [base, ...deltas] = entries as Record<string, unknown>[]
-    const first = entry.safeParse(base)
-    if (!first.success) forwardIssues(first.error.issues, ctx, [0])
-    deltas.forEach((delta, i) => {
-      const merged = entry.safeParse(mergeDeep(base, delta))
-      if (merged.success) return
-      const own = merged.error.issues.filter(iss => typeof iss.path[0] === 'string' && iss.path[0] in delta)
-      forwardIssues(own, ctx, [i + 1])
-    })
+  return tiered(entry).superRefine((entries, ctx) => {
     if (entries.length > config.maxLevel + 1) flag(ctx, 'error', `more casting entries (${entries.length}) than power levels`, [], 'power-upcast-count')
   })
 }

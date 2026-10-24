@@ -74,6 +74,14 @@ describe('mechanics registry', () => {
     ])
   })
 
+  it('models falling damage as resistance or a reduction', () => {
+    expect(check(game, 'class-features', feature([
+      { type: 'fall-damage', resistance: true },
+      { type: 'fall-damage', reduce: { dieCount: 4, dieType: 6 }, note: 'while levitating' },
+      { type: 'fall-damage', reduce: { bonus: { type: 'level', value: 'tracker', multiplier: 5 } } },
+    ]))).toEqual([])
+  })
+
   it('reads legacy enum values as info', () => {
     const issues = check(game, 'class-features', feature([{ type: 'sense', sense: 'infrared_vision', distance: 30 }]))
     expect(issues).toMatchObject([{ severity: 'info', rule: 'enum-legacy-value' }])

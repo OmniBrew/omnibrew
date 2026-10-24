@@ -1,4 +1,4 @@
-import { defineMechanic, type MechanicDefinition } from '@omnibrew/engine/schemas'
+import { defineMechanic, tiered, type MechanicDefinition } from '@omnibrew/engine/schemas'
 import { z } from 'zod'
 
 /**
@@ -31,6 +31,20 @@ export const meMechanics: MechanicDefinition[] = [
     fields: () => ({ dieCount: z.number().int(), dieType: z.number().int(), multiclassConversion: z.number(), ticks: perLevel, uses: perLevel }),
   }),
   flagOnly('me:tech-armor', 'tech-armor', 'Tech armor HP layer'),
+  defineMechanic({
+    type: 'me:primer-detonation',
+    description: 'What happens when a primed creature is detonated; one tier per entry in `levels` (character level)',
+    fields: k => ({
+      levels: z.array(z.number().int().min(1).max(20)).min(1),
+      // First tier complete, later tiers are deltas merged onto it (like power upcasts).
+      tiers: tiered(z.strictObject({
+        damage: z.array(k.Damage).optional(),
+        dc: k.Dc.optional(),
+        range: k.Range.optional(),
+        shortDesc: z.string().optional(),
+      })),
+    }),
+  }),
   capacity('me:thermal-clip-capacity', 'thermal-clip-capacity', 'Thermal clips carried'),
   capacity('me:grenade-capacity', 'grenade-capacity', 'Grenades carried'),
   capacity('me:medi-gel-capacity', 'medi-gel-capacity', 'Medi-gel carried'),

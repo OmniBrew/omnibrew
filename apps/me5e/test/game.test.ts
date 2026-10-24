@@ -14,6 +14,13 @@ describe('ME5e game definition', () => {
     expect(Object.keys(game.schemas).sort()).toEqual(Object.keys(me5e.sources).sort())
   })
 
+  it('validates primer tiers as merged deltas', () => {
+    const edge = (tiers: unknown[]) => ({ id: 'PRIME_x', name: 'X', type: 'primers', mechanics: [{ type: 'me:primer-detonation', levels: [1, 5], tiers }] })
+    const base = { damage: [{ dieCount: 1, dieType: 6, type: 'fire' }], shortDesc: 'Boom.' }
+    expect(game.schemas.edges!.safeParse(edge([base, { damage: [{ dieCount: 2 }] }])).success).toBe(true)
+    expect(game.schemas.edges!.safeParse(edge([base, { damage: [{ type: 'heat' }] }])).success).toBe(false)
+  })
+
   it('namespaces every ME mechanic and keeps the old names as legacy aliases', () => {
     const meTypes = game.mechanicTypes.filter(t => t.startsWith('me:'))
     expect(meTypes.length).toBeGreaterThan(20)
