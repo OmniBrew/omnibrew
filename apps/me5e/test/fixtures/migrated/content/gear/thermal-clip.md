@@ -4,7 +4,6 @@ rarity: common
 gearType: ammo
 cost: 10
 weight: 0
-subType: ""
 consumable: true
 ---
 >It was discovered that, in an age of kinetic barriers, most firefights were won by the side who could put the most

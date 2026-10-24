@@ -81,6 +81,7 @@ describe('legacy "none" markers', () => {
     expect(migrate('bestiary', { irv: false, savingThrows: false, senses: false, shields: false, skills: false, entries: { actions: [{ name: 'X', dc: false, save: false, damage: false }], legendary: { actions: [{ dc: false }] } } }).attributes)
       .toEqual({ entries: { actions: [{ name: 'X' }], legendary: { actions: [{}] } } })
     expect(migrate('tool-profs', { name: 'T', type: false }).attributes).toEqual({ name: 'T' })
+    expect(migrate('gear', { name: 'G', type: 'tool', manufacturer: '', subType: '' }).attributes).toEqual({ name: 'G', gearType: 'tool' })
     expect(migrate('vehicles', { name: 'V', subtype: false, weapons: null }).attributes).toEqual({ name: 'V' })
     expect(migrate('class-features', { mechanics: [{ type: 'powercasting-slots', known: false, prepared: false, notes: null, damage: [{ type: false, dieType: false }], value: { notes: null } }] }).attributes)
       .toEqual({ mechanics: [{ type: 'powercasting-slots', known: false, damage: [{ dieType: false }], value: {} }] })

@@ -8,7 +8,7 @@ import { legacyTagsToMdc } from './mdc'
  * shape (plan/04 R6), in this order:
  * 1. field renames (`legacy.ts`: powerType, casting, *Type, coverage/slot, properties);
  * 2. mechanic types and enum values the game registry lists as renamed (`shields` → `me:shields`);
- * 3. legacy "none" markers dropped where the field is optional (`set: false`, `image: null`);
+ * 3. legacy "none" markers dropped where the field is optional (`set: false`, `image: null`, `manufacturer: ""`);
  * 4. framework tags in prose rewritten as MDC components (`mdc.ts`);
  * 5. `name` / `title` moved to the top; every other key keeps its place.
  */
@@ -17,7 +17,7 @@ type Rec = Record<string, unknown>
 export type Note = (rule: string, message: string) => void
 
 const isObject = (v: unknown): v is Rec => typeof v === 'object' && v !== null && !Array.isArray(v) && !(v instanceof Date)
-const isNone = (v: unknown) => v === false || v === null
+const isNone = (v: unknown) => v === false || v === null || v === ''
 
 /** Visits every plain object in `value`, with the key it sits under. */
 function walkObjects(value: unknown, visit: (obj: Rec) => void) {
@@ -59,9 +59,9 @@ export function renameEnumValues(game: Game, rec: Rec, note: Note) {
   })
 }
 
-/** Record fields where `false` / `null` meant "none" (plan/08): the key is dropped. */
+/** Record fields where `false` / `null` / `""` meant "none" (plan/08, plan/12): the key is dropped. */
 const RECORD_NONES: Record<string, string[]> = {
-  '*': ['image', 'manufacturer'],
+  '*': ['image', 'manufacturer', 'subType'],
   'armor': ['set'],
   'bestiary': ['irv', 'savingThrows', 'senses', 'shields', 'skills'],
   'powers': ['reactionQualifier'],
@@ -77,7 +77,7 @@ function drop(obj: unknown, keys: string[], where: string, note: Note) {
   if (!isObject(obj)) return
   for (const key of keys) {
     if (key in obj && isNone(obj[key])) {
-      note('none-marker', `\`${where}${key}: ${obj[key]}\` dropped`)
+      note('none-marker', `\`${where}${key}: ${JSON.stringify(obj[key])}\` dropped`)
       Reflect.deleteProperty(obj, key)
     }
   }

@@ -11,6 +11,8 @@ import { Id } from './primitives'
  * - `piece`: ME piecewise armor: one slot (head/chest/arms/legs) adding bonuses.
  */
 
+const NO_EMPTY = 'leave the field out instead of writing an empty value'
+
 /** A property reference with an optional value: `{ id: 'reload', value: 16 }`, `{ id: 'versatile', value: { dieCount: 1, dieType: 10 } }`. */
 export function propertyRef(k: MechanicKit) {
   return z.strictObject({
@@ -27,7 +29,7 @@ export function itemBase(k: MechanicKit) {
     rarity: k.e('rarities').optional(),
     image: z.string().optional(),
     flavor: z.string().optional(),
-    manufacturer: z.string().optional(),
+    manufacturer: z.string().min(1, NO_EMPTY).optional(),
     author: z.string().optional(),
     homebrew: z.boolean().optional(),
     tags: z.array(k.e('itemTags')).optional(),
@@ -74,7 +76,7 @@ export function gearFields(k: MechanicKit) {
   return {
     kind: z.literal('gear'),
     gearType: k.e('gearTypes'),
-    subType: z.string().optional(),
+    subType: z.string().min(1, NO_EMPTY).optional(),
     consumable: z.boolean().optional(),
     equippable: z.boolean().optional(),
     installation: z.boolean().optional(),

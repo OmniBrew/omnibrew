@@ -143,6 +143,7 @@ describe('absent values', () => {
     expect(check(game, 'armor', piece)).toEqual([])
     expect(check(game, 'armor', { ...piece, set: false }).map(i => i.path)).toEqual(['set'])
     expect(check(game, 'armor', { ...piece, image: null }).map(i => i.path)).toEqual(['image'])
+    expect(check(game, 'armor', { ...piece, manufacturer: '' })).toMatchObject([{ path: 'manufacturer', message: 'leave the field out instead of writing an empty value' }])
   })
 
   it('but `false` in an upcast entry turns off a value the base entry sets', () => {
