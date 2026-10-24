@@ -22,7 +22,7 @@ jobs:
       # and caches the pnpm store. It replaces actions/setup-node here.
       - uses: pnpm/setup@v3
         with:
-          runtime: node@22
+          runtime: node@24
           cache: true
           install: false
 
