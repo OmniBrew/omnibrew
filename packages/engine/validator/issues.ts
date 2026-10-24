@@ -1,7 +1,7 @@
 import type { z } from 'zod'
 
 export type Severity = 'error' | 'warning' | 'info'
-export type Category = 'schema' | 'reference' | 'pairing' | 'legacy' | 'prose' | 'backlog'
+export type Category = 'schema' | 'reference' | 'legacy' | 'prose' | 'backlog'
 
 export interface Issue {
   severity: Severity

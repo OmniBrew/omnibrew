@@ -1,55 +1,50 @@
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineCollection, defineContentConfig, z } from '@nuxt/content'
+import { defineCollection, defineContentConfig } from '@nuxt/content'
+import { contentCollectionName, contentSchema } from '@omnibrew/engine/content'
+import { createGame } from '@omnibrew/engine/schemas'
+import { z } from 'zod'
+import { me5e } from './game'
 
 /**
- * Local preview of ME5e content through Nuxt Content (Phase 1 stretch).
+ * Nuxt Content collections for the ME5e content repo (OmniBrew/masseffect-5e-data),
+ * read from the sibling checkout (override with ME5E_CONTENT_DIR).
  *
- * Reads the content repo as it is today, from the sibling checkout
- * (override with ME5E_CONTENT_DIR). nuxt.config.ts hooks rewrite legacy tags
- * to MDC and run the ME legacy adapter, so these schemas describe the engine
- * shape (`powerType`, `casting`), not the old files.
+ * One collection per content type, named in camelCase (`class-features` →
+ * `classFeatures`), with its schema derived from the ME game definition (see the
+ * engine's `contentSchema`). Number tables are data collections; every other
+ * type is a page collection routed at `/<type>/<id>`.
  */
 const root = process.env.ME5E_CONTENT_DIR ?? fileURLToPath(new URL('../../../omnibrew-me5e-data/', import.meta.url))
-const dir = (path: string) => resolve(root, path)
+const game = createGame(me5e)
+const DATA = new Set(['attributions', 'character-progression', 'npc-stats'])
 
-const json = z.record(z.string(), z.any())
+const records = Object.fromEntries(Object.entries(me5e.sources).map(([name, source]) => [
+  contentCollectionName(name),
+  defineCollection({
+    type: DATA.has(name) ? 'data' : 'page',
+    source: { cwd: resolve(root, source.dir), include: '*.md', prefix: DATA.has(name) ? undefined : `/${name}` },
+    schema: contentSchema(game, name),
+  }),
+]))
+
+const chapter = z.object({ id: z.string(), title: z.string().optional(), is_new: z.boolean().optional(), is_change: z.boolean().optional(), sections: z.array(z.unknown()).optional() })
+const person = z.object({ name: z.string(), image: z.string().optional(), roles: z.array(z.string()).optional() })
 
 export default defineContentConfig({
   collections: {
-    powers: defineCollection({
-      type: 'page',
-      source: { cwd: dir('data/powers'), include: '*.md', prefix: '/powers' },
-      schema: z.object({
-        name: z.string(),
-        level: z.number(),
-        powerType: z.string(),
-        classes: z.array(z.string()),
-        tags: z.array(z.string()).optional(),
-        casting: z.array(json),
-        advancements: z.array(z.object({ id: z.string(), name: z.string(), text: z.string() })).optional(),
-      }),
-    }),
-    // Class prose lives in text/en, mechanics in data/; the two collections join on the file name.
-    classes: defineCollection({
-      type: 'page',
-      source: { cwd: dir('text/en/classes'), include: '*.md', prefix: '/classes' },
-      schema: z.object({
-        name: z.string(),
-        snippet: z.string().optional(),
-        profs: json.optional(),
-        startingEquipment: z.array(z.object({ text: z.string() })).optional(),
-      }),
-    }),
-    classData: defineCollection({
+    ...records,
+    // Tables of contents for the manual and the guides (manual.yml, guide.yml).
+    navigation: defineCollection({
       type: 'data',
-      source: { cwd: dir('data/classes'), include: '*.md' },
-      schema: z.object({
-        hitDie: z.number(),
-        primaryAbility: z.array(z.string()),
-        profs: json,
-        progression: json,
-      }),
+      source: { cwd: resolve(root, 'content/navigation'), include: '*.yml' },
+      schema: z.object({ chapters: z.array(chapter) }),
+    }),
+    // The About page's team list.
+    about: defineCollection({
+      type: 'data',
+      source: { cwd: resolve(root, 'content/site'), include: 'about.yml' },
+      schema: z.object({ current: z.array(person), former: z.array(person).optional() }),
     }),
   },
 })

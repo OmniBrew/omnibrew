@@ -28,12 +28,12 @@ const levelLabel = (level: number) => (level === 0 ? 'Cantrip' : `Level ${level}
               {{ p.name }}
             </NuxtLink>
           </td>
-          <td>{{ levelLabel(p.level) }}</td>
+          <td>{{ levelLabel(p.level ?? 0) }}</td>
           <td>
             <UBadge :label="p.powerType" variant="subtle" />
           </td>
           <td class="text-muted">
-            {{ p.classes.join(', ') }}
+            {{ (p.classes ?? []).join(', ') }}
           </td>
         </tr>
       </tbody>

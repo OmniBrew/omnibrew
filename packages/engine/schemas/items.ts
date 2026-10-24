@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { MechanicKit } from './mechanics/registry'
-import { Id, orNone } from './primitives'
+import { Id } from './primitives'
 
 /**
  * Items are one discriminated union on `kind`. Core kinds are weapon, armor
@@ -25,9 +25,9 @@ export function itemBase(k: MechanicKit) {
     cost: z.union([z.number().nonnegative(), z.string()]).optional(),
     weight: z.number().nonnegative().optional(),
     rarity: k.e('rarities').optional(),
-    image: orNone(z.string()).optional(),
+    image: z.string().optional(),
     flavor: z.string().optional(),
-    manufacturer: orNone(z.string()).optional(),
+    manufacturer: z.string().optional(),
     author: z.string().optional(),
     homebrew: z.boolean().optional(),
     tags: z.array(k.e('itemTags')).optional(),
@@ -53,7 +53,7 @@ export function armorFields(k: MechanicKit) {
     armorType: k.e('armorTypes'),
     properties: z.array(propertyRef(k)).optional(),
     /** Set-bonus id (ME armor sets). */
-    set: orNone(Id).optional(),
+    set: Id.optional(),
     stealthDisadvantage: z.boolean().optional(),
   }
   return {

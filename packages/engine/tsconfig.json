@@ -17,6 +17,7 @@
     "types": ["node"]
   },
   "include": [
+    "content/**/*.ts",
     "schemas/**/*.ts",
     "validator/**/*.ts",
     "fixtures/**/*.ts",

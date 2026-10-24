@@ -43,7 +43,7 @@ export type EnumName = keyof typeof CORE_ENUMS
 
 export interface EnumRegistry {
   values: Record<string, string[]>
-  /** Old spellings still accepted (and reported as info): enum → { legacy: canonical }. */
+  /** Renamed values (an error naming the new value): enum → { old: current }. */
   aliases: Record<string, Record<string, string>>
 }
 

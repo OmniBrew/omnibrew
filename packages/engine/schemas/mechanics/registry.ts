@@ -1,14 +1,14 @@
 import { z } from 'zod'
-import { flag, Id, mergeDeep, orNone, type Primitives } from '../primitives'
+import { flag, Id, mergeDeep, type Primitives } from '../primitives'
 
 /**
  * Mechanics registry.
  *
  * A mechanic is one rules effect on a record (`{ type: 'asi', ability: 'dex', amount: 1 }`).
  * Core 5e types use bare names (`asi`, `resistance`). Game types are namespaced
- * (`me:shields`, `sw:force-points`). A definition can list `legacy` spellings that
- * old content still uses; they validate, and the validator reports them as info so
- * the content migration has a worklist.
+ * (`me:shields`, `sw:force-points`). A definition can list `legacy` names it was
+ * renamed from: content that still uses one gets an error naming the new type,
+ * and content migrations read their renames from here.
  */
 export interface MechanicKit extends Primitives {
   /** Any registered mechanic (recursive: toggles and augments hold mechanics). */
@@ -49,7 +49,7 @@ function actionShape(p: Primitives, mechanics: z.ZodType) {
   return {
     name: z.string().optional(),
     shortDesc: z.string().optional(),
-    notes: orNone(z.array(p.Note)).optional(),
+    notes: z.array(p.Note).optional(),
     resource: p.Resource.optional(),
     toggle: Toggle.optional(),
     damage: z.array(p.Damage).optional(),
@@ -70,7 +70,7 @@ export interface MechanicNote { type: string, canonical: string }
 
 /**
  * Builds the mechanic dispatcher for a set of definitions.
- * Unknown types, untyped entries and legacy spellings become flagged issues
+ * Unknown types, untyped entries and renamed (legacy) types become flagged issues
  * (see `flag()`), so one bad mechanic never hides the rest of the record.
  */
 export function buildMechanics(p: Primitives, defs: MechanicDefinition[]) {
@@ -96,7 +96,7 @@ export function buildMechanics(p: Primitives, defs: MechanicDefinition[]) {
     let type = raw
     if (!byType.has(type) && legacy.has(type)) {
       type = legacy.get(type)!
-      flag(ctx, 'info', `legacy mechanic type "${raw}" is "${type}"`, ['type'], 'mechanic-legacy-type')
+      flag(ctx, 'error', `mechanic type "${raw}" was renamed to "${type}"`, ['type'], 'mechanic-legacy-type')
     }
     const schema = byType.get(type)
     if (!schema) {

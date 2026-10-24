@@ -1,0 +1,7 @@
+homepage:
+  title: Mass Effect + D&D 5th Edition
+  begin_text: Mass Effect 5e lets you take the immersive and cooperative story-telling gameplay of Dungeons & Dragons 5th edition and experience new adventures in the Mass Effect universe.
+abi_feature:
+  at_level: When you reach {level}, | When you reach {level}, and again at {and_list} level,
+  text: "{at_level} you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1."
+about_title: About

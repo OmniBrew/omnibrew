@@ -1,0 +1,9 @@
+---
+- id: equipment
+  title: manual.equipment
+  sections:
+    - id: armor
+      sections: []
+      is_change: true
+      is_new: false
+---

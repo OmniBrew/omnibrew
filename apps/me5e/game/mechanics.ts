@@ -2,8 +2,9 @@ import { defineMechanic, tiered, type MechanicDefinition } from '@omnibrew/engin
 import { z } from 'zod'
 
 /**
- * Mass Effect mechanics. Canonical names are namespaced `me:`; the bare names
- * in `legacy` are what today's content uses, and still validate.
+ * Mass Effect mechanics, namespaced `me:`. `legacy` lists the bare names the
+ * content used before the 2026 migration: the validator reports them as renamed,
+ * and the migration (`migrate/`) reads its renames from here.
  */
 const perLevel = z.array(z.number().int().nonnegative()).length(20)
 const capacity = (type: string, legacy: string, description: string) => defineMechanic({

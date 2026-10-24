@@ -1,17 +1,10 @@
 <script setup lang="ts">
 const route = useRoute()
-const slug = route.params.slug as string
-const { data } = await useAsyncData(route.path, async () => {
-  const [prose, mechanics] = await Promise.all([
-    queryCollection('classes').path(route.path).first(),
-    queryCollection('classData').where('stem', '=', slug).first(),
-  ])
-  return { prose, mechanics }
-})
-if (!data.value?.prose) throw createError({ statusCode: 404, statusMessage: 'Class not found', fatal: true })
+const { data: klass } = await useAsyncData(route.path, () => queryCollection('classes').path(route.path).first())
+if (!klass.value) throw createError({ statusCode: 404, statusMessage: 'Class not found', fatal: true })
 
 const profs = computed(() => {
-  const p = (data.value?.prose?.profs ?? {}) as Record<string, { text?: string }>
+  const p = (klass.value?.profs ?? {}) as Record<string, { text?: string } | undefined>
   return ['armor', 'weapon', 'tool', 'saving-throw', 'skill']
     .filter(k => p[k]?.text)
     .map(k => [k.replace('-', ' '), p[k]!.text!])
@@ -19,19 +12,19 @@ const profs = computed(() => {
 </script>
 
 <template>
-  <main v-if="data?.prose" class="mx-auto max-w-3xl p-6">
+  <main v-if="klass" class="mx-auto max-w-3xl p-6">
     <NuxtLink to="/classes" class="text-sm text-muted hover:underline">
       ← Classes
     </NuxtLink>
     <h1 class="mt-2 text-3xl font-semibold">
-      {{ data.prose.name }}
+      {{ klass.name }}
     </h1>
     <p class="mt-1 text-muted">
-      {{ data.prose.snippet }}
+      {{ klass.snippet }}
     </p>
-    <div v-if="data.mechanics" class="mt-4 flex gap-2">
-      <UBadge :label="`Hit die d${data.mechanics.hitDie}`" />
-      <UBadge :label="`Primary: ${data.mechanics.primaryAbility.join(', ').toUpperCase()}`" variant="subtle" />
+    <div class="mt-4 flex gap-2">
+      <UBadge :label="`Hit die d${klass.hitDie}`" />
+      <UBadge :label="`Primary: ${(klass.primaryAbility ?? []).join(', ').toUpperCase()}`" variant="subtle" />
     </div>
     <dl class="mt-6 space-y-2 text-sm">
       <div v-for="[label, value] in profs" :key="label" class="grid grid-cols-4 gap-2">
@@ -43,6 +36,6 @@ const profs = computed(() => {
         </dd>
       </div>
     </dl>
-    <ContentRenderer :value="data.prose" class="mt-6" />
+    <ContentRenderer :value="klass" class="mt-6" />
   </main>
 </template>

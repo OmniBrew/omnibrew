@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { defineMechanic, tiered, type MechanicDefinition, type MechanicKit } from './mechanics/registry'
 import type { Primitives } from './primitives'
-import { flag, Id } from './primitives'
+import { flag, Id, orOff } from './primitives'
 
 /**
  * Power system: how a game's powers (spells) are cast and paid for.
@@ -43,7 +43,7 @@ const perLevel = (s: z.ZodType = z.number().int().nonnegative()) => z.array(s).l
 export function powerSystemMechanics(config: PowerSystemConfig): MechanicDefinition[] {
   const poolIds = config.pools.map(p => p.id) as [string, ...string[]]
   const pool = poolIds.length ? z.enum(poolIds) : z.string()
-  const prepared = z.union([z.literal(false), z.strictObject({ levelMultiplier: z.number(), modBonus: z.boolean().optional() })])
+  const prepared = z.strictObject({ levelMultiplier: z.number(), modBonus: z.boolean().optional() })
   const limitedLevels = z.strictObject({ from: z.number().int().min(1).max(config.maxLevel), uses: z.number().int().positive(), reset: z.enum(['short', 'long']) })
   return [
     defineMechanic({
@@ -103,10 +103,10 @@ export function castingEntry(k: MechanicKit, config: PowerSystemConfig) {
     duration: k.Duration,
     concentration: z.boolean(),
     range: k.Range,
-    attack: z.union([k.Attack, z.literal(false)]).optional(),
-    dc: z.union([k.Dc, z.literal(false)]).optional(),
-    damage: z.union([z.array(k.Damage), z.literal(false)]).optional(),
-    conditions: z.union([z.array(Id), z.literal(false)]).optional(),
+    attack: orOff(k.Attack).optional(),
+    dc: orOff(k.Dc).optional(),
+    damage: orOff(z.array(k.Damage)).optional(),
+    conditions: orOff(z.array(Id)).optional(),
     notes: z.array(k.Note).optional(),
     resource: k.Resource.optional(),
     shortDesc: z.string().optional(),
@@ -137,7 +137,7 @@ export function powerSchema(k: MechanicKit, config: PowerSystemConfig) {
     tags: z.array(k.e('powerTags')).optional(),
     prerequisite: z.string().optional(),
     version: z.number().int().optional(),
-    reactionQualifier: z.union([z.string(), z.literal(false)]).optional(),
+    reactionQualifier: z.string().optional(),
     casting: castingList(entry, config),
     ...config.powerFields?.(k),
   }
