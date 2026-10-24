@@ -22,7 +22,7 @@ apps/me5e/            @omnibrew/me5e: Mass Effect 5e (extends the engine)
 
 ## Commands
 
-Requires Node 22 (see `.node-version`) and pnpm (version pinned in
+Requires Node 24 (see `.node-version`) and pnpm (version pinned in
 `package.json` `packageManager`; `corepack pnpm …` works if pnpm isn't installed).
 
 ```sh
