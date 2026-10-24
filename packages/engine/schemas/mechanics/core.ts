@@ -64,6 +64,15 @@ export const coreMechanics: MechanicDefinition[] = [
       valueLookup: z.strictObject({ model: z.string(), id: Id, limit: z.array(z.string()).optional() }).optional(),
     }),
   }),
+  defineMechanic({
+    type: 'fall-damage',
+    description: 'Halves falling damage, or reduces it by dice and/or a formula',
+    fields: k => ({
+      resistance: z.boolean().optional(),
+      reduce: z.strictObject({ dieCount: z.number().int().positive().optional(), dieType: z.number().int().positive().optional(), bonus: k.Formula.optional() }).optional(),
+      note: z.string().optional(),
+    }),
+  }),
   defineMechanic({ type: 'regain-all-hit-dice', fields: () => ({}) }),
   defineMechanic({ type: 'min-hit-die-roll', fields: k => ({ bonus: k.Formula }) }),
   defineMechanic({ type: 'nullify-armor-str-restriction', fields: () => ({}) }),
@@ -81,7 +90,8 @@ export const coreMechanics: MechanicDefinition[] = [
     }),
   }),
   defineMechanic({ type: 'speed-note', fields: () => ({ note: z.string() }) }),
-  defineMechanic({ type: 'sense', fields: k => ({ sense: k.OneOrMany(k.e('senses')), distance: z.number().nonnegative(), note: z.string().optional() }) }),
+  // No distance = range set by the note ("truesight until your Search action resolves").
+  defineMechanic({ type: 'sense', fields: k => ({ sense: k.OneOrMany(k.e('senses')), distance: z.number().nonnegative().optional(), note: z.string().optional() }) }),
   defineMechanic({
     type: 'initiative',
     fields: k => ({

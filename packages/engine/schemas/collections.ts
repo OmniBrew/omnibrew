@@ -58,8 +58,9 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
         abi: z.array(z.number().int().min(1).max(20)),
         columns: z.array(z.strictObject({
           label: z.string(),
-          values: z.array(z.union([z.number(), z.string(), z.array(z.number())])).optional(),
-        })).optional(),
+          // One value per level, or one row per power level with a value per character level.
+          values: z.array(z.union([z.number(), z.string(), z.array(z.number()).length(20, 'needs one value per character level (20)')])).optional(),
+        }).refine(c => !c.values || Array.isArray(c.values[0]) || c.values.length === 20, { message: 'needs one value per character level (20)', path: ['values'] })).optional(),
       }),
     }),
 
@@ -198,6 +199,8 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
         type: k.e('creatureTypes'),
         alignment: k.e('alignments'),
         ac: z.number().int(),
+        /** What the AC is made of ("natural armor", "10 + Dex, plus chosen armor"). */
+        acNote: z.string().optional(),
         hp: k.Dice,
         speed: z.strictObject({ walk: z.number().optional(), fly: z.number().optional(), swim: z.number().optional(), climb: z.number().optional(), burrow: z.number().optional(), note: z.string().optional() }),
         abilityScores: z.strictObject(Object.fromEntries(['str', 'dex', 'con', 'int', 'wis', 'cha'].map(a => [a, z.number().int().min(1).max(30)]))),

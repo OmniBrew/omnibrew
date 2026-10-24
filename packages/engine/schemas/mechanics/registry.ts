@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { flag, Id, orNone, type Primitives } from '../primitives'
+import { flag, Id, mergeDeep, orNone, type Primitives } from '../primitives'
 
 /**
  * Mechanics registry.
@@ -108,6 +108,25 @@ export function buildMechanics(p: Primitives, defs: MechanicDefinition[]) {
   })
 
   return { mechanic, mechanics, kit, types: [...byType.keys()], legacy }
+}
+
+/**
+ * A list where the first entry is complete and each later entry is a delta
+ * deep-merged onto it (lodash `merge`): power upcasts, primer tiers. Deltas are
+ * checked as merged, and only issues inside keys the delta sets are reported.
+ */
+export function tiered(entry: z.ZodType) {
+  return z.array(z.looseObject({})).min(1).superRefine((entries, ctx) => {
+    const [base, ...deltas] = entries as Record<string, unknown>[]
+    const first = entry.safeParse(base)
+    if (!first.success) forwardIssues(first.error.issues, ctx, [0])
+    deltas.forEach((delta, i) => {
+      const merged = entry.safeParse(mergeDeep(base, delta))
+      if (merged.success) return
+      const own = merged.error.issues.filter(iss => typeof iss.path[0] === 'string' && iss.path[0] in delta)
+      forwardIssues(own, ctx, [i + 1])
+    })
+  })
 }
 
 /** Re-emits nested issues as custom issues, keeping their severity and original code. */
