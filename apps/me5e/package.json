@@ -1,0 +1,28 @@
+{
+  "name": "@omnibrew/me5e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck && tsc --noEmit -p tsconfig.game.json",
+    "validate": "tsx ../../packages/engine/validator/cli.ts --game game/index.ts --content ../../../omnibrew-me5e-data"
+  },
+  "dependencies": {
+    "@nuxt/content": "3.16.2",
+    "@omnibrew/engine": "workspace:*",
+    "nuxt": "4.6.2",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vue-tsc": "3.3.13"
+  }
+}

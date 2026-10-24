@@ -1,0 +1,6 @@
+/*
+ * Default game theme: intentionally empty. A game app overrides the
+ * `#game-theme` alias in its nuxt.config.ts to point at its own CSS with
+ * `@theme static { ... }` palettes, which then compile in the same Tailwind
+ * build as main.css (so they also work as utilities, e.g. bg-n7-500).
+ */

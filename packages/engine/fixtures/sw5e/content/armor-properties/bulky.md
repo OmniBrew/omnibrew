@@ -1,0 +1,4 @@
+---
+name: Bulky
+takesValue: false
+---

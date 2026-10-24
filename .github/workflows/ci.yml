@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # pnpm/setup (not pnpm/action-setup, which only supports pnpm <= 10) installs
+      # the pnpm version from package.json "packageManager" plus the Node runtime,
+      # and caches the pnpm store. It replaces actions/setup-node here.
+      - uses: pnpm/setup@v3
+        with:
+          runtime: node@22
+          cache: true
+          install: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test

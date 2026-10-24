@@ -1,0 +1,26 @@
+{
+  "name": "omnibrew",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit -p packages/engine/tsconfig.json && nuxt typecheck apps/me5e && tsc --noEmit -p apps/me5e/tsconfig.game.json",
+    "test": "vitest run",
+    "postinstall": "nuxt prepare apps/me5e",
+    "validate:me5e": "tsx packages/engine/validator/cli.ts --game apps/me5e/game/index.ts --content ../omnibrew-me5e-data"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "1.17.0",
+    "@types/node": "22.20.5",
+    "eslint": "10.13.0",
+    "nuxt": "4.6.2",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

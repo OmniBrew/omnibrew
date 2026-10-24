@@ -1,0 +1,4 @@
+---
+name: Strength
+takesValue: true
+---

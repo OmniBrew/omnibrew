@@ -1,0 +1,35 @@
+/*
+ * ME5e brand tokens: a STUB, to be replaced with the real palette.
+ *
+ * Not a CSS entry: nuxt.config.ts points the engine's `#game-theme` alias here,
+ * and the engine's main.css (Tailwind + Nuxt UI) imports it. `static` makes
+ * Tailwind emit every variable, which Nuxt UI needs because app.config.ts
+ * picks these palettes by name at runtime (primary = n7, neutral = citadel).
+ */
+@theme static {
+  /* "n7": N7 red, anchored on #c62828 at 500 */
+  --color-n7-50: #fdf3f3;
+  --color-n7-100: #fbe5e5;
+  --color-n7-200: #f6cfcf;
+  --color-n7-300: #f0a3a3;
+  --color-n7-400: #e35d5d;
+  --color-n7-500: #c62828;
+  --color-n7-600: #a82020;
+  --color-n7-700: #8c1b1b;
+  --color-n7-800: #741a1a;
+  --color-n7-900: #611a1a;
+  --color-n7-950: #350909;
+
+  /* "citadel": cool, slightly blue slate neutral */
+  --color-citadel-50: #f6f8fa;
+  --color-citadel-100: #eceff3;
+  --color-citadel-200: #d5dbe3;
+  --color-citadel-300: #b0bac8;
+  --color-citadel-400: #8593a6;
+  --color-citadel-500: #64748b;
+  --color-citadel-600: #4d5b70;
+  --color-citadel-700: #3e4a5c;
+  --color-citadel-800: #2b3442;
+  --color-citadel-900: #1c232e;
+  --color-citadel-950: #0f141b;
+}

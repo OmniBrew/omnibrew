@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* The game's theme tokens (a Nuxt alias; defaults to ./game-theme.css). */
+@import "#game-theme";

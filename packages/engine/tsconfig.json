@@ -1,0 +1,25 @@
+{
+  // Plain-TypeScript parts of the engine only (schemas, validator, fixtures, tests).
+  // The Nuxt layer itself (app/, nuxt.config.ts) is type-checked by the apps that extend it.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "schemas/**/*.ts",
+    "validator/**/*.ts",
+    "fixtures/**/*.ts",
+    "test/**/*.ts"
+  ]
+}

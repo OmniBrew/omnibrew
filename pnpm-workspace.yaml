@@ -1,0 +1,11 @@
+packages:
+  - packages/*
+  - apps/*
+
+# pnpm 11+ fails the install (ERR_PNPM_IGNORED_BUILDS) when a dependency has an
+# install script nobody has reviewed. true = may run it, false = skip it.
+# better-sqlite3 is deliberately absent: Nuxt Content uses node:sqlite instead.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+  vue-demi: true

@@ -1,0 +1,34 @@
+{
+  "name": "@omnibrew/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./nuxt.config.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "validate": "tsx validator/cli.ts"
+  },
+  "dependencies": {
+    "@nuxt/content": "3.16.2",
+    "@nuxt/ui": "4.12.0",
+    "tailwindcss": "4.3.3",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "nuxt": "4.6.2",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5",
+    "vue-tsc": "3.3.13"
+  },
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./schemas": "./schemas/index.ts",
+    "./validator": "./validator/index.ts"
+  },
+  "bin": {
+    "omnibrew-validate": "./validator/cli.ts"
+  }
+}
