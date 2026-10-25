@@ -1,23 +1,32 @@
 <script setup lang="ts">
+const { t } = useI18n()
+useSeoMeta({ title: t('class_title', 2), description: t('meta.classes') })
+
 const { data: classes } = await useAsyncData('classes', () =>
-  queryCollection('classes').select('path', 'name', 'snippet').order('name', 'ASC').all(),
-)
+  queryCollection('classes')
+    .select('path', 'stem', 'name', 'snippet', 'author', 'hitDie', 'primaryAbility', 'profs')
+    .order('name', 'ASC')
+    .all(), { default: () => [] })
+
+// The core classes, then the homebrew ones ("Expanded Class Options"), as on the live site.
+const groups = computed(() => [
+  { key: 'core', title: undefined, items: classes.value.filter(c => !c.author) },
+  { key: 'expanded', title: t('expanded_class_options_title'), items: classes.value.filter(c => c.author) },
+].filter(g => g.items.length))
 </script>
 
 <template>
-  <main class="mx-auto max-w-4xl p-6">
-    <h1 class="mb-6 text-2xl font-semibold">
-      Classes
-    </h1>
-    <div class="grid gap-4 sm:grid-cols-2">
-      <UCard v-for="c in classes" :key="c.path">
-        <NuxtLink :to="c.path" class="text-lg font-medium text-primary hover:underline">
-          {{ c.name }}
-        </NuxtLink>
-        <p class="mt-1 text-sm text-muted">
-          {{ c.snippet }}
-        </p>
-      </UCard>
-    </div>
-  </main>
+  <UPage>
+    <RecordHeader :title="t('class_title', 2)" />
+    <UPageBody>
+      <section v-for="group in groups" :key="group.key" class="mb-10">
+        <h2 v-if="group.title" class="mb-4 font-display text-2xl font-semibold text-highlighted">
+          {{ group.title }}
+        </h2>
+        <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          <KlassCard v-for="c in group.items" :key="c.path" :klass="c" :image="`/images/classes/${recordId(c)}.svg`" />
+        </div>
+      </section>
+    </UPageBody>
+  </UPage>
 </template>
