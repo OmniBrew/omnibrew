@@ -11,13 +11,17 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 useSeoMeta({ title: t('search'), description: t('shell.search_description') })
 
-const term = ref(String(route.query.q ?? ''))
+const term = ref('')
 const active = ref<string[]>([])
 const shown = ref(25)
 const groups = game.search as SearchGroup[]
 const groupInfo = new Map(groups.map(g => [g.id, g]))
 
-onMounted(load)
+// The prerendered page has no query; read it once the page is live.
+onMounted(() => {
+  term.value = String(route.query.q ?? '')
+  load()
+})
 watch(term, (q) => {
   shown.value = 25
   router.replace({ query: q ? { q } : {} })
