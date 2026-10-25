@@ -20,12 +20,15 @@ packages/engine/      @omnibrew/engine: the shared 5e engine (Nuxt layer)
   schemas/            zod content schemas: enum registry, mechanics registry, power system, items, collections, prose components
   validator/          content validator CLI: schema, cross-references, prose (framework tags, MDC), notes backlog
   fixtures/sw5e/      SW5e-shaped sample game + content, validated in tests
+  data/               the user-data layer (characters, profile, bookmarks, homebrew): the only code that calls the API
   test/               vitest tests
+packages/backend/     @omnibrew/backend: the game-neutral Amplify Gen 2 data schema and its AppSync JS resolvers
 apps/me5e/            @omnibrew/me5e: Mass Effect 5e (extends the engine)
   game/               ME game definition: enums, me:* mechanics, power system, content layout
   app/                pages at the live site's URLs, ME-only components (components/me/), theme, site config
   routes.ts           where each collection's records are on the site (the live URLs)
   migrate/            one-off migration of the content repo from its old data/ + text/en/ layout
+  amplify/            the Gen 2 backend (Cognito by referenceAuth: the live pool on Amplify builds, the dev pool in sandboxes)
   content.config.ts   Nuxt Content collections (one per content type) read from ../omnibrew-me5e-data
                       (or ME5E_CONTENT_DIR); generated records (Exalted Lineages) join their collection
 ```
@@ -51,6 +54,24 @@ Environment variables (an `apps/me5e/.env` file works; it is git-ignored):
 | `ME5E_CONTENT_DIR` | The content repo, if it isn't checked out at `../omnibrew-me5e-data` |
 | `CONTENT_CACHE_DIR` | Where Nuxt Content keeps its parse cache. It commits once per file, so on a spinning disk the first parse takes minutes; point this at an SSD folder |
 | `NUXT_PUBLIC_INDEXABLE=false` | For a preview build (beta.n7.world): every page gets `noindex` and robots.txt disallows crawling. Canonical links always point at n7.world |
+
+## Backend
+
+User data (sign-in, characters, profile, bookmarks, homebrew) is an Amplify Gen 2 backend
+(`apps/me5e/amplify`, schema in `packages/backend`). The site reads its config from
+`apps/me5e/amplify_outputs.json` (git-ignored); without it, the site runs signed out, which
+is all CI and reference pages need.
+
+```sh
+pnpm --filter @omnibrew/me5e sandbox    # a personal cloud sandbox (dev user pool); writes amplify_outputs.json
+SANDBOX_TEST=1 pnpm vitest run apps/me5e/test/sandbox.test.ts   # the data layer against it
+```
+
+The sandbox needs AWS credentials (`--profile default`) and `pnpm` on PATH (CDK calls it
+to bundle functions; `corepack enable` provides it). The sandbox test signs in with the dev
+pool's test accounts from `apps/me5e/.env` (`SANDBOX_TEST_EMAIL`, `SANDBOX_TEST_PASSWORD`,
+and `_2` for the second user). The beta (Amplify app `me5e-beta`) deploys the backend in
+its own build.
 
 ## Content validation
 

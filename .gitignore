@@ -23,3 +23,7 @@ coverage
 .DS_Store
 Thumbs.db
 .idea
+
+# Amplify Gen 2 (apps/me5e/amplify): generated client config and build files
+amplify_outputs*
+.amplify

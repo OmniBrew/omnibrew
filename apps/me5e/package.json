@@ -9,11 +9,13 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck && tsc --noEmit -p tsconfig.game.json",
-    "validate": "tsx ../../packages/engine/validator/cli.ts --game game/index.ts --content ../../../omnibrew-me5e-data"
+    "validate": "tsx ../../packages/engine/validator/cli.ts --game game/index.ts --content ../../../omnibrew-me5e-data",
+    "sandbox": "ampx sandbox --profile default"
   },
   "dependencies": {
     "@nuxt/content": "3.16.2",
     "@omnibrew/engine": "workspace:*",
+    "aws-amplify": "6.22.2",
     "jsonpack": "1.1.5",
     "nuxt": "4.6.2",
     "vue": "3.5.44",
@@ -22,6 +24,12 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@aws-amplify/backend": "1.25.1",
+    "@aws-amplify/backend-cli": "1.10.0",
+    "@omnibrew/backend": "workspace:*",
+    "aws-cdk-lib": "2.274.0",
+    "constructs": "10.8.1",
+    "esbuild": "0.28.2",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vue-tsc": "3.3.13"

@@ -20,6 +20,7 @@ const links = computed<NavigationMenuItem[]>(() => (game.headerLinks as NavItem[
       <SiteSearchButton />
       <SiteUnitsToggle />
       <UColorModeButton />
+      <SiteAccountButton />
     </template>
 
     <template #body>

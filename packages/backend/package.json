@@ -1,0 +1,25 @@
+{
+  "name": "@omnibrew/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./schema": "./schema.ts"
+  },
+  "dependencies": {
+    "@aws-amplify/backend": "1.25.1"
+  },
+  "devDependencies": {
+    "@aws-appsync/utils": "2.1.1",
+    "@types/node": "24.19.2",
+    "aws-cdk-lib": "2.274.0",
+    "constructs": "10.8.1",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.257.0",
+    "constructs": "^10.6.0"
+  }
+}
