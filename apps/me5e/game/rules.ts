@@ -235,9 +235,11 @@ function weaponAttack(card: SheetCard, weapon: WeaponContext, sheet: Sheet): She
     const range = { ...out.range }
     const notes = [...card.notes]
     const augmentNotes = (card.augments as Record<string, AttackAugments>).base!.notes.length
+    // Range multipliers don't stack: two doubling mods (barrel and scope) double range once (plan/04 Q21).
+    const most = (key: string) => Math.max(1, ...active.map(t => t[key] || 1))
+    range.short *= most('shortRangeMultiplier')
+    if (range.long) range.long *= most('longRangeMultiplier')
     for (const t of active) {
-      if (t.shortRangeMultiplier) range.short *= t.shortRangeMultiplier
-      if (t.longRangeMultiplier && range.long) range.long *= t.longRangeMultiplier
       if (t.shortRangeMax) range.short = Math.min(range.short, t.shortRangeMax)
       if (t.longRangeMax && range.long) range.long = Math.min(range.long, t.longRangeMax)
       if (t.addAoe) range.aoe = t.addAoe

@@ -96,6 +96,20 @@ describe('ME rules', () => {
     expect(suit.ac).toBe(10 + 4 + 2)
   })
 
+  it('applies every weapon mod, doubling range once (plan/04 Q18, Q21)', () => {
+    const r = createRules(game, new Map([...content, ['weapons', new Map([['rifle', { id: 'rifle', name: 'Rifle', weaponType: 'sniper_rifle', damage: { dieCount: 1, dieType: 10, type: 'piercing' }, properties: [], range: { short: 100, long: 300 } }]])], ['mods', new Map([
+      ['barrel', { id: 'barrel', name: 'Barrel', modType: 'weapon', placement: 'barrel', mechanics: [{ type: 'me:weapon-augment', shortRangeMultiplier: 2, longRangeMultiplier: 2 }] }],
+      ['scope', { id: 'scope', name: 'Scope', modType: 'weapon', placement: 'body', mechanics: [{ type: 'me:weapon-augment', hitBonus: 1, shortRangeMultiplier: 2, longRangeMultiplier: 2 }] }],
+      ['warp', { id: 'warp', name: 'Warp Ammo', modType: 'weapon', placement: 'ammo', mechanics: [{ type: 'me:weapon-augment', toggle: true, name: 'Warp Ammo', damageType: 'necrotic', detonates: true }] }],
+    ])]]))
+    const c = character({ equipment: [{ type: 'weapon', id: 'rifle', uuid: 'w', equipped: true, mods: { barrel: 'barrel', body: 'scope', ammo: 'warp' } }], currentStats: { ...character().state, toggles: { w: true }, resources: {}, barrier: {} } })
+    const s = r.sheet({ ...c, state: { ...c.state, toggles: { w: true } } })
+    const card = s.weaponAttacks.attacks.find(a => a.name === 'Rifle')!
+    expect(card.range).toMatchObject({ short: 200, long: 600 })
+    expect(card.damage[0].type).toBe('necrotic')
+    expect(s.card(card).hit?.bonus).toBe(1 + 2)
+  })
+
   it('offers the live custom armor pieces as built-in records', () => {
     expect(rules.content.get('armor', 'ca-arms-heavy-1')).toMatchObject({ slot: 'arms', armorType: 'heavy', coverage: 'piece' })
     expect(rules.content.list('armor').filter(a => a.id.startsWith('ca-'))).toHaveLength(33)
