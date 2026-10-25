@@ -15,8 +15,8 @@ interface Mechanic { type: string, [key: string]: unknown }
 const SKIPPED = new Set(['kett', 'behemoth'])
 /** Traits that are equipment, not biology. */
 const EXCLUDED_TRAITS = new Set(['hermetic-suit', 'pressurized-suit', 'contra-gravitic-levitation'])
-/** A variant with subspecies choices that is still one lineage. */
-const KEEP_NAME = new Set(['ardat-yakshi'])
+/** A variant whose lineages are its subspecies (the ardat-yakshi dispositions), not itself. */
+const SUBSPECIES_ONLY = new Set(['ardat-yakshi'])
 const GERUND: Record<string, string> = { fly: 'flying', swim: 'swimming', climb: 'climbing', burrow: 'burrowing' }
 
 const mechanicsOf = (r: Rec | undefined) => (Array.isArray(r?.mechanics) ? r.mechanics as Mechanic[] : [])
@@ -53,7 +53,7 @@ export function generateExaltedLineages(species: Map<string, Rec>, traits: Map<s
     if (SKIPPED.has(id)) continue
     let name = String(sp.name)
     let mechanics: Mechanic[]
-    if ((sp.type === 'variant' || sp.type === 'subspecies') && !KEEP_NAME.has(id)) {
+    if ((sp.type === 'variant' || sp.type === 'subspecies') && !SUBSPECIES_ONLY.has(id)) {
       const parent = species.get(String(sp.species))
       name = `${parent?.name} (${name})`
       mechanics = sp.type === 'variant'
