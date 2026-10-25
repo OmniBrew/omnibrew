@@ -94,7 +94,7 @@ onMounted(() => {
         </StatblockLine>
         <slot name="defenses" />
         <StatblockLine v-if="stats.speed" :label="t('speed_title')">
-          {{ speedText(t, stats.speed, feet) }}
+          <StatblockText :value="speedText(t, stats.speed, feet)" />
         </StatblockLine>
 
         <USeparator color="secondary" class="my-3" :ui="{ border: 'border-t-2' }" />
