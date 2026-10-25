@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const route = useRoute()
+const path = useContentPath().value
 const { t } = useI18n()
-const { data: power } = await useAsyncData(route.path, () => queryCollection('powers').path(route.path).first())
+const { data: power } = await useAsyncData(path, () => queryCollection('powers').path(path).first())
 if (!power.value) throw createError({ statusCode: 404, statusMessage: 'Power not found', fatal: true })
 
 useSeoMeta({ title: power.value.name, description: t('meta.info', { name: power.value.name }) })

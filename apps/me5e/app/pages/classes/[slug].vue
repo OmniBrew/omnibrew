@@ -1,16 +1,17 @@
 <script setup lang="ts">
 const route = useRoute()
+const path = useContentPath().value
 const { t, te } = useI18n()
 
-const { data: klass } = await useAsyncData(route.path, () => queryCollection('classes').path(route.path).first())
+const { data: klass } = await useAsyncData(path, () => queryCollection('classes').path(path).first())
 if (!klass.value) throw createError({ statusCode: 404, statusMessage: 'Class not found', fatal: true })
 const id = recordId(klass.value)
 
 const [{ data: features }, { data: subclasses }, { data: levels }, { data: powers }] = await Promise.all([
-  useAsyncData(`${route.path}:features`, () => queryCollection('classFeatures').where('klass', '=', id).all(), { default: () => [] }),
-  useAsyncData(`${route.path}:subclasses`, () => queryCollection('subclasses').where('klass', '=', id).order('name', 'ASC').all(), { default: () => [] }),
+  useAsyncData(`${path}:features`, () => queryCollection('classFeatures').where('klass', '=', id).all(), { default: () => [] }),
+  useAsyncData(`${path}:subclasses`, () => queryCollection('subclasses').where('klass', '=', id).order('name', 'ASC').all(), { default: () => [] }),
   useAsyncData('character-progression', () => queryCollection('characterProgression').order('level', 'ASC').all(), { default: () => [] }),
-  useAsyncData(`${route.path}:powers`, () => queryCollection('powers').where('classes', 'LIKE', `%"${id}"%`).order('level', 'ASC').order('name', 'ASC').all(), { default: () => [] }),
+  useAsyncData(`${path}:powers`, () => queryCollection('powers').where('classes', 'LIKE', `%"${id}"%`).order('level', 'ASC').order('name', 'ASC').all(), { default: () => [] }),
 ])
 
 useSeoMeta({ title: klass.value.name, description: t('meta.class_info', { name: klass.value.name }) })

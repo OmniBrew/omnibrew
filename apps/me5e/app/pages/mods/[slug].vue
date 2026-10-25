@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const route = useRoute()
+const path = useContentPath().value
 const { t } = useI18n()
-const { data: mod } = await useAsyncData(route.path, () => queryCollection('mods').path(route.path).first())
+const { data: mod } = await useAsyncData(path, () => queryCollection('mods').path(path).first())
 if (!mod.value) throw createError({ statusCode: 404, statusMessage: 'Mod not found', fatal: true })
 
 useSeoMeta({ title: mod.value.name, description: t('meta.info', { name: mod.value.name }) })

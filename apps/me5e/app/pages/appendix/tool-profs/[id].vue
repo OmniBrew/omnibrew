@@ -1,7 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
+const path = useContentPath().value
 const { t } = useI18n()
-const { data: tool } = await useAsyncData(route.path, () => queryCollection('toolProfs').path(`/tool-profs/${route.params.id}`).first())
+const { data: tool } = await useAsyncData(path, () => queryCollection('toolProfs').path(`/tool-profs/${route.params.id}`).first())
 if (!tool.value) throw createError({ statusCode: 404, statusMessage: 'Tool not found', fatal: true })
 
 useSeoMeta({ title: tool.value.name, description: t('meta.info', { name: tool.value.name }) })

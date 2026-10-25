@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const route = useRoute()
+const path = useContentPath().value
 const { t } = useI18n()
-const { data: background } = await useAsyncData(route.path, () => queryCollection('backgrounds').path(route.path).first())
+const { data: background } = await useAsyncData(path, () => queryCollection('backgrounds').path(path).first())
 if (!background.value) throw createError({ statusCode: 404, statusMessage: 'Background not found', fatal: true })
 
 useSeoMeta({ title: background.value.name, description: t('meta.info', { name: background.value.name }) })

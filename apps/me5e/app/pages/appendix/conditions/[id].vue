@@ -1,7 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
+const path = useContentPath().value
 const { t } = useI18n()
-const { data: condition } = await useAsyncData(route.path, () => queryCollection('conditions').path(`/conditions/${route.params.id}`).first())
+const { data: condition } = await useAsyncData(path, () => queryCollection('conditions').path(`/conditions/${route.params.id}`).first())
 if (!condition.value) throw createError({ statusCode: 404, statusMessage: 'Condition not found', fatal: true })
 
 useSeoMeta({ title: condition.value.name, description: t('meta.info', { name: condition.value.name }) })
