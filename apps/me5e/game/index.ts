@@ -6,6 +6,7 @@ import { parse } from 'yaml'
 import { z } from 'zod'
 import { generateExaltedLineages } from './exalted-lineages'
 import { meMechanics } from './mechanics'
+import { meRules } from './rules'
 
 /**
  * Mass Effect 5e on the 5e-2014 ruleset.
@@ -168,6 +169,37 @@ export const me5e = defineGame({
   },
 
   checks: meChecks,
+
+  rules: meRules,
+
+  character: {
+    state: () => ({
+      paragon: z.number(),
+      renegade: z.number(),
+      indoctrination: z.number(),
+      shieldsLost: z.number(),
+      barrier: z.strictObject({ used: z.number(), ticksUsed: z.number() }),
+      /** Weapons (equipment uuids) in shoulder mounts. */
+      shoulderMounts: z.array(z.string()),
+      techArmorMax: z.number(),
+    }),
+    options: () => ({
+      weaponSlots: z.boolean(),
+      grenadeSlots: z.boolean(),
+      medigelSlots: z.boolean(),
+      thermalClipSlots: z.boolean(),
+      /** Thermal clip capacity is enforced (the live option behind the clips tracker). */
+      thermalClips: z.boolean(),
+      programInstall: z.boolean(),
+      consumeThermalClips: z.boolean(),
+    }),
+    overrides: () => ({
+      shields: z.number().int().nullable(),
+      regen: z.number().int().nullable(),
+      /** Equipment uuid, class id or `armor`: which shield source counts. */
+      shieldSource: z.string().optional(),
+    }),
+  },
 })
 
 function meChecks({ root, records, report }: GameCheckContext) {
