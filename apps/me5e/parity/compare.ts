@@ -20,6 +20,8 @@ import type { ParitySheet } from './sheet'
 export interface KnownContext {
   /** The old-format character the two sheets came from. */
   character: Record<string, unknown>
+  /** Equipment uuids of weapons with more than one `me:weapon-augment` mod. */
+  multiModWeapons?: string[]
 }
 
 export interface Known {
@@ -47,7 +49,12 @@ const BACKLOG_NOTES = [
   'Null Critical', 'Critical Immunity', 'Evasion', 'Biotic Punch', 'Cantrip Attack', '1st-level Power Attack', 'Brutal Critical', '+1 slashing dmg',
   'Sniper', 'Free Hand', '+2 w/ Jump Jet or Jetpack', 'Blood Trail', 'Lock On', 'Soft Spots', 'Power from Pain', 'Sneak Attack',
 ]
-const d12Bonuses = (s: string) => [...s.matchAll(/d12 \+ (-?\d+)/g)].map(x => Number(x[1]))
+/** Cards whose texts moved to `{{ roll }}` (apps/me5e/migrate/placeholders-roll.ts), as `<group> <name>`. */
+const ROLL_CARDS = [
+  'Exploit: Excruciate', 'Destructive Charging', 'Fearsome Reputation', 'Fighting Spirit', 'Tireless Spirit', 'Steady Aim', 'Tech Annihilation', 'Tech Onslaught', 'Vengeance', 'Won\'t Quit', 'Sweeping Attack',
+  ...['Assault Rifles', 'Heavy Pistols', 'Melee Weapons', 'SMGs', 'Shotguns', 'Sniper Rifles'].flatMap(w => [w, `Weapon of Choice: ${w}`]), 'Assault Rifle (parry)', 'Heavy Pistol (parry)', 'Melee Weapon (parry)', 'SMG (parry)', 'Shotgun (parry)', 'Sniper Rifle (parry)',
+].flatMap(n => ['action', 'bonus-action', 'reaction', 'other', 'attack'].flatMap(t => [`${t} ${n}`, `${t}[Weapon of Choice] ${n}`]))
+const d12Bonuses =(s: string) => [...s.matchAll(/d12 \+ (-?\d+)/g)].map(x => Number(x[1]))
 const segment = (s: string, prefix: string) => s.split(' | ').find(x => x.startsWith(prefix))
 const withSegment = (s: string, prefix: string, value: string | undefined) => s.split(' | ').map(x => (x.startsWith(prefix) && value ? value : x)).join(' | ')
 
@@ -81,7 +88,7 @@ export const KNOWN: Known[] = [
   {
     id: 'double-tap-hit',
     reason: 'Live bug: the hit bonus of a double tap attack read a property of `true` and printed NaN. The engine adds the double tap attack augments.',
-    fix: (text, _, next) => (text.includes('| hit NaN |') && segment(next, 'hit ') ? withSegment(text, 'hit NaN', segment(next, 'hit ')) : text),
+    fix: (text, _, next) => (text.includes('| hit NaN') && segment(next, 'hit ') ? withSegment(text, 'hit NaN', segment(next, 'hit ')) : text),
   },
   {
     id: 'sense-without-distance',
@@ -95,19 +102,47 @@ export const KNOWN: Known[] = [
   },
   {
     id: 'natural-weapon-range',
-    reason: 'Live bug: a natural weapon replacing the unarmed strike took `Math.max` of two range objects (NaN), so the card lost its range (kett Tentacles). The engine keeps the longer reach.',
-    fix: (text, _, next) => (next.includes(' | range 5 | ') && !text.includes(' | range ') ? text.replace(/ \| notes /, ' | range 5 | notes ') : text),
+    reason: 'Live bug: a natural weapon replacing the unarmed strike took `Math.max` of two range objects (NaN), so the strike lost its range or kept the base 5 (kett Tentacles). The engine keeps the longer reach.',
+    fix: (text, _, next) => {
+      const range = segment(next, 'range ')
+      if (!range || !/^(?:attacks|twf) (?:Unarmed Strike|Tentacles|[^|]*) \| hit/.test(text) || segment(text, 'range ') === range) return text
+      if (segment(text, 'range ')) return withSegment(text, 'range ', range)
+      const parts = text.split(' | ')
+      const at = parts.findIndex(p => p.startsWith('notes ') || p.startsWith('res '))
+      parts.splice(at < 0 ? parts.length : at, 0, range)
+      return parts.join(' | ')
+    },
+  },
+  {
+    id: 'text-ability-scores',
+    reason: 'Live bug: ability scores saved as text ("15") were joined, not added, to bonuses, so the sheet showed 1500 (+745) and every roll from it. The migration stores numbers.',
+    test: (line, ctx) => Object.values((ctx.character.abilityScores ?? {}) as Record<string, { value?: unknown }>).some(a => typeof a?.value === 'string')
+    // `ac` also matches `.actions`.
+      && /^\.(?:abilities|saves|skills|initiative|ac|hp|powers|attacks|powercasting|resources)/.test(line),
   },
   {
     id: 'engi-knight-source',
     reason: 'Live hack: powers granted by the Engi Knight subclass showed "soldier" as their source (a hard-coded id in the old store). The engine shows the name of the granting record.',
     fix: (text, ctx, next) => (uses(ctx, 'engi-knight') && next.includes(' src Engi Knight ') ? text.replace(' src soldier ', ' src Engi Knight ') : text),
   },
+  {
+    id: 'weapon-mods-all-apply',
+    reason: 'Plan/04 Q18: every mod effect of a weapon applies (one mod per slot, so one ammo mod at most). The live sheet applied only the first, so a scope or barrel hid the ammo mod (damage type, priming, detonation) and vice versa.',
+    fix: (text, ctx, next) => ((ctx.multiModWeapons ?? []).some(uuid => text.includes(`res resource ${uuid} `)) ? next : text),
+  },
+  {
+    id: 'burst-fire-heat',
+    reason: 'Live bug: burst fire costs 2 more heat than a shot of the weapon, but a weapon whose mod had no heat cost added 2 to nothing (NaN, shown blank). The engine shows +3.',
+    fix: (text, _, next) => (text.startsWith('bf ') && next.includes('manual heat +3') ? text.replace(/manual heat(?= \||$)/, 'manual heat +3') : text),
+  },
   // --- the mechanics backlog (plan/09): notes made mechanics in Phase 3a (apps/me5e/migrate/backlog-global-notes.ts) ---
   {
     id: 'backlog-global-notes',
     reason: 'Plan/04 R8: global notes converted to mechanics. The note leaves the sheet; its rule shows as a special defense (critical immunity, evasion), powers castable as attacks, a toggle card with its bonus, or a card with its dice (Sneak Attack, Power from Pain).',
-    fix: (text, _, next) => (next.includes(' alt attack time ') && !text.includes(' alt ') ? text.replace(' time ', ' alt attack time ') : text),
+    fix: (text, _, next) => {
+      if (next.includes(' alt attack time ') && !text.includes(' alt ')) return text.replace(' time ', ' alt attack time ')
+      return text.replace(/ alt ([\w,]+) time /, (m, units: string) => (next.includes(` alt ${units},attack time `) ? ` alt ${units},attack time ` : m))
+    },
     test: (line) => {
       const note = line.match(/^\.globalNotes - "\w*: (.*)"$/)?.[1]
       if (note) return BACKLOG_NOTES.some(n => note === n || note.startsWith(`${n}:`))
@@ -119,6 +154,11 @@ export const KNOWN: Known[] = [
     id: 'backlog-talon-gauntlets',
     reason: 'Plan/04 R8: the "+1 slashing damage to all melee damage rolls" of the Batarian Talon Gauntlets is extra damage on every melee attack (weapons, strikes and melee power attacks), merged into a slashing roll.',
     fix: (text, ctx, next) => (uses(ctx, 'batarian-talon-gauntlets') ? withSegment(text, 'dmg ', segment(next, 'dmg ')) : text),
+  },
+  {
+    id: 'content-roll-placeholders',
+    reason: 'Content (plan/04 Q15): texts that named the damage type after `{{ damage }}` use `{{ roll }}` ("they take 9 psychic damage", not "9 psychic damage psychic damage"); Weapon of Choice adds a die, not "1d4 damage", to a roll or AC.',
+    fix: (text, _, next) => (ROLL_CARDS.some(n => text.startsWith(`${n} `) || text === n) ? withSegment(text, 'text ', segment(next, 'text ')) : text),
   },
   // --- old saved formats the migration reads as the player meant them ---
   {
@@ -173,20 +213,24 @@ export const KNOWN: Known[] = [
   {
     id: 'content-versatile-property',
     reason: 'Content (plan/04 B8): the `versatile` damage of a weapon became the value of the versatile property. The live sheet only rolled versatile damage for weapons listing the property, so the bayonet of the Ruzad (1d10 slashing) never showed; it does now (plan/18 asks whether it should).',
-    fix: text => (text.startsWith('attacks Ruzad ') ? text.replace(/(dmg 2d8 \+ (-?\d+) piercing damage)/, '$1 / 1d10 + $2 slashing damage') : text),
+    fix: text => (/^(?:attacks|twf|dt) Ruzad /.test(text) ? text.replace(/(dmg \d+d\d+ \+ (-?\d+) piercing damage)/, '$1 / 1d10 + $2 slashing damage') : text),
   },
   {
     id: 'content-validation-fixes',
-    reason: 'Content fixed by the validation report (plan/08): typos that made the live sheet drop a value: `tpe` (Experimental Barrier Generator damage type), `type: type` (Tank Through is a reaction), `sense` for `value` (Deception of Loki hardware), `model: subclass` (source of the Cardinal powers), `type: poison` for `resistance` (Toxic Resistance), `type: reaction` for `augment` (Reflecting Barricade joins the Tech Barricade toggle).',
+    reason: 'Content fixed by the validation report (plan/08): typos that made the live sheet drop a value: `tpe` (Experimental Barrier Generator damage type), `type: type` (Tank Through is a reaction), `sense` for `value` (Deception of Loki hardware), `model: subclass` (source of the Cardinal powers), `type: poison` for `resistance` (Toxic Resistance), `type: reaction` for `augment` (Reflecting Barricade joins the Tech Barricade toggle), advancements that changed `damage` as an object, so the live site never applied them (Nova: Improved Damage, Justice: Neutralise), `walking` for `walk` (Plains), and the plan/04 Q16 fixes (VI Response adds Intelligence to initiative; the Reckoner-Knight reroll is for melee weapons only).',
     fix: (text, ctx, next) => {
       let out = text
       if (uses(ctx, 'experimental-barrier-generator-exe')) out = out.replace('dmg 5d4 damage damage', 'dmg 5d4 force damage')
       if (uses(ctx, 'cardinal')) out = out.replace(' src undefined ', ' src Cardinal ')
+      if (uses(ctx, 'reckoner-knight-armorsuit') && !next.includes('Reroll 1s & 2s')) out = out.replace('notes Reroll 1s & 2s; ', 'notes ')
       if (uses(ctx, 'warleader') && out === 'reaction Reflecting Barricade' && next.startsWith('reaction Reflecting Barricade | text ')) out = next
       return out
     },
     test: (line, ctx) => (uses(ctx, 'nanobreaker') && line === '.actions + "reaction Tank Through | text Halve an attack\'s damage aimed against you."')
-      || (uses(ctx, 'hardware-loki') && line === '.profs.skill - "undefined"')
+      || (uses(ctx, 'hardware-loki') && (line === '.profs.skill - "undefined"' || line === '.profs.skill + "deception"' || /^\.skills\.deception: /.test(line)))
+      || /^\.powers ~ power (?:nova|justice)@/.test(line)
+      || (uses(ctx, 'TA_plains') && /^\.speeds\.walk: \d+ → \d+$/.test(line))
+      || (line.startsWith('.initiative:') && ((ctx.character.classes ?? []) as Array<{ subclass?: string, levels?: number }>).some(k => k.subclass === 'armorer' && (k.levels ?? 0) >= 14))
       || (uses(ctx, 'toxic-resistance') && line === '.defenses.resistance + "poison"'),
   },
 ]
@@ -215,15 +259,24 @@ export function diff(a: unknown, b: unknown, path = ''): string[] {
   if (Array.isArray(a) && Array.isArray(b)) {
     const removed = a.filter(x => !b.some(y => JSON.stringify(y) === JSON.stringify(x)))
     const added = b.filter(y => !a.some(x => JSON.stringify(x) === JSON.stringify(y)))
-    // Card lines that changed are paired by their name (the text before the first ` | `).
-    const key = (x: unknown) => (typeof x === 'string' ? x.split(' | ')[0] : undefined)
+    // Card lines that changed are paired by their name (the text before the first ` | `) and the item they belong to;
+    // when that is ambiguous (one power learned from two classes), by their casting ability and source too.
+    const key1 = (x: unknown) => (typeof x === 'string' ? `${x.split(' | ')[0]}${x.match(/res resource (\S+)/)?.[1] ?? ''}` : undefined)
+    const key2 = (x: unknown) => (typeof x === 'string' ? `${key1(x)}${x.match(/ mod \S+ src [^|]*?(?= alt | time )/)?.[0] ?? ''}` : undefined)
     const out: string[] = []
     for (const x of removed) {
-      const k = key(x)
-      const matches = added.filter(y => k !== undefined && key(y) === k)
-      if (k !== undefined && matches.length === 1 && removed.filter(r => key(r) === k).length === 1) {
-        out.push(`${path} ~ ${String(x)} => ${String(matches[0])}`)
-        added.splice(added.indexOf(matches[0]), 1)
+      let match: unknown
+      for (const key of [key1, key2]) {
+        const k = key(x)
+        const matches = added.filter(y => k !== undefined && key(y) === k)
+        if (k !== undefined && matches.length === 1 && removed.filter(r => key(r) === k).length === 1) {
+          match = matches[0]
+          break
+        }
+      }
+      if (match !== undefined) {
+        out.push(`${path} ~ ${String(x)} => ${String(match)}`)
+        added.splice(added.indexOf(match), 1)
       }
       else out.push(`${path} - ${JSON.stringify(x)}`)
     }

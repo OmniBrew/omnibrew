@@ -64,8 +64,8 @@ export type ClassEntry = z.infer<typeof ClassEntry>
 
 export const LearnedPower = z.strictObject({
   id: Id,
-  /** Class whose list and casting ability the power uses. */
-  class: Id,
+  /** Class whose list and casting ability the power uses; null for a power learned without one (older live characters). */
+  class: Id.nullable(),
   advancement: Id.nullable(),
 })
 export type LearnedPower = z.infer<typeof LearnedPower>

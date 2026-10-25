@@ -174,7 +174,7 @@ export function selectedPowers(sheet: Sheet): SelectedPower[] {
     const provider = m.provider ? sheet.content.get(m.provider.model, m.provider.id) : undefined
     return { ...m, id: m.value, path: m.source, source: provider?.name ?? '', advancement: advancement?.value }
   })
-  return [...sheet.character.powers.map(p => ({ id: p.id, klass: p.class, advancement: p.advancement })), ...granted]
+  return [...sheet.character.powers.map(p => ({ id: p.id, klass: p.class ?? undefined, advancement: p.advancement })), ...granted]
 }
 
 const merge = (...parts: Array<Rec | null | undefined>) => parts.reduce<Rec>((a, p) => (p ? mergeDeep(a, p) as Rec : a), {})
@@ -239,8 +239,9 @@ export function computePowers(sheet: Sheet): PowerCard[] {
   const asResource = sheet.ofType('power-resource')
   for (const power of out) {
     if (castAsAttack(power)) {
-      if (power.altCasting && !power.altCasting.map((a: Rec) => a.unit).includes('attack')) power.altCasting.push({ length: 1, unit: 'attack' })
-      else power.altCasting = [{ length: 1, unit: 'attack' }]
+      // A copy: merged power entries share their arrays with the content record.
+      if (power.altCasting && !power.altCasting.map((a: Rec) => a.unit).includes('attack')) power.altCasting = [...power.altCasting, { length: 1, unit: 'attack' }]
+      else if (!power.altCasting) power.altCasting = [{ length: 1, unit: 'attack' }]
     }
     if (atWill.some(m => m.value === power.id && m.levels.includes(power.level))) power.alwaysCastable = power.level
     const res = asResource.find(m => m.value === power.id && m.levels.includes(power.level))

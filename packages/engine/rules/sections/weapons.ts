@@ -1,6 +1,6 @@
 import type { Sheet } from '../sheet'
 import type { AttackAugments, Mech, Rec, SheetCard, WeaponContext } from '../types'
-import { dieIncrease, emptyAugments, extraDamage } from './cards'
+import { attackOption, dieIncrease, emptyAugments, extraDamage } from './cards'
 import { adjustProperties } from './equipment'
 import { dieSteps } from './powers'
 
@@ -22,13 +22,17 @@ export type WeaponAugments = Record<string, AttackAugments>
 function weaponAugments(sheet: Sheet, q: { attackType: string, weaponType: string, abilityMod: string }, special: Record<string, boolean>, extra: Mech[]): WeaponAugments {
   const base = emptyAugments()
   const out: WeaponAugments = { base }
-  for (const key of Object.keys(special)) out[key] = { ...base, addDamage: [] }
+  for (const key of Object.keys(special)) out[key] = { ...base, addDamage: [], options: base.options }
   const all = [...sheet.ofType('attack-augment'), ...extra.filter(m => m.type === 'attack-augment')]
   for (const m of all) {
     if (m.attackLimit?.type && m.attackLimit.type !== q.attackType) continue
     if (m.attackLimit?.model && m.attackLimit.model !== 'weapon') continue
     if (m.attackLimit?.modelTypes && !m.attackLimit.modelTypes.includes(q.weaponType)) continue
     const bonus = m.abilityMod ? sheet.formula({ type: 'mod', value: q.abilityMod }) : sheet.formula(m.bonus)
+    if (m.ask) {
+      if (!m.attackLimit?.special) base.options.push(attackOption(m, bonus))
+      continue
+    }
     const reroll = m.rerollIfLessThan || 0
     const increase = m.dieIncrease || 0
     let key = 'base'
@@ -37,6 +41,7 @@ function weaponAugments(sheet: Sheet, q: { attackType: string, weaponType: strin
       key = m.attackLimit.special
     }
     const a = out[key]!
+    a.addDamage.push(...m.addDamage ?? [])
     for (const at of m.augmentTypes as string[]) {
       if (at === 'notes') {
         a.notes.push(...m.notes ?? [])
@@ -46,10 +51,7 @@ function weaponAugments(sheet: Sheet, q: { attackType: string, weaponType: strin
         a.reroll = Math.max(reroll, a.reroll)
         a.dieIncrease += increase
       }
-      if (at === 'damage') {
-        a.addCritDie += m.addCritDie || 0
-        a.addDamage.push(...m.addDamage ?? [])
-      }
+      if (at === 'damage') a.addCritDie += m.addCritDie || 0
       if (at === 'hit') a.crit = Math.min(m.crit || 20, a.crit)
       if (typeof (a as unknown as Record<string, unknown>)[at] === 'number') (a as unknown as Record<string, number>)[at]! += bonus
     }
@@ -87,8 +89,8 @@ export function computeWeaponAttacks(sheet: Sheet): WeaponAttacks {
   const globalDamage = (type: string) => overrides.damage.all + (type === 'melee' ? overrides.damage.melee : overrides.damage.ranged)
   const weaponProfs = sheet.profs.weapon
   const equipped = sheet.equipment.equippedWeapons
-  // The record's own properties decide two-weapon fighting (as the live sheet did), not mod-adjusted ones.
-  const twfEligible = equipped.filter(w => ids(w.data.properties).includes('light') && !ids(w.data.properties).includes('two-handed')).length > 1
+  // The weapon's own (or typed) properties decide two-weapon fighting, as the live sheet did, not mod-adjusted ones.
+  const twfEligible = equipped.filter(w => w.baseProperties.includes('light') && !w.baseProperties.includes('two-handed')).length > 1
   const propertyRecords = sheet.content.list('weapon-properties')
 
   const toProcess: WeaponContext[] = [
@@ -190,6 +192,7 @@ export function computeWeaponAttacks(sheet: Sheet): WeaponAttacks {
       bonus: { type: 'flat', value: 0 },
       moreInfo: weapon.entry.uuid ? { equipment: weapon.entry.uuid } : data.moreInfo,
       toggle: false,
+      ...(a.options.length ? { options: a.options } : {}),
       weaponType,
       augments,
     }

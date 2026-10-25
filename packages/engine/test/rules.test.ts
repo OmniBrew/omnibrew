@@ -94,7 +94,10 @@ const content = recs({
   ],
   'feats': [{ id: 'tough', name: 'Tough', mechanics: [{ type: 'hp', bonus: { type: 'level', multiplier: 2 } }, { type: 'skill-choice', options: true, limit: ['athletics'] }] }],
   'backgrounds': [{ id: 'sage', name: 'Sage', mechanics: [{ type: 'skill', value: 'history' }, { type: 'model-choice', model: 'styles', options: true }] }],
-  'edges': [{ id: 'style-defense', name: 'Defense', type: 'styles', mechanics: [{ type: 'ac', bonus: { type: 'flat', value: 1 }, limit: ['light', 'medium', 'heavy'] }] }],
+  'edges': [
+    { id: 'style-defense', name: 'Defense', type: 'styles', mechanics: [{ type: 'ac', bonus: { type: 'flat', value: 1 }, limit: ['light', 'medium', 'heavy'] }] },
+    { id: 'style-ask', name: 'Ambush', type: 'styles', mechanics: [{ type: 'attack-augment', ask: 'Is the target prone?', attackLimit: { model: 'weapon' }, augmentTypes: ['hit'], bonus: { type: 'flat', value: 2 }, addDamage: [{ dieCount: 1, dieType: 6 }] }] },
+  ],
   'skills': ['arcana', 'athletics', 'history', 'insight', 'perception'].map(id => ({ id, name: id, link: id === 'athletics' ? 'str' : id === 'insight' || id === 'perception' ? 'wis' : 'int' })),
   'powers': [
     { id: 'firebolt', name: 'Firebolt', level: 0, powerType: 'arcane', casting: [
@@ -302,6 +305,14 @@ describe('sheet', () => {
     expect(attacks.twf.map(a => a.name)).toEqual(['Rapier', 'Dagger'])
     expect(sheet.card(attacks.twf[1]!).damages?.[0]?.text).toBe('1d4 piercing damage')
     expect(sheet.card(attacks.attacks.find(a => a.name === 'Unarmed Strike')!).damages?.[0]?.text).toBe('1 + -1 bludgeoning damage')
+  })
+
+  it('offers per-attack augments (`ask`) as roll options instead of applying them', () => {
+    const s = rules.sheet(character({ choices: [...character().choices.filter(c => !c.path.startsWith('background')), { path: 'background/sage/styles', values: ['style-ask'] }] }))
+    const rapier = s.weaponAttacks.attacks.find(a => a.name === 'Rapier')!
+    const card = s.card(rapier)
+    expect(card.hit?.bonus).toBe(3)
+    expect(card.options).toEqual([{ ask: 'Is the target prone?', hit: 2, damage: '1d6 piercing damage' }])
   })
 
   it('adds a versatile roll from the property value', () => {

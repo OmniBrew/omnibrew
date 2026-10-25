@@ -186,6 +186,18 @@ export interface AttackAugments {
   notes: unknown[]
   /** Extra damage rolls on a hit (`addDamage`), merged into every damage roll of the attack. */
   addDamage: Rec[]
+  /** Augments that ask a per-attack question instead of applying (`ask`). */
+  options: AttackOption[]
+}
+
+/** A per-attack option the roll dialog offers: what it adds when the player says yes. */
+export interface AttackOption {
+  ask: string
+  source?: string
+  hit: number
+  damage: number
+  dc: number
+  addDamage: Rec[]
 }
 
 export interface RulesOptions {

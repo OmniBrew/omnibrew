@@ -71,7 +71,9 @@ describe.skipIf(!ready)('parity with the live site', () => {
     const { character, report } = migrateCharacter(old, { game, content: rules.content })
     expect(report.unknown, 'unknown ids').toEqual([])
     expect(report.dropped, 'dropped values').toEqual([])
-    const result = compare(want, engineSheet(rules.sheet(character)), { character: old })
+    const sheet = rules.sheet(character)
+    const multiModWeapons = sheet.equipment.weapons.filter(w => w.mechanics.filter(m => m.type === 'me:weapon-augment').length > 1).map(w => w.entry.uuid)
+    const result = compare(want, engineSheet(sheet), { character: old, multiModWeapons })
     for (const [id, lines] of Object.entries(result.known)) known[id] = (known[id] ?? 0) + lines.length
     expect(result.unexplained).toEqual([])
   }
@@ -96,6 +98,64 @@ describe.skipIf(!ready)('parity with the live site', () => {
       check(ours)
     })
   }
+
+  // Real characters (plan/04 Q20): only with PARITY_SAMPLE=<DynamoDB scan JSON outside the repo>; prints a summary
+  // (PARITY_SAMPLE_OUT=<file> writes it) and never stores a character.
+  it.runIf(!!process.env.PARITY_SAMPLE)('a sample of saved characters', async () => {
+    const items = (JSON.parse(readFileSync(process.env.PARITY_SAMPLE!, 'utf8')) as { Items: Array<{ data: { S: string } }> }).Items
+    const summary = { characters: items.length, compared: 0, notReady: 0, migrationFailed: [] as string[], legacyFailed: [] as string[], engineFailed: [] as string[], versions: {} as Record<string, number>, known: {} as Record<string, number>, unexplained: {} as Record<string, number>, report: { unknown: {} as Record<string, number>, homebrew: 0, dropped: {} as Record<string, number> }, examples: {} as Record<string, string> }
+    const jsonpack = (await import('jsonpack/main')).default
+    items.forEach((item, i) => {
+      let old: Record<string, unknown>
+      try {
+        const raw = jsonpack.unpack(item.data.S) as Record<string, unknown>
+        const version = (raw.meta as { version?: string } | undefined)?.version ?? 'none'
+        summary.versions[version] = (summary.versions[version] ?? 0) + 1
+        old = version === '1.0.2' ? raw : legacyMigrate(raw, 'NOW')
+      }
+      catch (e) {
+        summary.migrationFailed.push(`#${i}: ${(e as Error).message.slice(0, 120)}`)
+        return
+      }
+      const ready = !!old.species && (old.classes as unknown[] | undefined)?.length && Object.values(old.abilityScores as Record<string, { value: unknown }>).every(a => a?.value)
+      if (!ready) {
+        summary.notReady += 1
+        return
+      }
+      let want
+      try {
+        store.load(old)
+        want = legacySheet(store, mixins)
+      }
+      catch (e) {
+        summary.legacyFailed.push(`#${i}: ${(e as Error).message.slice(0, 120)}`)
+        return
+      }
+      try {
+        const { character, report } = migrateCharacter(old, { game, content: rules.content })
+        for (const u of report.unknown) summary.report.unknown[`${u.collection}:${u.id}`] = (summary.report.unknown[`${u.collection}:${u.id}`] ?? 0) + 1
+        for (const d of report.dropped) summary.report.dropped[`${d.at.replaceAll(/\[\d+\]/g, '[]')}: ${d.message.slice(0, 60)}`] = (summary.report.dropped[`${d.at.replaceAll(/\[\d+\]/g, '[]')}: ${d.message.slice(0, 60)}`] ?? 0) + 1
+        summary.report.homebrew += report.homebrew.length
+        const sheet = rules.sheet(character)
+        const multiModWeapons = sheet.equipment.weapons.filter(w => w.mechanics.filter(m => m.type === 'me:weapon-augment').length > 1).map(w => w.entry.uuid)
+        const result = compare(want, engineSheet(sheet), { character: old, multiModWeapons })
+        summary.compared += 1
+        for (const [id, lines] of Object.entries(result.known)) summary.known[id] = (summary.known[id] ?? 0) + lines.length
+        // Group unexplained lines by field and shape, without character text.
+        for (const line of result.unexplained) {
+          const key = line.replaceAll(/_[\dTZ:.-]+/g, '_*').replaceAll(/\d+/g, '#').slice(0, 160)
+          summary.unexplained[key] = (summary.unexplained[key] ?? 0) + 1
+          if (process.env.PARITY_SAMPLE_EXAMPLES) (summary.examples[key] ??= `#${i} ${line}`)
+        }
+      }
+      catch (e) {
+        summary.engineFailed.push(`#${i}: ${(e as Error).stack?.split('\n').slice(0, 3).join(' ').slice(0, 200)}`)
+      }
+    })
+    const text = JSON.stringify(summary, null, 2)
+    if (process.env.PARITY_SAMPLE_OUT) writeFileSync(process.env.PARITY_SAMPLE_OUT, text)
+    else console.info(text)
+  }, 600_000)
 
   it('every known difference is still seen', () => {
     for (const k of KNOWN) expect(known[k.id] ?? 0, k.id).toBeGreaterThan(0)

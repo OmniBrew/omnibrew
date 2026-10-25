@@ -49,9 +49,9 @@ export interface EquipmentView {
 const byUuid = <T extends { entry: EquipmentEntry }>(a: T, b: T) => (a.entry.uuid > b.entry.uuid ? 1 : -1)
 
 /** Gear records, with each `subsets` entry (grenade tiers) as its own record. */
-export function gearRecords(sheet: Sheet): Rec[] {
+export function gearRecords(content: Pick<Sheet['content'], 'list'>): Rec[] {
   const out: Rec[] = []
-  for (const g of sheet.content.list('gear')) {
+  for (const g of content.list('gear')) {
     out.push(g)
     for (const s of g.subsets ?? []) out.push({ ...g, ...s })
   }
@@ -80,8 +80,8 @@ function ownWeapon(sheet: Sheet, entry: EquipmentEntry): OwnedWeapon | null {
   const base = propertyIds(weapon.properties)
   const values = { ...base.values }
   if (heat !== undefined) values.heat = heat
-  // A typed property list replaces the record's; valued properties keep their values.
-  const baseProperties = typedProps ? [...propertyIds(typedProps).ids, ...base.ids.filter(id => id in base.values && !propertyIds(typedProps).ids.includes(id))] : base.ids
+  // A typed property list replaces the record's; the record's values (heat) still count.
+  const baseProperties = typedProps ? propertyIds(typedProps).ids : base.ids
   const adjust = modMechanics.filter(m => m.type === 'adjust-weapon-props')
   return { entry, data, baseProperties, adjust, properties: adjustProperties(baseProperties, adjust), propertyValues: values, slots: data.slots, mechanics: modMechanics.filter(m => m.type !== 'adjust-weapon-props') }
 }
@@ -110,7 +110,7 @@ export function computeEquipment(sheet: Sheet): EquipmentView {
     const data = entry.custom ? { ...entry.custom } : sheet.content.get('armor', entry.id) ?? { id: entry.id, armorType: 'none', mechanics: [] }
     return { entry, data, mechanics: [...data.mechanics ?? [], ...entry.equipped ? armorMods(entry) : []] }
   }).sort(byUuid)
-  const gearList = gearRecords(sheet)
+  const gearList = gearRecords(sheet.content)
   const gear: OwnedItem[] = owned.filter(e => e.kind === 'gear').map((entry) => {
     const data = gearList.find(g => g.id === entry.id) ?? { id: entry.id, mechanics: [] }
     return { entry, data, mechanics: data.mechanics ?? [] }

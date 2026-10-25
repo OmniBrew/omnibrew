@@ -1,5 +1,5 @@
 import { CHARACTER_VERSION, characterSchema, type Character, type ChoiceValue } from '@omnibrew/engine/character'
-import type { RulesContent } from '@omnibrew/engine/rules'
+import { gearRecords, type RulesContent } from '@omnibrew/engine/rules'
 import type { Game } from '@omnibrew/engine/schemas'
 import jsonpack from 'jsonpack/main'
 import { meLegacy } from './legacy'
@@ -47,6 +47,8 @@ export interface CharacterMigrationReport {
 /** Record ids renamed since the live data (collection → old → new). */
 export const RENAMED_IDS: Record<string, Record<string, string>> = {
   vehicles: { 'destiny-acension': 'destiny-ascension' },
+  // An earlier spelling of the turian trait, still picked by saved characters (plan/18, prod sample).
+  traits: { 'thilium-skin': 'thulium-skin' },
 }
 
 const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
@@ -92,7 +94,7 @@ class Context {
       this.report.renamed.push({ at, id, collection, message: `${id} → ${renamed}` })
       return renamed
     }
-    if (this.opts.content.get(collection, id)) return id
+    if (this.opts.content.get(collection, id) || (collection === 'gear' && gearRecords(this.opts.content).some(g => g.id === id))) return id
     if (homebrew && UUID.test(id)) this.report.homebrew.push({ at, id, collection, message: 'homebrew record' })
     else this.report.unknown.push({ at, id, collection, message: `no ${collection} record "${id}"` })
     return id
@@ -263,7 +265,8 @@ function toModel(old: Rec, ctx: Context): Character {
     if (!id) return
     const record = content.get('powers', id)
     let advancement: string | null = null
-    if (p.advancement !== null && p.advancement !== undefined) {
+    // `false` was "no advancement" too.
+    if (p.advancement !== null && p.advancement !== undefined && p.advancement !== false) {
       // Older characters stored the advancement object, or its index.
       const raw = typeof p.advancement === 'object' ? p.advancement.id : typeof p.advancement === 'number' ? record?.advancements?.[p.advancement]?.id : p.advancement
       if (typeof raw === 'string') {
@@ -274,10 +277,7 @@ function toModel(old: Rec, ctx: Context): Character {
       else ctx.report.dropped.push({ at: `${at}.advancement`, message: `advancement ${JSON.stringify(p.advancement)}` })
     }
     const klass = typeof p.klass === 'string' ? (ctx.ref('classes', p.klass, `${at}.klass`) ?? p.klass) : null
-    if (!klass) {
-      ctx.report.dropped.push({ at, id, message: 'learned power without a class' })
-      return
-    }
+    if (!klass) ctx.report.notes.push({ at, id, message: 'learned power without a class (kept; it casts with the ability of its power type)' })
     powers.push({ id, class: klass, advancement })
   })
 

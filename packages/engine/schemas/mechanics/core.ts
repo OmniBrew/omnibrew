@@ -157,8 +157,10 @@ export const coreMechanics: MechanicDefinition[] = [
       addCritDie: z.number().int().optional(),
       abilityMod: z.boolean().optional(),
       notes: z.array(k.Note).optional(),
-      /** Extra damage rolls on a hit; without a `type` they take the attack's damage type. */
+      /** Extra damage rolls on a hit, whatever `augmentTypes` says; without a `type` they take the attack's damage type. */
       addDamage: z.array(k.Damage).optional(),
+      /** A condition checked per attack ("Is no hostile creature within 30 ft?"): not added to the card, offered when the attack is rolled. */
+      ask: z.string().optional(),
     }),
   }),
   defineMechanic({

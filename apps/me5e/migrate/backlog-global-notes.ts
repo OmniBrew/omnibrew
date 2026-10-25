@@ -22,8 +22,19 @@ const replaceNote = (value: string | undefined, ...next: Rec[]): Edit => (mechan
   return [...mechanics.slice(0, i), ...next, ...mechanics.slice(i + 1)]
 }
 
-/** A situational bonus as a sheet toggle (the live site's convention for modes and situational bonuses). */
+/** A lasting situational bonus (this round, while hovering) as a sheet toggle, the live site's convention for modes. */
 const toggle = (id: string, shortDesc: string, whenOn: Rec[]): Rec => ({ type: 'other', shortDesc, toggle: { id, whenOn } })
+
+/**
+ * A bonus that depends on the target or the moment of one attack: asked when the
+ * attack is rolled (`ask`), not toggled (plan/04 Q19). Replaces the note, or the
+ * toggle card an earlier run of this script wrote.
+ */
+const ask = (note: string, toggleId: string, ...augments: Rec[]): Edit => (mechanics) => {
+  const i = mechanics.findIndex(m => isNote(note)(m) || (m.toggle as Rec | undefined)?.id === toggleId || m.ask === augments[0]?.ask)
+  if (i < 0) return mechanics
+  return [...mechanics.slice(0, i), ...augments, ...mechanics.slice(i + 1)]
+}
 
 const SNEAK_DICE = { 1: 1, 3: 2, 5: 3, 7: 4, 9: 5, 11: 6, 13: 7, 15: 8, 17: 9, 19: 10 }
 
@@ -51,26 +62,25 @@ export const CONVERSIONS: Record<string, Edit> = {
   'armor/batarian-talon-gauntlets': replaceNote('+1 slashing dmg', { type: 'attack-augment', attackLimit: { type: 'melee' }, augmentTypes: ['damage'], addDamage: [{ type: 'slashing', bonus: { type: 'flat', value: 1 } }] }),
 
   // Situational bonuses as toggles.
-  'edges/FS_sniper': replaceNote('Sniper', toggle('FS_sniper', 'No hostile creature within :distance{length="30"}: +2 to damage rolls with a sniper rifle.', [
-    { type: 'attack-augment', attackLimit: { model: 'weapon', modelTypes: ['sniper_rifle'] }, augmentTypes: ['damage'], bonus: { type: 'flat', value: 2 } },
-  ])),
+  'edges/FS_sniper': ask('Sniper', 'FS_sniper',
+    { type: 'attack-augment', ask: 'No hostile creature within :distance{length="30"}?', attackLimit: { model: 'weapon', modelTypes: ['sniper_rifle'] }, augmentTypes: ['damage'], bonus: { type: 'flat', value: 2 } },
+  ),
   'edges/FS_the-free-hand': replaceNote('Free Hand', toggle('FS_the-free-hand', 'Holding no more than one light, non-two-handed weapon: +2 to hit with ranged power attacks.', [
     { type: 'attack-augment', attackLimit: { model: 'power', type: 'ranged' }, augmentTypes: ['hit'], bonus: { type: 'flat', value: 2 } },
   ])),
   'mods/aerial-performance-optimizer': replaceNote(undefined, toggle('aerial-performance-optimizer', 'Hovering (jump jets) or flying (jetpack): +2 to all attack and damage rolls.', [
     { type: 'attack-augment', augmentTypes: ['hit', 'damage'], bonus: { type: 'flat', value: 2 } },
   ])),
-  'class-features/blood-trail': replaceNote('Blood Trail', toggle('blood-trail', 'Against a creature that took damage since the end of your last turn: +2 to hit and +1d8 damage with ranged weapon attacks.', [
-    { type: 'attack-augment', attackLimit: { model: 'weapon', type: 'ranged' }, augmentTypes: ['hit'], bonus: { type: 'flat', value: 2 } },
-    { type: 'attack-augment', attackLimit: { model: 'weapon', type: 'ranged' }, augmentTypes: ['damage'], addDamage: [{ dieCount: 1, dieType: 8 }] },
-  ])),
+  'class-features/blood-trail': ask('Blood Trail', 'blood-trail',
+    { type: 'attack-augment', ask: 'Did the target take damage since the end of your last turn?', attackLimit: { model: 'weapon', type: 'ranged' }, augmentTypes: ['hit'], bonus: { type: 'flat', value: 2 }, addDamage: [{ dieCount: 1, dieType: 8 }] },
+  ),
   'class-features/lock-on': replaceNote('Lock On', toggle('lock-on', 'Using Hold Your Ground or attacking with an SMG: +1 to hit and +1d4 damage on all your attacks this round.', [
     { type: 'attack-augment', augmentTypes: ['hit'], bonus: { type: 'flat', value: 1 } },
     { type: 'attack-augment', augmentTypes: ['damage'], addDamage: [{ dieCount: 1, dieType: 4 }] },
   ])),
-  'class-features/soft-spots': replaceNote('Soft Spots', toggle('soft-spots', 'Against an enemy marked with Tactical Sweep: + your Intelligence modifier (minimum +1) to damage.', [
-    { type: 'attack-augment', augmentTypes: ['damage'], bonus: { type: 'mod', value: 'int', min: 1 } },
-  ])),
+  'class-features/soft-spots': ask('Soft Spots', 'soft-spots',
+    { type: 'attack-augment', ask: 'Is the target marked by your Tactical Sweep?', augmentTypes: ['damage'], bonus: { type: 'mod', value: 'int', min: 1 } },
+  ),
 
   // Once-per-turn extra dice as a card with the dice for the character's level.
   'class-features/power-from-pain': replaceNote('Power from Pain', { type: 'other', damage: [{ dieCount: { type: 'progressive', limit: 'soldier', value: { 3: 1, 7: 2, 10: 3, 15: 4, 18: 5 } }, dieType: 6 }] }),
@@ -108,7 +118,8 @@ export function convert(root: string) {
     write(rel, (a) => {
       const mechanics = (a.mechanics ?? []) as Rec[]
       // Prose-only records gain mechanics; a converted record has no matching note left.
-      if (!mechanics.length || mechanics.some(isNote()) || rel.startsWith('class-features/brutal-critical-')) return { ...a, mechanics: edit(mechanics, a) }
+      const asked = ['edges/FS_sniper', 'class-features/blood-trail', 'class-features/soft-spots'].includes(rel)
+      if (!mechanics.length || mechanics.some(isNote()) || asked || rel.startsWith('class-features/brutal-critical-')) return { ...a, mechanics: edit(mechanics, a) }
       return a
     })
   }

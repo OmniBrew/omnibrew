@@ -30,6 +30,12 @@ export function mergeDeep(a: unknown, b: unknown): unknown {
     b.forEach((v, i) => { out[i] = mergeDeep(a[i], v) })
     return out
   }
+  // lodash merges an object into an array by key: only index keys change items.
+  if (Array.isArray(a) && isPlain(b)) {
+    const out = [...a]
+    for (const [k, v] of Object.entries(b)) if (/^\d+$/.test(k)) out[Number(k)] = mergeDeep(a[Number(k)], v)
+    return out
+  }
   if (isPlain(a) && isPlain(b)) {
     const out: Record<string, unknown> = { ...a }
     for (const [k, v] of Object.entries(b)) out[k] = mergeDeep(a[k], v)

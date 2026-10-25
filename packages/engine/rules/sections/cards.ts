@@ -1,5 +1,5 @@
 import type { Sheet } from '../sheet'
-import type { AttackAugments, Mech, Rec, SheetCard } from '../types'
+import type { AttackAugments, AttackOption, Mech, Rec, SheetCard } from '../types'
 
 /**
  * Sheet cards (actions, attacks, powers): attack augments, and what a card
@@ -17,7 +17,20 @@ export interface AugmentQuery {
   abilityMod?: string
 }
 
-export const emptyAugments = (): AttackAugments => ({ hit: 0, damage: 0, dc: 0, range: 0, reroll: 0, crit: 20, dieIncrease: 0, addCritDie: 0, notes: [], addDamage: [] })
+export const emptyAugments = (): AttackAugments => ({ hit: 0, damage: 0, dc: 0, range: 0, reroll: 0, crit: 20, dieIncrease: 0, addCritDie: 0, notes: [], addDamage: [], options: [] })
+
+/** An `ask` augment as a roll-dialog option. */
+export function attackOption(m: Mech, bonus: number): AttackOption {
+  const types = m.augmentTypes as string[]
+  return {
+    ask: m.ask,
+    ...(m.source ? { source: m.source } : {}),
+    hit: types.includes('hit') ? bonus : 0,
+    damage: types.includes('damage') ? bonus : 0,
+    dc: types.includes('dc') ? bonus : 0,
+    addDamage: m.addDamage ?? [],
+  }
+}
 
 /** `attack-augment` mechanics matching an attack (special-attack ones excluded), summed. */
 export function matchingAugments(sheet: Sheet, q: AugmentQuery): AttackAugments {
@@ -28,17 +41,19 @@ export function matchingAugments(sheet: Sheet, q: AugmentQuery): AttackAugments 
     && !m.attackLimit?.special)
   for (const m of matching) {
     const bonus = m.abilityMod ? sheet.formula({ type: 'mod', value: q.abilityMod }) : sheet.formula(m.bonus)
+    if (m.ask) {
+      out.options.push(attackOption(m, bonus))
+      continue
+    }
     const reroll = m.rerollIfLessThan || 0
     const dieIncrease = m.dieIncrease || 0
+    out.addDamage.push(...m.addDamage ?? [])
     for (const at of m.augmentTypes as Array<keyof AttackAugments>) {
       if (at === 'damage' && (reroll || dieIncrease)) {
         out.reroll = Math.max(reroll, out.reroll)
         out.dieIncrease += dieIncrease
       }
-      if (at === 'damage') {
-        out.addCritDie += m.addCritDie || 0
-        out.addDamage.push(...m.addDamage ?? [])
-      }
+      if (at === 'damage') out.addCritDie += m.addCritDie || 0
       if (typeof out[at] === 'number') (out[at] as number) += bonus
     }
   }
@@ -77,6 +92,7 @@ export function augmentCard(sheet: Sheet, card: Rec, a: AttackAugments, steps: n
     })
   }
   if (card.damage && a.addDamage.length) out.damage = [...out.damage ?? card.damage, ...extraDamage(a, card.damage)]
+  if (a.options.length) out.options = a.options
   return out
 }
 
@@ -84,7 +100,7 @@ export function augmentCard(sheet: Sheet, card: Rec, a: AttackAugments, steps: n
 export function computeActions(sheet: Sheet): SheetCard[] {
   return sheet.ofType('attack', 'action', 'bonus-action', 'reaction', 'other').map((m: Mech) => {
     const augments = matchingAugments(sheet, { attackType: m.attack?.type, model: m.modelType?.model, modelType: m.modelType?.type, abilityMod: m.damage?.[0]?.mod })
-    return { ...m, ...augmentCard(sheet, m, augments, [1, 4, 6, 8, 10, 12]) }
+    return { ...m, ...augmentCard(sheet, m, augments, [1, 4, 6, 8, 10, 12]), ...(augments.options.length ? { options: augments.options } : {}) }
   })
 }
 
@@ -107,6 +123,8 @@ export interface ResolvedCard {
   notes: Array<{ type: string, text: string, [k: string]: unknown }>
   /** Short description with placeholders filled. */
   shortDesc?: string
+  /** Per-attack options for the roll dialog: the question, and what saying yes adds. */
+  options?: Array<{ ask: string, hit?: number, dc?: number, damage?: string }>
 }
 
 function damageValues(sheet: Sheet, raw: Rec) {
@@ -188,6 +206,12 @@ export function computeCard(sheet: Sheet, item: SheetCard): ResolvedCard {
     }
   }
   if (item.shortDesc) out.shortDesc = fill(item.shortDesc)
+  if (Array.isArray(item.options) && item.options.length) {
+    out.options = (item.options as AttackOption[]).map((o) => {
+      const extra = [o.damage ? `${o.damage > 0 ? '+' : ''}${o.damage}` : '', ...o.addDamage.map(d => damageText(damageValues(sheet, { ...d, type: d.type ?? item.damage?.[0]?.type }).types))].filter(Boolean)
+      return { ask: o.ask, ...(o.hit ? { hit: o.hit } : {}), ...(o.dc ? { dc: o.dc } : {}), ...(extra.length ? { damage: extra.join(' + ') } : {}) }
+    })
+  }
   return out
 }
 

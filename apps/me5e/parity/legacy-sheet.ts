@@ -132,7 +132,8 @@ export function legacySheet(store: LegacyStore, mixins: { CsActions: Record<stri
     saves,
     skills,
     initiative,
-    ac: get('ac/ac'),
+    // A typed AC override was stored as text; the sheet showed it as is.
+    ac: Number(get('ac/ac')),
     hp: `${hp.current}/${hp.max} temp ${get('hp/tempHp').value ?? 0}`,
     shields: `${shields.current}/${shields.max} regen ${shields.regen}`,
     barrier: `${barrier.dieCount}d${barrier.dieType} ticks ${barrier.ticks.used}/${barrier.ticks.max} uses ${barrier.uses.used}/${barrier.uses.max}`,

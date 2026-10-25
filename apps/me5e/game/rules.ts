@@ -199,22 +199,21 @@ function tentacleBlender(sheet: Sheet) {
 
 // --- weapons ---
 
-interface WeaponMode {
-  on: boolean
-  mechanic?: Rec
-}
-
-/** The weapon's ammo or mode mod (`me:weapon-augment`): on unless it is a toggle the player turned off. */
-function weaponMode(weapon: WeaponContext, sheet: Sheet): WeaponMode {
-  const m = weapon.mechanics.find(x => x.type === 'me:weapon-augment')
-  if (!m) return { on: false }
-  return { on: m.toggle ? !!sheet.character.state.toggles[weapon.entry.uuid] : true, mechanic: m }
+/**
+ * The weapon's mod effects (`me:weapon-augment`): every one applies (one mod per slot,
+ * so at most one ammo mod); a toggle (ammo) only while the player has it on.
+ * The live sheet applied only the first, so a scope or barrel hid the ammo (plan/04 Q18).
+ */
+function activeModes(weapon: WeaponContext, sheet: Sheet) {
+  const all = weapon.mechanics.filter(x => x.type === 'me:weapon-augment')
+  const on = !!sheet.character.state.toggles[weapon.entry.uuid]
+  return { all, active: all.filter(m => !m.toggle || on), toggle: all.find(m => m.toggle) }
 }
 
 function weaponAttack(card: SheetCard, weapon: WeaponContext, sheet: Sheet): SheetCard {
-  const { on, mechanic: t } = weaponMode(weapon, sheet)
+  const { active, toggle } = activeModes(weapon, sheet)
   const out: SheetCard = { ...card }
-  if (t?.toggle) out.toggle = { id: weapon.entry.uuid, showLabel: true, name: t.name }
+  if (toggle) out.toggle = { id: weapon.entry.uuid, showLabel: true, name: toggle.name }
 
   const heat = weapon.data.propertyValues?.heat ?? weapon.data.heat
   if (heat) {
@@ -227,25 +226,29 @@ function weaponAttack(card: SheetCard, weapon: WeaponContext, sheet: Sheet): She
       reset: 'manual',
       vented: weapon.properties.includes('vented'),
       max: { type: 'flat', value: heat + scaled + flat, min: 0 },
-      increment: on ? t?.heatConsumption : 1,
+      increment: active.find(m => m.heatConsumption)?.heatConsumption ?? 1,
       id: weapon.entry.uuid,
     }
   }
 
-  if (on && t) {
+  if (active.length) {
     const range = { ...out.range }
-    if (t.shortRangeMultiplier) range.short *= t.shortRangeMultiplier
-    if (t.longRangeMultiplier && range.long) range.long *= t.longRangeMultiplier
-    if (t.shortRangeMax) range.short = Math.min(range.short, t.shortRangeMax)
-    if (t.longRangeMax && range.long) range.long = Math.min(range.long, t.longRangeMax)
-    if (t.addAoe) range.aoe = t.addAoe
-    if (t.onlyShortRange) range.long = null
-    out.range = range
-    const augmentNotes = (card.augments as Record<string, AttackAugments>).base!.notes.length
     const notes = [...card.notes]
-    notes.splice(notes.length - augmentNotes, 0, ...t.notes ?? [])
-    if (t.primes) notes.unshift({ type: 'tooltip', tooltipText: `Primes ${t.primes} ${t.primesLength || 'until the start of your next turn'}`, text: `P: ${t.primes}` })
-    if (t.detonates) notes.unshift({ type: 'icon', text: 'Detonates', icon: 'mdi-alert-octagram', color: 'red darken-4' })
+    const augmentNotes = (card.augments as Record<string, AttackAugments>).base!.notes.length
+    for (const t of active) {
+      if (t.shortRangeMultiplier) range.short *= t.shortRangeMultiplier
+      if (t.longRangeMultiplier && range.long) range.long *= t.longRangeMultiplier
+      if (t.shortRangeMax) range.short = Math.min(range.short, t.shortRangeMax)
+      if (t.longRangeMax && range.long) range.long = Math.min(range.long, t.longRangeMax)
+      if (t.addAoe) range.aoe = t.addAoe
+      if (t.onlyShortRange) range.long = null
+      notes.splice(notes.length - augmentNotes, 0, ...t.notes ?? [])
+    }
+    for (const t of active) {
+      if (t.primes) notes.unshift({ type: 'tooltip', tooltipText: `Primes ${t.primes} ${t.primesLength || 'until the start of your next turn'}`, text: `P: ${t.primes}` })
+      if (t.detonates) notes.unshift({ type: 'icon', text: 'Detonates', icon: 'mdi-alert-octagram', color: 'red darken-4' })
+    }
+    out.range = range
     out.notes = notes
   }
   return out
@@ -435,8 +438,15 @@ export const meRules: GameRules = {
       return mounted && sheet.ofType('me:shoulder-mounts').length ? 'int' : undefined
     },
     mode: (weapon, sheet) => {
-      const { on, mechanic: t } = weaponMode(weapon, sheet)
-      return on && t ? { dc: t.dc, hitBonus: t.hitBonus, damageType: t.damageType, damageMultiplier: t.damageMultiplier, addDamage: t.addDamage } : undefined
+      const { active } = activeModes(weapon, sheet)
+      if (!active.length) return undefined
+      return {
+        dc: active.find(t => t.dc)?.dc,
+        hitBonus: active.reduce((a, t) => a + (t.hitBonus || 0), 0),
+        damageType: active.find(t => t.damageType)?.damageType,
+        damageMultiplier: active.reduce((a, t) => a * (t.damageMultiplier || 1), 1),
+        addDamage: active.flatMap(t => t.addDamage ?? []),
+      }
     },
     attack: weaponAttack,
     special: {
