@@ -43,6 +43,14 @@ export default defineNuxtConfig({
       : {}),
   },
 
+  vite: {
+    optimizeDeps: {
+      // @nuxtjs/mdc asks Vite to pre-bundle its CommonJS dependencies as `@nuxtjs/mdc > …`, which
+      // pnpm doesn't let the app resolve; without this, <MDC> mounted in the browser renders nothing in dev.
+      include: ['@nuxt/content > @nuxtjs/mdc > unified > extend', '@nuxt/content > @nuxtjs/mdc > debug'],
+    },
+  },
+
   nitro: {
     prerender: {
       // The site search's index and robots.txt (server/routes), static files once generated.

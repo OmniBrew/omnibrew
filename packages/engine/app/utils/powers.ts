@@ -3,13 +3,18 @@
  * from the first `casting` entry. Pure functions over an i18n `t`, so the
  * engine's power components and the tests share them.
  */
-/** The calls these helpers make to vue-i18n's `t`. */
+/**
+ * The calls these helpers make to vue-i18n's `t`. Separate overloads like
+ * vue-i18n's own, so its `t` can be passed in.
+ */
+/* eslint-disable @typescript-eslint/unified-signatures */
 export interface Translate {
   (key: string): string
   (key: string, plural: number): string
   (key: string, list: unknown[]): string
   (key: string, named: Record<string, unknown>, plural?: number): string
 }
+/* eslint-enable @typescript-eslint/unified-signatures */
 
 export interface CastingTime { length?: number, unit: string, reaction?: string }
 export interface Casting {
