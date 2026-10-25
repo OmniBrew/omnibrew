@@ -10,10 +10,11 @@ const label = computed(() => t(preferences.units === 'metric' ? 'settings.metric
     <UButton
       color="neutral"
       variant="ghost"
-      :label="label"
       icon="i-lucide-ruler"
-      :aria-label="t('shell.switch_units')"
+      :aria-label="`${t('shell.switch_units')} (${label})`"
       @click="preferences.toggleUnits()"
-    />
+    >
+      <span class="hidden sm:inline">{{ label }}</span>
+    </UButton>
   </UTooltip>
 </template>

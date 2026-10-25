@@ -11,7 +11,7 @@ const links = computed<NavigationMenuItem[]>(() => (game.headerLinks as NavItem[
   <UHeader :to="'/'" :title="t(game.brand.title)" mode="slideover">
     <template #title>
       <img v-if="game.brand.logo" :src="game.brand.logo" alt="" class="size-7">
-      <span class="font-display text-xl font-semibold text-highlighted">{{ t(game.brand.title) }}</span>
+      <span class="hidden font-display text-xl font-semibold text-highlighted sm:inline">{{ t(game.brand.title) }}</span>
     </template>
 
     <UNavigationMenu :items="links" variant="link" />
