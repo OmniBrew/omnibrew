@@ -108,7 +108,7 @@ export function checkReferences(game: Game, records: Records, files: Map<string,
       const feats = [...(records.get('class-features')?.values() ?? [])].filter(f => f.klass === model)
       return { ids: new Set(feats.map(f => f.id as string)), label: `class-features of ${model}` }
     }
-    if (game.def.sources[model] === undefined && !game.enums.values.models.includes(model)) {
+    if (game.def.sources[model] === undefined && !(game.enums.values.models ?? []).includes(model)) {
       report(collection, id, path, 'model-unknown', `model "${model}" is not a collection, edge family or class`)
     }
     return undefined
@@ -200,7 +200,7 @@ export function checkReferences(game: Game, records: Records, files: Map<string,
             break
           case 'tool-choice':
             for (const v of ([] as unknown[]).concat(m.limit ?? [])) {
-              if (typeof v === 'string' && !game.enums.values.toolTypes.includes(v)) refId(collection, id, `${path}.limit`, ['tool-profs'], v)
+              if (typeof v === 'string' && !(game.enums.values.toolTypes ?? []).includes(v)) refId(collection, id, `${path}.limit`, ['tool-profs'], v)
             }
             break
           case 'condition-immunity':

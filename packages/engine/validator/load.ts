@@ -43,13 +43,25 @@ export interface LoadResult {
   issues: Issue[]
 }
 
-export function loadContent(root: string, game: GameDefinition): LoadResult {
+/** Loads every collection, or only `only`. */
+export function loadContent(root: string, game: GameDefinition, only?: string[]): LoadResult {
   const issues: Issue[] = []
   const records: LoadedRecord[] = []
   for (const [collection, source] of Object.entries(game.sources)) {
+    if (only && !only.includes(collection)) continue
     records.push(...loadCollection(root, collection, source, issues))
   }
   return { records, issues }
+}
+
+/** Loaded records grouped as collection → id → record (the shape game checks and derivations read). */
+export function groupRecords(records: LoadedRecord[]) {
+  const out = new Map<string, Map<string, Record<string, unknown>>>()
+  for (const { collection, id, record } of records) {
+    if (!out.has(collection)) out.set(collection, new Map())
+    out.get(collection)!.set(id, record)
+  }
+  return out
 }
 
 function loadCollection(root: string, collection: string, source: CollectionSource, issues: Issue[]): LoadedRecord[] {

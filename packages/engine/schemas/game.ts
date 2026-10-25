@@ -27,6 +27,17 @@ export interface GameCheckIssue {
   message: string
 }
 
+/** A record computed from other content instead of read from a file. `body` is MDC prose. */
+export type DerivedRecord = Record<string, unknown> & { id: string, body?: string }
+
+/** Records a game computes from its content (ME5e's Exalted Lineage edges). */
+export interface GameDerivation {
+  /** Collections the derivation reads. */
+  from: string[]
+  /** Derived records per collection. They are validated like files and must not reuse a file's id. */
+  records: (input: Map<string, Map<string, Record<string, unknown>>>) => Record<string, DerivedRecord[]>
+}
+
 export interface GameCheckContext {
   /** Content repo root. */
   root: string
@@ -52,6 +63,8 @@ export interface GameDefinition {
   itemKinds?: Record<string, ShapeFn>
   /** Content repo layout: collection name → folder. */
   sources: Record<string, CollectionSource>
+  /** Records computed from content; the site and the validator add them to their collections. */
+  derive?: GameDerivation
   /** Game-specific checks that need the whole content set (indexes, generated records...). */
   checks?: (ctx: GameCheckContext) => void
 }

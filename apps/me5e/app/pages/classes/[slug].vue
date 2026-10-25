@@ -1,41 +1,92 @@
 <script setup lang="ts">
 const route = useRoute()
+const { t, te } = useI18n()
+
 const { data: klass } = await useAsyncData(route.path, () => queryCollection('classes').path(route.path).first())
 if (!klass.value) throw createError({ statusCode: 404, statusMessage: 'Class not found', fatal: true })
+const id = recordId(klass.value)
 
-const profs = computed(() => {
-  const p = (klass.value?.profs ?? {}) as Record<string, { text?: string } | undefined>
-  return ['armor', 'weapon', 'tool', 'saving-throw', 'skill']
-    .filter(k => p[k]?.text)
-    .map(k => [k.replace('-', ' '), p[k]!.text!])
-})
+const [{ data: features }, { data: subclasses }, { data: levels }, { data: powers }] = await Promise.all([
+  useAsyncData(`${route.path}:features`, () => queryCollection('classFeatures').where('klass', '=', id).all(), { default: () => [] }),
+  useAsyncData(`${route.path}:subclasses`, () => queryCollection('subclasses').where('klass', '=', id).order('name', 'ASC').all(), { default: () => [] }),
+  useAsyncData('character-progression', () => queryCollection('characterProgression').order('level', 'ASC').all(), { default: () => [] }),
+  useAsyncData(`${route.path}:powers`, () => queryCollection('powers').where('classes', 'LIKE', `%"${id}"%`).order('level', 'ASC').order('name', 'ASC').all(), { default: () => [] }),
+])
+
+useSeoMeta({ title: klass.value.name, description: t('meta.class_info', { name: klass.value.name }) })
+
+const progression = computed(() => klass.value?.progression ?? { subclass: [], abi: [] })
+// The Features column's name on subclass levels; a class may have its own.
+const subclassLabel = computed(() => t(te(`subclass_feature_titles.${id}`) ? `subclass_feature_titles.${id}` : 'subclass_feature_titles.default'))
+
+const tabs = [
+  { label: t('progression_table_title'), value: 'table', slot: 'table' as const },
+  { label: t('class_features_title'), value: 'features', slot: 'features' as const },
+  { label: t('subclass_title', 2), value: 'subclasses', slot: 'subclasses' as const },
+  { label: t('power_title', 2), value: 'powers', slot: 'powers' as const },
+]
+const tab = ref('table')
+
+// Search links to `/classes/<class>#<feature or subclass>`: open the tab that holds it, then scroll
+// to it. The tab's panel shows a task later; by then the router has scrolled to it while hidden.
+async function showHash(hash: string) {
+  const target = classHashTab(hash, features.value, subclasses.value)
+  if (!target) return
+  tab.value = target
+  await nextTick()
+  await new Promise(resolve => setTimeout(resolve))
+  document.getElementById(classHashId(hash))?.scrollIntoView()
+}
+onMounted(() => showHash(route.hash))
+watch(() => route.hash, showHash)
 </script>
 
 <template>
-  <main v-if="klass" class="mx-auto max-w-3xl p-6">
-    <NuxtLink to="/classes" class="text-sm text-muted hover:underline">
-      ← Classes
-    </NuxtLink>
-    <h1 class="mt-2 text-3xl font-semibold">
-      {{ klass.name }}
-    </h1>
-    <p class="mt-1 text-muted">
-      {{ klass.snippet }}
-    </p>
-    <div class="mt-4 flex gap-2">
-      <UBadge :label="`Hit die d${klass.hitDie}`" />
-      <UBadge :label="`Primary: ${(klass.primaryAbility ?? []).join(', ').toUpperCase()}`" variant="subtle" />
-    </div>
-    <dl class="mt-6 space-y-2 text-sm">
-      <div v-for="[label, value] in profs" :key="label" class="grid grid-cols-4 gap-2">
-        <dt class="capitalize text-muted">
-          {{ label }}
-        </dt>
-        <dd class="col-span-3">
-          {{ value }}
-        </dd>
-      </div>
-    </dl>
-    <ContentRenderer :value="klass" class="mt-6" />
-  </main>
+  <MeClassTheme v-if="klass" :klass="id">
+    <UPage>
+      <RecordHeader
+        :title="klass.name ?? ''"
+        :headline="t('class_title', 1)"
+        :image="`/images/classes/${id}.svg`"
+        :author="klass.author"
+        :links="[{ label: t('class_title', 2), icon: 'i-lucide-arrow-left', to: '/classes', variant: 'ghost' }]"
+      />
+      <UPageBody>
+        <ContentRenderer :value="klass" class="max-w-3xl" />
+        <UTabs
+          v-model="tab"
+          :items="tabs"
+          variant="link"
+          :unmount-on-hide="false"
+          :ui="{
+            list: '[--ui-primary:var(--klass-accent)]',
+            trigger: 'flex-1 px-1 font-display text-xs uppercase sm:flex-none sm:px-3 sm:text-sm sm:tracking-wider',
+            label: 'whitespace-normal text-center',
+            content: 'pt-6',
+          }"
+        >
+          <template #table>
+            <MeClassTable
+              :progression="progression"
+              :levels="levels"
+              :features="features"
+              :subclasses="subclasses"
+              :klass="id"
+              :subclass-label="subclassLabel"
+            />
+          </template>
+          <template #features>
+            <KlassAttributes :klass="klass" />
+            <KlassFeatureList :features="features" :abi="progression.abi" :klass="id" />
+          </template>
+          <template #subclasses>
+            <KlassSubclasses :subclasses="subclasses" :features="features" flavor filter />
+          </template>
+          <template #powers>
+            <MeClassPowers :powers="powers" />
+          </template>
+        </UTabs>
+      </UPageBody>
+    </UPage>
+  </MeClassTheme>
 </template>

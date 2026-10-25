@@ -1,7 +1,7 @@
 import { createGame, type GameDefinition } from '../schemas/game'
 import { findBacklog } from './backlog'
 import { fromZod, type Issue } from './issues'
-import { loadContent } from './load'
+import { groupRecords, loadContent, type LoadedRecord } from './load'
 import { checkProse } from './prose'
 import { checkReferences } from './refs'
 
@@ -25,7 +25,23 @@ export function validateContent(root: string, def: GameDefinition): ValidationRe
   const files = new Map<string, string | undefined>()
   const counts: Record<string, number> = {}
 
-  for (const item of loaded) {
+  // Derived records join their collections and are validated like files.
+  const derived: LoadedRecord[] = []
+  if (def.derive) {
+    const input = groupRecords(loaded.filter(r => def.derive!.from.includes(r.collection)))
+    for (const [collection, recs] of Object.entries(def.derive.records(input))) {
+      const taken = new Set(loaded.filter(r => r.collection === collection).map(r => r.id))
+      for (const record of recs) {
+        if (taken.has(record.id)) {
+          issues.push({ severity: 'error', category: 'reference', collection, id: record.id, rule: 'derived-id-taken', message: `a derived ${collection} record reuses the id of content/${collection}/${record.id}.md` })
+          continue
+        }
+        derived.push({ collection, id: record.id, file: `(derived) ${collection}/${record.id}`, record })
+      }
+    }
+  }
+
+  for (const item of [...loaded, ...derived]) {
     const { collection, id } = item
     const file = item.file
     files.set(`${collection}/${id}`, file)

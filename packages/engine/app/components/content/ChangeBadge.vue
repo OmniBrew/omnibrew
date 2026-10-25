@@ -3,8 +3,9 @@
 defineProps<{
   type: 'new' | 'change'
 }>()
+const { t } = useI18n()
 </script>
 
 <template>
-  <UBadge :label="type" :color="type === 'new' ? 'info' : 'warning'" variant="subtle" size="sm" class="ml-2 align-middle" />
+  <UBadge :label="t(type)" :color="type === 'new' ? 'info' : 'warning'" variant="subtle" size="sm" class="ml-2 align-middle" />
 </template>
