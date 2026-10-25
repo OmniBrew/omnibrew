@@ -138,7 +138,7 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
       ...record,
       ...itemBase(k),
       ...gearFields(k),
-      marks: z.array(z.strictObject({ mark: z.string(), rarity: z.string(), damage: z.string().optional(), dc: z.number().optional() })).optional(),
+      marks: z.array(z.strictObject({ mark: z.string(), rarity: k.e('rarities'), damage: z.string().optional(), dc: z.number().optional() })).optional(),
       subsets: z.array(z.strictObject({
         id: Id,
         name: z.string(),
@@ -209,7 +209,6 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
         senses: k.keyedBy('senses', z.number()).optional(),
         irv: z.strictObject({
           res: z.array(k.e('damageTypes')).optional(),
-          imm: z.array(k.e('damageTypes')).optional(),
           damImm: z.array(k.e('damageTypes')).optional(),
           vul: z.array(k.e('damageTypes')).optional(),
           conImm: z.array(Id).optional(),

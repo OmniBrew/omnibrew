@@ -5,7 +5,9 @@ import type { DerivedRecord } from '@omnibrew/engine/schemas'
  * species and their traits, as build-data.js did (plan/04 Q8). The kett's
  * Exalted Lineage trait offers them as a choice: an exalted kett takes the other
  * species' ability score increases, resistances, immunities, senses and
- * non-walking speeds. Ids are `EXL_<species>`; saved characters use them.
+ * non-walking speeds. A subspecies lineage also takes its parent's traits (a geth
+ * platform is still a Synthetic Construct). Ids are `EXL_<species>`; saved
+ * characters use them.
  * `EXL_kett` ("None", the kett's own option) is a content file.
  */
 type Rec = Record<string, unknown>
@@ -22,12 +24,12 @@ const GERUND: Record<string, string> = { fly: 'flying', swim: 'swimming', climb:
 const mechanicsOf = (r: Rec | undefined) => (Array.isArray(r?.mechanics) ? r.mechanics as Mechanic[] : [])
 
 /**
- * What an exalted kett inherits. Falling-damage resistance was a `resistance`
- * when build-data.js ran (plan/08 R2). build-data.js listed `comdition-immunity`
- * (a typo), so condition immunities never passed; kept as it was (plan/14).
+ * What an exalted kett inherits: "any immunities" includes condition immunities
+ * (build-data.js dropped them with a typo; plan/04 Q11). Falling-damage
+ * resistance was a `resistance` when build-data.js ran (plan/08 R2).
  */
 export const inherited = (m: Mechanic) =>
-  ['resistance', 'sense', 'immunity'].includes(m.type)
+  ['resistance', 'sense', 'immunity', 'condition-immunity'].includes(m.type)
   || (m.type === 'fall-damage' && m.resistance === true)
   || (m.type === 'speed' && m.speed !== 'walk')
   || m.type.startsWith('asi')
@@ -38,6 +40,8 @@ export function lineageBody(mechanics: Mechanic[]): string {
     ['Ability Score Increase', mechanics.filter(m => m.type === 'asi').map(m => `+${m.amount} ${String(m.ability).toUpperCase()}`)],
     ['Resistances', mechanics.filter(m => m.type === 'resistance' || m.type === 'fall-damage')
       .map(m => `${m.type === 'fall-damage' ? 'falling damage' : m.value ?? ''}${m.note ? ` (${m.note})` : ''}`)],
+    ['Damage Immunities', mechanics.filter(m => m.type === 'immunity').map(m => `${m.value ?? ''}${m.note ? ` (${m.note})` : ''}`)],
+    ['Condition Immunities', mechanics.filter(m => m.type === 'condition-immunity').map(m => `:condition{id=${m.value}}${m.note ? ` (${m.note})` : ''}`)],
     ['Speeds', mechanics.filter(m => m.type === 'speed').map(m => `${GERUND[String(m.speed)] ?? m.speed} :distance{length=${m.distance}}${m.note ? ` (${m.note})` : ''}`)],
     ['Senses', mechanics.filter(m => m.type === 'sense').map(m => `${[m.sense].flat().join(', ').replaceAll('-', ' ')}${m.distance ? ` :distance{length=${m.distance}}` : ''}`)],
   ]
@@ -67,8 +71,9 @@ export function generateExaltedLineages(species: Map<string, Rec>, traits: Map<s
     else {
       mechanics = [...mechanicsOf(sp)]
     }
+    const owners = sp.type === 'subspecies' ? [id, String(sp.species)] : [id]
     for (const [traitId, trait] of traits) {
-      if ((trait.species as string[] | undefined)?.includes(id) && !EXCLUDED_TRAITS.has(traitId)) mechanics.push(...mechanicsOf(trait))
+      if (owners.some(o => (trait.species as string[] | undefined)?.includes(o)) && !EXCLUDED_TRAITS.has(traitId)) mechanics.push(...mechanicsOf(trait))
     }
     mechanics = mechanics.filter(inherited)
     const body = lineageBody(mechanics)

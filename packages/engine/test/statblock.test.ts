@@ -112,7 +112,7 @@ describe('stat block numbers', () => {
   it('describes senses, speeds, defenses and the creature', () => {
     expect(sensesText(t, 14, { 'infrared-vision': 30 }, ft)).toBe('Passive Perception 14, Infrared Vision 30ft')
     expect(speedText(t, { walk: 50, burrow: 35 }, ft)).toBe('50ft, burrow 35ft')
-    expect(damageImmunities({ damImm: ['poison'], imm: ['poison', 'psychic'] })).toEqual(['poison', 'psychic'])
+    expect(damageImmunities({ damImm: ['poison', 'psychic'] })).toEqual(['poison', 'psychic'])
     expect(conditionsText(t, ['poisoned', 'charmed'], { charmed: 'Charmed', poisoned: 'Poisoned' })).toBe('Charmed, Poisoned')
     expect(creatureKindText(t, { size: 'small', type: 'synthetic', alignment: 'nn' })).toBe('Small synthetic, neutral')
   })
@@ -190,9 +190,10 @@ describe('stat block lists', () => {
   const powers = { 'decoy': { name: 'Decoy', level: 1 }, 'overload': { name: 'Overload', level: 1 }, 'charge': { name: 'Charge', level: 0 }, 'biotic-slash': { name: 'Biotic Slash', level: 1 } }
 
   it('tells power and item lists apart', () => {
-    expect(entryListKind({ list: ['charge'] })).toBe('leveled')
-    expect(entryListKind({ list: [{ id: 'decoy', perDay: 3 }] })).toBe('innate')
+    expect(entryListKind({ ref: 'power', list: ['charge'] })).toBe('leveled')
+    expect(entryListKind({ ref: 'power', list: [{ id: 'decoy', perDay: 3 }] })).toBe('innate')
     expect(entryListKind({ list: [{ id: 'frag-grenade', uses: 2 }] })).toBe('items')
+    expect(entryListKind({ list: [{ id: 'frag-grenade', perDay: 1 }] })).toBe('items')
     expect(entryListKind({ text: 'No list' })).toBeUndefined()
   })
 
@@ -225,9 +226,9 @@ describe('stat block lists', () => {
 
   it('collects the records a stat block refers to', () => {
     const stats = { entries: {
-      features: [{ id: 'innate-powercasting', list: [{ id: 'decoy', perDay: 3 }] }, { id: 'grenades', list: [{ id: 'frag-grenade', uses: 2 }] }],
+      features: [{ id: 'innate-powercasting', ref: 'power', list: [{ id: 'decoy', perDay: 3 }] }, { id: 'grenades', list: [{ id: 'frag-grenade', uses: 2 }] }],
       actions: [{ ref: 'weapon', weaponId: 'scorpion' }],
-      legendary: { actions: [{ name: 'Cast', list: ['charge'] }] },
+      legendary: { actions: [{ name: 'Cast', ref: 'power', list: ['charge'] }] },
     } }
     expect(statBlockRefIds(stats)).toEqual({ weapons: ['scorpion'], powers: ['decoy', 'charge'], items: ['frag-grenade'] })
   })

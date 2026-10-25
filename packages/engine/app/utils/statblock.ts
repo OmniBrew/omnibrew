@@ -86,7 +86,7 @@ export interface StatBlockData {
   savingThrows?: string[]
   skills?: string[]
   senses?: Record<string, number>
-  irv?: { res?: string[], imm?: string[], damImm?: string[], vul?: string[], conImm?: string[] }
+  irv?: { res?: string[], damImm?: string[], vul?: string[], conImm?: string[] }
   cr?: string
   profBonus?: number
   image?: string
@@ -208,7 +208,7 @@ export function sensesText(t: Translate, passive: number, senses: Record<string,
   return commaList(t, parts)
 }
 
-/** "12m, burrow 6m"; walking speed has no label, `note` is shown as written. */
+/** "12m, burrow 6m"; walking speed has no label, `note` is MDC (`:distance`), shown as written. */
 export function speedText(t: Translate, speed: Record<string, number | string | undefined>, distance: (feet: number) => string): string {
   const parts = Object.entries(speed)
     .filter(([, value]) => value !== undefined && value !== '')
@@ -362,14 +362,14 @@ export const sortLegendary = (actions: StatEntry[] = []) => [...actions].sort((a
 })
 
 /**
- * What a feature's `list` holds: `leveled` powers (plain ids, cast with slots),
- * `innate` powers (with uses per day), or `items` (with uses: grenades).
+ * What a feature's `list` holds: with `ref: power`, `leveled` powers (plain
+ * ids, cast with slots) or `innate` powers (with uses per day); without it,
+ * `items` (with uses: grenades).
  */
 export function entryListKind(e: StatEntry): 'leveled' | 'innate' | 'items' | undefined {
   if (!e.list?.length) return undefined
-  if (e.list.every(i => typeof i === 'string')) return 'leveled'
-  if (e.ref === 'power' || e.list.some(i => typeof i === 'object' && i.perDay !== undefined)) return 'innate'
-  return 'items'
+  if (e.ref !== 'power') return 'items'
+  return e.list.every(i => typeof i === 'string') ? 'leveled' : 'innate'
 }
 
 const listItems = (e: StatEntry): StatListItem[] => (e.list ?? []).map(i => (typeof i === 'string' ? { id: i } : i))
@@ -478,5 +478,5 @@ export function inlineTokens(text: string): InlineToken[] | undefined {
   return plain ? tokens : undefined
 }
 
-/** Damage immunities (`damImm`, and `imm`, which some records use for the same thing). */
-export const damageImmunities = (irv?: StatBlockData['irv'] | null) => [...new Set([...(irv?.damImm ?? []), ...(irv?.imm ?? [])])]
+/** Damage immunities (`damImm`). */
+export const damageImmunities = (irv?: StatBlockData['irv'] | null) => irv?.damImm ?? []
