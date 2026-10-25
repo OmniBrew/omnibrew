@@ -1,7 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
+const path = useContentPath().value
 const { t, locale } = useI18n()
-const { data: post } = await useAsyncData(route.path, () => queryCollection('changelog').path(`/changelog/${route.params.id}`).first())
+const { data: post } = await useAsyncData(path, () => queryCollection('changelog').path(`/changelog/${route.params.id}`).first())
 if (!post.value) throw createError({ statusCode: 404, statusMessage: 'Changelog entry not found', fatal: true })
 
 useSeoMeta({ title: post.value.title, description: post.value.description, ogImage: post.value.image })

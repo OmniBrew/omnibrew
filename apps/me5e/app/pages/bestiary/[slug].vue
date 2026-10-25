@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const route = useRoute()
+const path = useContentPath().value
 const { t } = useI18n()
-const { data: npc } = await useAsyncData(route.path, () => queryCollection('bestiary').path(route.path).first())
+const { data: npc } = await useAsyncData(path, () => queryCollection('bestiary').path(path).first())
 if (!npc.value) throw createError({ statusCode: 404, statusMessage: 'Creature not found', fatal: true })
 
 useSeoMeta({ title: npc.value.name, description: t('meta.info', { name: npc.value.name }) })

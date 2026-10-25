@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const route = useRoute()
+const path = useContentPath().value
 const { t } = useI18n()
-const { data: gear } = await useAsyncData(route.path, () => queryCollection('gear').path(route.path).first())
+const { data: gear } = await useAsyncData(path, () => queryCollection('gear').path(path).first())
 if (!gear.value) throw createError({ statusCode: 404, statusMessage: 'Gear not found', fatal: true })
 
 useSeoMeta({ title: gear.value.name, description: t('meta.info', { name: gear.value.name }) })
