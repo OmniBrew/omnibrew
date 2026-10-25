@@ -4,6 +4,7 @@ import { recordRoutes } from '../routes'
 export default defineAppConfig({
   game: {
     brand: { title: 'title', logo: '/icon.png' },
+    siteUrl: 'https://n7.world',
     // ME5e shows metric by default, rounds 5 ft to 2 m and a mile to 1.6 km.
     units: { default: 'metric', metersPerFoot: 0.4, kmPerMile: 1.6 },
     sources: {

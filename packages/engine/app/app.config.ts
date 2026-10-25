@@ -5,6 +5,8 @@ export default defineAppConfig({
   game: {
     /** i18n key for the site name, and the logo shown next to it. */
     brand: { title: 'title', logo: '' },
+    /** The production site's address, for canonical links (no trailing slash). */
+    siteUrl: '',
     units: {
       /** Unit system shown by default. Content stores imperial values (feet, miles, inches, pounds). */
       default: 'imperial' as 'imperial' | 'metric',

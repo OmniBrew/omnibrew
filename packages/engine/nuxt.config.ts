@@ -45,8 +45,15 @@ export default defineNuxtConfig({
 
   nitro: {
     prerender: {
-      // The site search's index (server/routes/search-index.json.get.ts), a static file once generated.
-      routes: ['/search-index.json'],
+      // The site search's index and robots.txt (server/routes), static files once generated.
+      routes: ['/search-index.json', '/robots.txt'],
+    },
+  },
+
+  runtimeConfig: {
+    public: {
+      // A preview copy is built with NUXT_PUBLIC_INDEXABLE=false: noindex on every page and in robots.txt.
+      indexable: true,
     },
   },
 
