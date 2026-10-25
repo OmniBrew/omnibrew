@@ -73,6 +73,8 @@ export const coreMechanics: MechanicDefinition[] = [
       note: z.string().optional(),
     }),
   }),
+  defineMechanic({ type: 'critical-immunity', description: 'A critical hit against the character is a normal hit', fields: () => ({ note: z.string().optional() }) }),
+  defineMechanic({ type: 'evasion', description: 'Dexterity saves for half damage: no damage on a success, half on a failure', fields: () => ({ note: z.string().optional() }) }),
   defineMechanic({ type: 'regain-all-hit-dice', fields: () => ({}) }),
   defineMechanic({ type: 'min-hit-die-roll', fields: k => ({ bonus: k.Formula }) }),
   defineMechanic({ type: 'nullify-armor-str-restriction', fields: () => ({}) }),
@@ -155,6 +157,10 @@ export const coreMechanics: MechanicDefinition[] = [
       addCritDie: z.number().int().optional(),
       abilityMod: z.boolean().optional(),
       notes: z.array(k.Note).optional(),
+      /** Extra damage rolls on a hit, whatever `augmentTypes` says; without a `type` they take the attack's damage type. */
+      addDamage: z.array(k.Damage).optional(),
+      /** A condition checked per attack ("Is no hostile creature within 30 ft?"): not added to the card, offered when the attack is rolled. */
+      ask: z.string().optional(),
     }),
   }),
   defineMechanic({
@@ -228,6 +234,15 @@ export const coreMechanics: MechanicDefinition[] = [
       provider: z.strictObject({ model: z.string(), id: Id }).optional(),
       resource: k.Resource.optional(),
       merge: z.looseObject({}).optional(),
+    }),
+  }),
+  defineMechanic({
+    type: 'power-attack',
+    description: 'Powers the character can cast in place of an attack: one power (`value`), or every power of the listed types and levels',
+    fields: () => ({
+      value: Id.optional(),
+      powerTypes: z.array(z.string()).optional(),
+      levels: z.array(z.number().int().nonnegative()).optional(),
     }),
   }),
   defineMechanic({ type: 'cantrips', fields: () => ({ known: z.array(z.number().int()).length(20), columnName: z.string().optional() }) }),

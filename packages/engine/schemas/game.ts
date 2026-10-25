@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import type { CharacterExtension } from '../character/schema'
+import type { GameRules } from '../rules/types'
 import { armorSchema, coreCollections, type ShapeFn } from './collections'
 import { buildEnums, type EnumOverrides, type EnumRegistry } from './enums'
 import { gearFields, itemBase, weaponFields } from './items'
@@ -67,6 +69,10 @@ export interface GameDefinition {
   derive?: GameDerivation
   /** Game-specific checks that need the whole content set (indexes, generated records...). */
   checks?: (ctx: GameCheckContext) => void
+  /** Character fields only this game has (`character/schema.ts`). */
+  character?: CharacterExtension
+  /** The game's rules for the rules engine (`rules/`): handlers of its mechanics, tables and hooks. */
+  rules?: GameRules
 }
 
 export const defineGame = (def: GameDefinition) => def

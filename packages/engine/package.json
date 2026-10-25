@@ -34,7 +34,10 @@
     ".": "./nuxt.config.ts",
     "./schemas": "./schemas/index.ts",
     "./validator": "./validator/index.ts",
-    "./content": "./content/index.ts"
+    "./content": "./content/index.ts",
+    "./character": "./character/index.ts",
+    "./rules": "./rules/index.ts",
+    "./rules/load": "./rules/load.ts"
   },
   "bin": {
     "omnibrew-validate": "./validator/cli.ts"
