@@ -1,5 +1,5 @@
 import MiniSearch, { type SearchResult } from 'minisearch'
-import type { SearchDoc } from '../../server/routes/search-index.json.get'
+import type { SearchDoc } from '../types/site'
 
 /**
  * Site search over the prerendered `/search-index.json`, loaded on first use

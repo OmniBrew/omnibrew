@@ -1,24 +1,7 @@
-import { defineEventHandler, queryCollection, useAppConfig } from '#imports'
+import { queryCollection } from '@nuxt/content/nitro'
 import { contentCollectionName } from '../../content/collections'
-import type { Chapter, SearchGroup } from '../../app/types/site'
+import type { Chapter, SearchDoc, SearchGroup } from '../../app/types/site'
 import { bodyText, inlineText, recordId, recordPath } from '../../shared/utils/records'
-
-/**
- * The site search index: one document per record of the collections the
- * game's `search` config lists, with its page and plain text. Prerendered to a
- * static file at generate (nuxt.config.ts) and searched in the browser.
- */
-export interface SearchDoc {
-  /** `<collection>/<id>`. */
-  id: string
-  title: string
-  group: string
-  collection: string
-  /** The record a feature or trait belongs to (its class or species). */
-  parent?: string
-  to?: string
-  text: string
-}
 
 type Row = Record<string, unknown> & { stem: string, body?: unknown }
 
@@ -34,6 +17,11 @@ function fieldText(value: unknown, out: string[] = []): string[] {
   return out
 }
 
+/**
+ * The site search index: one document per record of the collections the
+ * game's `search` config lists, with its page and plain text. Prerendered to a
+ * static file at generate (nuxt.config.ts) and searched in the browser.
+ */
 export default defineEventHandler(async (event) => {
   const { game } = useAppConfig() as { game: { search: SearchGroup[], routes: Record<string, string | false> } }
   // queryCollection is typed per app; the collections here come from config.

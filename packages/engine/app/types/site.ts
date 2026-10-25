@@ -37,3 +37,16 @@ export interface Chapter {
   is_change?: boolean
   sections?: Chapter[]
 }
+
+/** A record in the site search index (server/routes/search-index.json.get.ts). */
+export interface SearchDoc {
+  /** `<collection>/<id>`. */
+  id: string
+  title: string
+  group: string
+  collection: string
+  /** The record a feature or trait belongs to (its class or species). */
+  parent?: string
+  to?: string
+  text: string
+}
