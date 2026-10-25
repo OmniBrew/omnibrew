@@ -1,5 +1,7 @@
+import { defineEventHandler, queryCollection, useAppConfig } from '#imports'
 import { contentCollectionName } from '../../content/collections'
 import type { Chapter, SearchGroup } from '../../app/types/site'
+import { bodyText, inlineText, recordId, recordPath } from '../../shared/utils/records'
 
 /**
  * The site search index: one document per record of the collections the

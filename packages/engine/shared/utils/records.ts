@@ -17,7 +17,8 @@ function lookup(record: Record<string, unknown>, path: string): unknown {
 export function recordPath(routes: Record<string, string | false>, collection: string, record: Record<string, unknown>, chapter?: string): string | undefined {
   const template = routes[collection] ?? `/${collection}/{id}`
   if (template === false) return undefined
-  const fields: Record<string, unknown> = { ...record, id: record.id ?? recordId(record) }
+  // A Nuxt Content record's own `id` is its storage key; the content id comes from its stem.
+  const fields: Record<string, unknown> = { ...record, id: record.stem ? recordId(record) : record.id }
   return template.replace(/\{([\w.]+)\}/g, (_, path: string) => String((path === 'chapter' ? chapter : lookup(fields, path)) ?? ''))
 }
 

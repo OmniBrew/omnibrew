@@ -89,7 +89,8 @@ describe('record helpers', () => {
 
   it('builds a record\'s page from the routes config', () => {
     expect(recordId({ stem: 'powers/charge' })).toBe('charge')
-    expect(recordPath(routes, 'powers', { stem: 'powers/charge' })).toBe('/powers/charge')
+    expect(recordPath(routes, 'powers', { stem: 'powers/charge', id: 'powers/powers/charge.md' })).toBe('/powers/charge')
+    expect(recordPath(routes, 'conditions', { id: 'primed' })).toBe('/appendix/conditions/primed')
     expect(recordPath(routes, 'conditions', { stem: 'conditions/primed' })).toBe('/appendix/conditions/primed')
     expect(recordPath(routes, 'traits', { stem: 'traits/wings', species: ['drell', 'yahg'] })).toBe('/species/drell#wings')
     expect(recordPath(routes, 'manual', { stem: 'manual/combat-round' }, 'combat')).toBe('/manual/combat#combat-round')
