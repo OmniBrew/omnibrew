@@ -16,6 +16,9 @@ export default defineNuxtConfig({
     // Game theme hook, imported by main.css so a game's @theme tokens join the same
     // Tailwind build. Each app points this at its own CSS (see apps/me5e/nuxt.config.ts).
     '#game-theme': resolve('./app/assets/css/game-theme.css'),
+    // The backend's client config (Amplify Gen 2 amplify_outputs.json). Empty here: the site
+    // then runs signed out. A game app points it at its own file when it has one.
+    '#amplify-outputs': resolve('./app/amplify-outputs.json'),
   },
 
   hooks: {
@@ -47,7 +50,17 @@ export default defineNuxtConfig({
     optimizeDeps: {
       // @nuxtjs/mdc asks Vite to pre-bundle its CommonJS dependencies as `@nuxtjs/mdc > …`, which
       // pnpm doesn't let the app resolve; without this, <MDC> mounted in the browser renders nothing in dev.
-      include: ['@nuxt/content > @nuxtjs/mdc > unified > extend', '@nuxt/content > @nuxtjs/mdc > debug'],
+      include: [
+        '@nuxt/content > @nuxtjs/mdc > unified > extend',
+        '@nuxt/content > @nuxtjs/mdc > debug',
+        // Imported on demand (utils/amplify.ts, the data layer); found late, they reload the page in dev.
+        'aws-amplify',
+        'aws-amplify/auth',
+        'aws-amplify/auth/enable-oauth-listener',
+        'aws-amplify/data',
+        'aws-amplify/utils',
+        'zod',
+      ],
     },
   },
 

@@ -11,7 +11,7 @@ export const usePreferences = defineStore('preferences', () => {
   const { game } = useAppConfig()
   const units = ref<UnitSystem>(game.units.default as UnitSystem)
 
-  /** Reads the saved preferences. Called once the app has mounted (plugins/preferences.client.ts). */
+  /** Reads the saved preferences. Called once the page has hydrated (plugins/preferences.client.ts). */
   function restore() {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}') as { units?: UnitSystem }

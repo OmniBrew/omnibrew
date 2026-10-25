@@ -1,0 +1,21 @@
+{
+  // The Gen 2 backend (ampx type-checks it before a deploy).
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "$amplify/*": ["../.amplify/generated/*"]
+    }
+  },
+  "include": ["**/*.ts", "../../../packages/backend/**/*.ts"]
+}

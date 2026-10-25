@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit -p packages/engine/tsconfig.json && nuxt typecheck apps/me5e && tsc --noEmit -p apps/me5e/tsconfig.game.json",
+    "typecheck": "tsc --noEmit -p packages/engine/tsconfig.json && tsc --noEmit -p packages/backend/tsconfig.json && nuxt typecheck apps/me5e && tsc --noEmit -p apps/me5e/tsconfig.game.json && tsc --noEmit -p apps/me5e/amplify/tsconfig.json",
     "test": "vitest run",
     "postinstall": "nuxt prepare apps/me5e",
     "validate:me5e": "tsx packages/engine/validator/cli.ts --game apps/me5e/game/index.ts --content ../omnibrew-me5e-data",

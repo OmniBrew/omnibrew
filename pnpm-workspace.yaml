@@ -9,3 +9,9 @@ allowBuilds:
   esbuild: true
   unrs-resolver: true
   vue-demi: true
+  # core-js's postinstall only prints a funding message (pulled in by the Amplify backend tooling).
+  core-js: false
+  # Pulled in by @aws-amplify/backend-cli: hosting's postinstall only prints a notice;
+  # @parcel/watcher ships prebuilt binaries (its script builds from source on request).
+  '@aws-amplify/hosting': false
+  '@parcel/watcher': false

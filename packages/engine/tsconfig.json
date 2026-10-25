@@ -18,6 +18,7 @@
   },
   "include": [
     "character/**/*.ts",
+    "data/**/*.ts",
     "content/**/*.ts",
     "rules/**/*.ts",
     "schemas/**/*.ts",
