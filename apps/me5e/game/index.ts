@@ -4,6 +4,7 @@ import { defineGame, Id, orOff, type CollectionSource, type GameCheckContext } f
 import { walkMechanics } from '@omnibrew/engine/validator'
 import { parse } from 'yaml'
 import { z } from 'zod'
+import { generateExaltedLineages } from './exalted-lineages'
 import { meMechanics } from './mechanics'
 
 /**
@@ -159,6 +160,11 @@ export const me5e = defineGame({
     'guide': content('guide'),
     'manual': content('manual'),
     'ship-upgrades': content('ship-upgrades'),
+  },
+
+  derive: {
+    from: ['species', 'traits'],
+    records: input => ({ edges: generateExaltedLineages(input.get('species') ?? new Map(), input.get('traits') ?? new Map()) }),
   },
 
   checks: meChecks,

@@ -1,10 +1,12 @@
+import type { UnitSystem } from '../stores/preferences'
+
 /**
  * Formats content measurements in the reader's unit system. Content stores
  * imperial values (feet, miles, inches, pounds); the game's app config says how
- * they convert (ME5e: 5 ft = 2 m) and which system shows by default.
+ * they convert (ME5e: 5 ft = 2 m) and which system shows by default; the
+ * reader switches with the preferences store.
  */
 export type ImperialUnit = 'ft' | 'mi' | 'in' | 'lb'
-type UnitSystem = 'imperial' | 'metric'
 
 export interface MeasureOptions {
   /** Short unit name, no space: `9m`. */
@@ -34,7 +36,8 @@ const METRIC: Record<ImperialUnit, string> = { ft: 'm', mi: 'km', in: 'cm', lb: 
 export function useUnits() {
   const { game } = useAppConfig()
   const units = game.units
-  const system = useState<UnitSystem>('units:system', () => units.default as UnitSystem)
+  const preferences = usePreferences()
+  const system = computed(() => preferences.units)
 
   function toMetric(value: number, unit: ImperialUnit): number {
     switch (unit) {

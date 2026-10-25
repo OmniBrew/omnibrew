@@ -1,5 +1,7 @@
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineNuxtConfig } from 'nuxt/config'
+import { contentRoot } from './paths'
 
 export default defineNuxtConfig({
   extends: ['@omnibrew/engine'],
@@ -13,6 +15,13 @@ export default defineNuxtConfig({
   ssr: true,
 
   devtools: { enabled: false },
+
+  // The live site has always been dark by default.
+  colorMode: { preference: 'dark', fallback: 'dark' },
+
+  i18n: {
+    locales: [{ code: 'en', language: 'en-US', name: 'English', file: join(contentRoot, 'messages/en.yml') }],
+  },
 
   compatibilityDate: '2026-10-24',
 })

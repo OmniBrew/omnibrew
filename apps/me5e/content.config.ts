@@ -1,29 +1,33 @@
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { defineCollection, defineContentConfig } from '@nuxt/content'
-import { contentCollectionName, contentSchema } from '@omnibrew/engine/content'
+import { defineCollection, defineCollectionSource, defineContentConfig } from '@nuxt/content'
+import { contentCollectionName, contentSchema, deriveRecords, recordFiles } from '@omnibrew/engine/content'
 import { createGame } from '@omnibrew/engine/schemas'
 import { z } from 'zod'
 import { me5e } from './game'
+import { contentRoot as root } from './paths'
 
 /**
  * Nuxt Content collections for the ME5e content repo (OmniBrew/masseffect-5e-data),
- * read from the sibling checkout (override with ME5E_CONTENT_DIR).
+ * read from the sibling checkout (see paths.ts).
  *
  * One collection per content type, named in camelCase (`class-features` →
  * `classFeatures`), with its schema derived from the ME game definition (see the
  * engine's `contentSchema`). Number tables are data collections; every other
- * type is a page collection routed at `/<type>/<id>`.
+ * type is a page collection routed at `/<type>/<id>`. Records the game derives
+ * from content (the Exalted Lineage edges) join their collection as a second source.
  */
-const root = process.env.ME5E_CONTENT_DIR ?? fileURLToPath(new URL('../../../omnibrew-me5e-data/', import.meta.url))
 const game = createGame(me5e)
 const DATA = new Set(['attributions', 'character-progression', 'npc-stats'])
+const derived = deriveRecords(root, me5e)
 
 const records = Object.fromEntries(Object.entries(me5e.sources).map(([name, source]) => [
   contentCollectionName(name),
   defineCollection({
     type: DATA.has(name) ? 'data' : 'page',
-    source: { cwd: resolve(root, source.dir), include: '*.md', prefix: DATA.has(name) ? undefined : `/${name}` },
+    source: [
+      { cwd: resolve(root, source.dir), include: '*.md', prefix: DATA.has(name) ? undefined : `/${name}` },
+      ...(derived[name] ? [defineCollectionSource(recordFiles(derived[name], `/${name}`))] : []),
+    ],
     schema: contentSchema(game, name),
   }),
 ]))

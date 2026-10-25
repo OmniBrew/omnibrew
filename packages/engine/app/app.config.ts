@@ -1,6 +1,10 @@
+import type { NavItem, SearchGroup } from './types/site'
+
 // Engine defaults. A game app overrides `game` in its own app.config.ts.
 export default defineAppConfig({
   game: {
+    /** i18n key for the site name, and the logo shown next to it. */
+    brand: { title: 'title', logo: '' },
     units: {
       /** Unit system shown by default. Content stores imperial values (feet, miles, inches, pounds). */
       default: 'imperial' as 'imperial' | 'metric',
@@ -18,5 +22,19 @@ export default defineAppConfig({
       srd: { title: 'Dungeons & Dragons System Reference Document 5.1', url: 'https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf' },
       basic: { title: 'Dungeons & Dragons: Player\'s Basic Rules Version 0.3', url: 'https://media.wizards.com/2016/downloads/DND/PlayerBasicRulesV03.pdf' },
     } as Record<string, { title: string, url: string, pageInUrl?: boolean }>,
+    /** Sidebar navigation. */
+    navigation: [] as NavItem[],
+    /** Links in the header bar (wide screens) and the footer. */
+    headerLinks: [] as NavItem[],
+    footerLinks: [] as NavItem[],
+    /**
+     * Where a record's page is, per collection: `{field}` is replaced from the
+     * record (`{id}`, `{klass}`, `{species.0}`); `{chapter}` is the chapter of a
+     * navigation file listing the record. Collections not listed are at
+     * `/<collection>/{id}`; `false` means the records have no page.
+     */
+    routes: {} as Record<string, string | false>,
+    /** Site search: which collections it indexes, grouped for the result filters. */
+    search: [] as SearchGroup[],
   },
 })
