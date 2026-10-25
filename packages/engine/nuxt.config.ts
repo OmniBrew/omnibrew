@@ -51,6 +51,12 @@ export default defineNuxtConfig({
     },
   },
 
+  icon: {
+    // Prerendering ~900 pages at once keeps the server busy; with the 1.5 s default some icons
+    // timed out and were missing from the static HTML until the page hydrated.
+    fetchTimeout: 15_000,
+  },
+
   nitro: {
     prerender: {
       // The site search's index and robots.txt (server/routes), static files once generated.
