@@ -52,6 +52,8 @@ export default defineEventHandler(async (event) => {
   for (const group of game.search) {
     for (const collection of group.collections) {
       for (const record of await query(collection)) {
+        // Features hidden from class pages (later copies of a scaling feature) have nothing to link to.
+        if (record.noFeatureDisplay) continue
         const id = recordId(record)
         const parent = record.klass ? await nameOf('classes', record.klass)
           : Array.isArray(record.species) ? await nameOf('species', record.species[0])
