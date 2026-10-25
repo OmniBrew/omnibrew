@@ -25,7 +25,11 @@ function isActive(to?: string) {
 function toMenuItem(item: NavItem): NavigationMenuItem {
   const label = t(item.label, item.count ?? 1)
   if (item.chapters) {
-    const children = (chapters[item.chapters]?.value ?? []).map(c => ({ label: t(c.title ?? c.id), to: `${item.to}/${c.id}` }))
+    // Chapters linked elsewhere in the menu (the manual's introduction) aren't repeated.
+    const linked = new Set(collect(nav).map(i => i.to))
+    const children = (chapters[item.chapters]?.value ?? [])
+      .map(c => ({ label: t(c.title ?? c.id), to: `${item.to}/${c.id}` }))
+      .filter(c => !linked.has(c.to))
     return { label, icon: item.icon, children, defaultOpen: isActive(item.to) }
   }
   if (item.children) {
