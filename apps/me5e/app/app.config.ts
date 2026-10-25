@@ -1,3 +1,5 @@
+import { recordRoutes } from '../routes'
+
 // ME5e site configuration. Labels are i18n keys from the content repo's messages/en.yml.
 export default defineAppConfig({
   game: {
@@ -58,27 +60,7 @@ export default defineAppConfig({
       { label: 'legal.cookies', to: '/legal/cookies' },
       { label: 'legal.acceptable_use', to: '/legal/acceptable-use' },
     ],
-    // The live site's URLs (masseffect-5e/pages).
-    routes: {
-      'conditions': '/appendix/conditions/{id}',
-      'tool-profs': '/appendix/tool-profs/{id}',
-      'skills': '/appendix/skills#{id}',
-      'weapon-properties': '/appendix/weapon-properties#{id}',
-      'manual': '/manual/{chapter}#{id}',
-      'guide': '/guide/{chapter}#{id}',
-      'class-features': '/classes/{klass}#{id}',
-      'subclasses': '/classes/{klass}#{id}',
-      'traits': '/species/{species.0}#{id}',
-      'vehicles': '/vehicles#{id}',
-      'edges': false,
-      'actions': false,
-      'set-bonuses': false,
-      'subspecies': false,
-      'attributions': false,
-      'character-progression': false,
-      'npc-stats': false,
-      'ship-upgrades': false,
-    },
+    routes: recordRoutes,
     // build-index.js's groups and collections.
     search: [
       { id: 'character', label: 'character_title', icon: 'i-lucide-user-round', collections: ['backgrounds', 'feats', 'species', 'traits', 'class-features'] },

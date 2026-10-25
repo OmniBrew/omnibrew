@@ -43,6 +43,13 @@ export default defineNuxtConfig({
       : {}),
   },
 
+  nitro: {
+    prerender: {
+      // The site search's index (server/routes/search-index.json.get.ts), a static file once generated.
+      routes: ['/search-index.json'],
+    },
+  },
+
   // @pinia/nuxt's default is the app's own stores/ only; a relative dir is read in every layer.
   pinia: {
     storesDirs: ['stores'],
