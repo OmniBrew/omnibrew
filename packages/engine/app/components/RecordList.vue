@@ -129,7 +129,6 @@ const sortIcon = (column: RecordColumn<T>) => sortKey.value !== column.key
           <tr
             class="border-b border-default/60 transition-colors"
             :class="expandable ? 'cursor-pointer hover:bg-elevated/60' : ''"
-            :aria-expanded="expandable ? open.has(rowKey(item)) : undefined"
             @click="expandable && toggle(rowKey(item))"
           >
             <td v-for="c in columns" :key="c.key" class="px-2 py-2 align-middle" :class="c.class">
@@ -138,10 +137,15 @@ const sortIcon = (column: RecordColumn<T>) => sortKey.value !== column.key
               </slot>
             </td>
             <td v-if="expandable" class="px-1 text-right">
-              <UIcon
-                name="i-lucide-chevron-down"
-                class="size-4 text-muted transition-transform"
-                :class="open.has(rowKey(item)) ? 'rotate-180' : ''"
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                icon="i-lucide-chevron-down"
+                :aria-label="t('buttons.view_details')"
+                :aria-expanded="open.has(rowKey(item))"
+                :ui="{ leadingIcon: ['transition-transform', open.has(rowKey(item)) ? 'rotate-180' : ''] }"
+                @click.stop="toggle(rowKey(item))"
               />
             </td>
           </tr>
