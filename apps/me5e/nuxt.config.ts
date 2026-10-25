@@ -26,6 +26,13 @@ export default defineNuxtConfig({
     locales: [{ code: 'en', language: 'en-US', name: 'English', file: join(contentRoot, 'messages/en.yml') }],
   },
 
+  nitro: {
+    prerender: {
+      // Content links to pages that never existed (the live site 404s too; plan/14).
+      ignore: ['/guide/encounter-creation'],
+    },
+  },
+
   hooks: {
     // `nuxt generate` crawls from / and also renders every record page, so pages no
     // other page links to (the April Fools' changelog post) exist as they did live.
