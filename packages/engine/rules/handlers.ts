@@ -33,6 +33,8 @@ export const coreHandlers: MechanicHandler[] = [
   h('condition-immunity', 'defenses: condition immunities'),
   h('saving-throw', 'saves: proficiency, bonus, or advantage notes'),
   h('fall-damage', 'defenses: "Falling Damage" resistance (when `resistance`)'),
+  h('critical-immunity', 'defenses: listed as a special defense'),
+  h('evasion', 'defenses: listed as a special defense'),
   h('regain-all-hit-dice', 'rest: a long rest restores every hit die (rest menu, Phase 3c)'),
   h('min-hit-die-roll', 'rest: minimum hit die roll (rest menu, Phase 3c)'),
   h('nullify-armor-str-restriction', 'speeds: armor strength penalty ignored', { flags: ['ignore-armor-strength'] }),
@@ -71,6 +73,9 @@ export const coreHandlers: MechanicHandler[] = [
   choice('model-choice', 'choice: picks are records whose mechanics apply'),
 
   h('powers', 'powers: grants a power'),
+  h('power-attack', 'powers: castable in place of an attack (the power, or powers of the listed types and levels)'),
+  h('power-at-will', 'powers: castable at will at the listed levels (a model-choice `append` type)'),
+  h('power-resource', 'powers: castable from its own resource at the listed levels (a model-choice `append` type)'),
   h('cantrips', 'powers: cantrips known per level'),
   h('additional-cantrips', 'powers: more cantrips known'),
   h('use-class-for-power-list', 'powers: another class list to learn from (power picker, Phase 3c)'),

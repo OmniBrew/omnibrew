@@ -241,6 +241,11 @@ export class Sheet {
     return this.cached('defenses', () => computeDefenses(this))
   }
 
+  /** Defenses that are rules, not damage types (critical immunity, evasion). */
+  get specialDefenses(): Array<{ id: string, note?: string, source?: string }> {
+    return this.ofType('critical-immunity', 'evasion').map(m => ({ id: m.type, ...(m.note ? { note: m.note } : {}), ...(m.source ? { source: m.source } : {}) }))
+  }
+
   get powercastingAbilities(): Record<string, string | false> {
     return this.powercasting.abilities
   }
@@ -269,7 +274,7 @@ export class Sheet {
   }
 
   get globalNotes(): Array<{ subType?: string, text: string, mechanic: Mech }> {
-    return this.cached('globalNotes', () => this.ofType('global-note').map(m => ({ subType: m.subType, text: this.rules.noteText?.(m, this) ?? m.value, mechanic: m })))
+    return this.cached('globalNotes', () => this.ofType('global-note').map(m => ({ subType: m.subType, text: m.value, mechanic: m })))
   }
 
   /** A game section (`shields`, `reputation`...). */

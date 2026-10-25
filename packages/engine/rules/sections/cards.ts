@@ -17,7 +17,7 @@ export interface AugmentQuery {
   abilityMod?: string
 }
 
-export const emptyAugments = (): AttackAugments => ({ hit: 0, damage: 0, dc: 0, range: 0, reroll: 0, crit: 20, dieIncrease: 0, addCritDie: 0, notes: [] })
+export const emptyAugments = (): AttackAugments => ({ hit: 0, damage: 0, dc: 0, range: 0, reroll: 0, crit: 20, dieIncrease: 0, addCritDie: 0, notes: [], addDamage: [] })
 
 /** `attack-augment` mechanics matching an attack (special-attack ones excluded), summed. */
 export function matchingAugments(sheet: Sheet, q: AugmentQuery): AttackAugments {
@@ -35,10 +35,20 @@ export function matchingAugments(sheet: Sheet, q: AugmentQuery): AttackAugments 
         out.reroll = Math.max(reroll, out.reroll)
         out.dieIncrease += dieIncrease
       }
+      if (at === 'damage') {
+        out.addCritDie += m.addCritDie || 0
+        out.addDamage.push(...m.addDamage ?? [])
+      }
       if (typeof out[at] === 'number') (out[at] as number) += bonus
     }
   }
   return out
+}
+
+/** Extra damage of augments as add-on rolls: merged into every roll, in the attack's damage type unless they name one. */
+export function extraDamage(a: AttackAugments, damage: Rec[]): Rec[] {
+  const type = damage.find(d => !d.addTo)?.type
+  return a.addDamage.map(d => ({ ...d, type: d.type ?? type, addTo: 'all' }))
 }
 
 /**
@@ -66,6 +76,7 @@ export function augmentCard(sheet: Sheet, card: Rec, a: AttackAugments, steps: n
       return { ...d, dieType, bonus: { type: 'flat', value: (d.bonus ? sheet.formula(d.bonus) : 0) + a.damage + overflow }, reroll: a.reroll }
     })
   }
+  if (card.damage && a.addDamage.length) out.damage = [...out.damage ?? card.damage, ...extraDamage(a, card.damage)]
   return out
 }
 
@@ -122,16 +133,21 @@ function mergeDamages(base: ReturnType<typeof damageValues>, add: ReturnType<typ
   return merged
 }
 
+/** Dice and bonus of one damage type (`2d6 + 1d10 + 3`): dice ascending, as an object lists them. A flat roll prints its bonus alone ("15", not the live "0 + 15"). */
+export function rollText(values: Record<string, number>) {
+  let bonus = 0
+  const dice: string[] = []
+  for (const [die, count] of Object.entries(values)) {
+    if (die === 'bonus') bonus = count
+    else dice.push(`${count}${die === 'none' ? '' : `d${die}`}`)
+  }
+  const rolled = dice.filter(d => !/^0(?:d|$)/.test(d))
+  return rolled.length ? `${rolled.join(' + ')}${bonus ? ` + ${bonus}` : ''}` : String(bonus || dice[0] || 0)
+}
+
+/** A damage roll as the sheet prints it; a roll without a type is "damage" (the live sheet printed "damage damage"). */
 export function damageText(types: Record<string, Record<string, number>>) {
-  return Object.entries(types).map(([type, values]) => {
-    let bonus = 0
-    const dice: string[] = []
-    for (const [die, count] of Object.entries(values)) {
-      if (die === 'bonus') bonus = count
-      else dice.push(`${count}${die === 'none' ? '' : `d${die}`}`)
-    }
-    return `${dice.join(' + ')}${bonus ? ` + ${bonus}` : ''} ${type} damage`
-  }).join(' and ')
+  return Object.entries(types).map(([type, values]) => `${rollText(values)}${type === 'damage' ? '' : ` ${type}`} damage`).join(' and ')
 }
 
 export function computeCard(sheet: Sheet, item: SheetCard): ResolvedCard {
@@ -191,6 +207,8 @@ function placeholders(sheet: Sheet, item: SheetCard, card: ResolvedCard) {
     hp: sheet.hp.current,
     level: sheet.level,
     damage: card.damages?.[0]?.text,
+    // The first roll without its type ("2d6 + 3"), for texts that name the type themselves (plan/18, B29 proposal).
+    roll: card.damages?.[0] ? rollText(Object.values(card.damages[0].types)[0] ?? {}) : undefined,
     ...sheet.rules.placeholders?.(sheet, item),
   }
   const keys = Object.keys(values)

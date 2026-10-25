@@ -1,6 +1,6 @@
 import type { Sheet } from '../sheet'
 import type { AttackAugments, Mech, Rec, SheetCard, WeaponContext } from '../types'
-import { dieIncrease, emptyAugments } from './cards'
+import { dieIncrease, emptyAugments, extraDamage } from './cards'
 import { adjustProperties } from './equipment'
 import { dieSteps } from './powers'
 
@@ -22,7 +22,7 @@ export type WeaponAugments = Record<string, AttackAugments>
 function weaponAugments(sheet: Sheet, q: { attackType: string, weaponType: string, abilityMod: string }, special: Record<string, boolean>, extra: Mech[]): WeaponAugments {
   const base = emptyAugments()
   const out: WeaponAugments = { base }
-  for (const key of Object.keys(special)) out[key] = { ...base }
+  for (const key of Object.keys(special)) out[key] = { ...base, addDamage: [] }
   const all = [...sheet.ofType('attack-augment'), ...extra.filter(m => m.type === 'attack-augment')]
   for (const m of all) {
     if (m.attackLimit?.type && m.attackLimit.type !== q.attackType) continue
@@ -45,7 +45,10 @@ function weaponAugments(sheet: Sheet, q: { attackType: string, weaponType: strin
       if (at === 'damage' && (reroll || increase)) {
         a.reroll = Math.max(reroll, a.reroll)
         a.dieIncrease += increase
+      }
+      if (at === 'damage') {
         a.addCritDie += m.addCritDie || 0
+        a.addDamage.push(...m.addDamage ?? [])
       }
       if (at === 'hit') a.crit = Math.min(m.crit || 20, a.crit)
       if (typeof (a as unknown as Record<string, unknown>)[at] === 'number') (a as unknown as Record<string, number>)[at]! += bonus
@@ -165,6 +168,7 @@ export function computeWeaponAttacks(sheet: Sheet): WeaponAttacks {
         damage.push({ ...damage[0], dieType: v.dieType, bonus: { type: 'flat', value: damage[0]!.bonus.value + v.overflow } })
       }
     }
+    damage.push(...extraDamage(a, damage))
     const range: Rec = { short: (data.range?.short || 0) + a.range, long: data.range?.long || null }
     const notes: unknown[] = [
       ...propertyRecords.filter(p => properties.includes(p.id)).map(p => ({ type: 'tooltip', text: p.name, tooltipText: p.body, isHtml: true })),

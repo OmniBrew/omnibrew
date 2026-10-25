@@ -316,6 +316,12 @@ describe('sheet', () => {
     expect(sheet.formula(ward.resource.max)).toBe(10)
   })
 
+  it('fills {{ roll }} with the first roll without its type', () => {
+    const s = rules.sheet(character({ classes: [{ id: 'fighter', levels: 3, subclass: null, hitPoints: [10, 6, 6], rolledHitPoints: false, asi: {} }], choices: [] }))
+    const wind = s.actions.find(a => a.name === 'Second Wind')!
+    expect(s.card({ ...wind, shortDesc: 'Regain {{ roll }} hit points ({{ damage }})' }).shortDesc).toBe('Regain 1d10 + 3 hit points (1d10 + 3 hp damage)')
+  })
+
   it('resolves gear subsets and keys equipment resources by the item', () => {
     expect(sheet.actions.find(a => a.name === 'Grenade II')?.resource.id).toBe('e-grenade')
     expect(sheet.ofType('resistance')[0]?.resource.id).toBe('d-breastplate')

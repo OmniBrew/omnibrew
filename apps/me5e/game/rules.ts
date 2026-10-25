@@ -1,4 +1,4 @@
-import type { GameRules, Mech, MechanicHandler, Rec, Sheet, SheetCard, WeaponContext, AttackAugments } from '@omnibrew/engine/rules'
+import type { AttackAugments, GameRules, MechanicHandler, Rec, Sheet, SheetCard, WeaponContext } from '@omnibrew/engine/rules'
 import { defaultChoiceKey, dieIncrease, dieSteps } from '@omnibrew/engine/rules'
 import { customArmor } from './custom-armor'
 
@@ -410,16 +410,6 @@ export const meRules: GameRules = {
     reputation,
     capacities,
     thermalClips,
-  },
-  noteText: (note: Mech, sheet: Sheet) => {
-    // The live sheet computed Sneak Attack dice in its note component (plan/09 backlog).
-    if (note.value !== 'Sneak Attack') return note.value
-    const infiltrator = sheet.classes.find(k => k.id === 'infiltrator')
-    if (!infiltrator) return note.value
-    const dice = Math.floor((infiltrator.levels + 1) / 2) || 1
-    const shadow = infiltrator.subclass === 'shadow' ? ' (d8 w/ melee)' : ''
-    const sniper = infiltrator.subclass === 'sniper' && infiltrator.levels >= 17 ? ` (${dice + 3}d6 w/ sniper rifles)` : ''
-    return `Sneak Attack: ${dice}d6${shadow}${sniper}`
   },
   actions: (sheet) => {
     const b = barrier(sheet)

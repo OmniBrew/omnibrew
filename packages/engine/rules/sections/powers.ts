@@ -231,11 +231,14 @@ export function computePowers(sheet: Sheet): PowerCard[] {
     }
   }
 
-  const asAttacks = sheet.ofType('power-attack').map(m => m.value)
+  const asAttacks = sheet.ofType('power-attack')
+  const castAsAttack = (p: PowerCard) => asAttacks.some(m => (m.value
+    ? m.value === p.id
+    : (!m.powerTypes || m.powerTypes.includes(p.type)) && (!m.levels || m.levels.includes(p.level))))
   const atWill = sheet.ofType('power-at-will')
   const asResource = sheet.ofType('power-resource')
   for (const power of out) {
-    if (asAttacks.includes(power.id)) {
+    if (castAsAttack(power)) {
       if (power.altCasting && !power.altCasting.map((a: Rec) => a.unit).includes('attack')) power.altCasting.push({ length: 1, unit: 'attack' })
       else power.altCasting = [{ length: 1, unit: 'attack' }]
     }

@@ -136,8 +136,6 @@ export interface GameRules {
   placeholders?: (sheet: Sheet, card: Rec) => Record<string, string | number | undefined>
   /** Game-only sheet sections (ME shields, barrier, reputation, capacities). */
   sections?: Record<string, (sheet: Sheet) => unknown>
-  /** Text shown for a global note (ME computes Sneak Attack dice). */
-  noteText?: (note: Mech, sheet: Sheet) => string
   /** Extra actions on the sheet (ME barrier). */
   actions?: (sheet: Sheet) => SheetCard[]
   weapons: WeaponRules
@@ -186,6 +184,8 @@ export interface AttackAugments {
   dieIncrease: number
   addCritDie: number
   notes: unknown[]
+  /** Extra damage rolls on a hit (`addDamage`), merged into every damage roll of the attack. */
+  addDamage: Rec[]
 }
 
 export interface RulesOptions {
