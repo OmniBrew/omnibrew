@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { recordPageRoutes } from '@omnibrew/engine/content'
@@ -5,6 +6,8 @@ import { defineNuxtConfig } from 'nuxt/config'
 import { me5e } from './game'
 import { contentRoot } from './paths'
 import { recordRoutes } from './routes'
+
+const messages = join(contentRoot, 'messages/en.yml')
 
 export default defineNuxtConfig({
   extends: ['@omnibrew/engine'],
@@ -23,7 +26,8 @@ export default defineNuxtConfig({
   colorMode: { preference: 'dark', fallback: 'dark' },
 
   i18n: {
-    locales: [{ code: 'en', language: 'en-US', name: 'English', file: join(contentRoot, 'messages/en.yml') }],
+    // CI type-checks without the content repo; the locale then has no messages.
+    locales: [{ code: 'en', language: 'en-US', name: 'English', ...(existsSync(messages) ? { file: messages } : {}) }],
   },
 
   nitro: {
