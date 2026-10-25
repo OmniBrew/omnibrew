@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit -p packages/engine/tsconfig.json && nuxt typecheck apps/me5e && tsc --noEmit -p apps/me5e/tsconfig.game.json",
     "test": "vitest run",
     "postinstall": "nuxt prepare apps/me5e",
-    "validate:me5e": "tsx packages/engine/validator/cli.ts --game apps/me5e/game/index.ts --content ../omnibrew-me5e-data"
+    "validate:me5e": "tsx packages/engine/validator/cli.ts --game apps/me5e/game/index.ts --content ../omnibrew-me5e-data",
+    "migrate:me5e": "tsx apps/me5e/migrate/cli.ts"
   },
   "devDependencies": {
     "@nuxt/eslint-config": "1.17.0",

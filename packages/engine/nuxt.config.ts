@@ -17,6 +17,17 @@ export default defineNuxtConfig({
     '#game-theme': resolve('./app/assets/css/game-theme.css'),
   },
 
+  hooks: {
+    // Prose components (:distance, :condition...) appear in text fields too, which render
+    // through <MDC>; that resolves components globally, unlike ContentRenderer.
+    'components:extend'(components) {
+      const dir = resolve('./app/components/content').replaceAll('\\', '/')
+      for (const c of components) {
+        if (c.filePath.replaceAll('\\', '/').startsWith(dir)) c.global = true
+      }
+    },
+  },
+
   content: {
     experimental: {
       // Use Node's built-in node:sqlite (Node >= 22.5) instead of better-sqlite3,

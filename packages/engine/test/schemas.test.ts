@@ -15,10 +15,10 @@ const base: GameDefinition = defineGame({
   mechanics: [{ type: 'tst:shields', legacy: ['shields'], fields: k => ({ capacity: k.Formula }) }],
   powerSystem: { maxLevel: 5, pools: [{ id: 'slots', kind: 'slots', powerTypes: ['biotic'] }] },
   sources: {
-    'class-features': { data: 'class-features' },
-    'weapons': { data: 'weapons', itemKind: 'weapon' },
-    'armor': { data: 'armor', itemKind: 'armor' },
-    'powers': { data: 'powers' },
+    'class-features': { dir: 'class-features' },
+    'weapons': { dir: 'weapons', itemKind: 'weapon' },
+    'armor': { dir: 'armor', itemKind: 'armor' },
+    'powers': { dir: 'powers' },
   },
 })
 
@@ -49,10 +49,11 @@ describe('mechanics registry', () => {
     ]))).toEqual([])
   })
 
-  it('accepts a legacy spelling and reports it as info', () => {
+  it('reports a renamed type as an error naming the new type, and still checks its fields', () => {
     const issues = check(game, 'class-features', feature([{ type: 'shields', capacity: { type: 'flat', value: 5 } }]))
     expect(issues).toHaveLength(1)
-    expect(issues[0]).toMatchObject({ severity: 'info', category: 'legacy', rule: 'mechanic-legacy-type' })
+    expect(issues[0]).toMatchObject({ severity: 'error', category: 'legacy', rule: 'mechanic-legacy-type', message: 'mechanic type "shields" was renamed to "tst:shields"' })
+    expect(game.legacyMechanicTypes.get('shields')).toBe('tst:shields')
   })
 
   it('reports unknown and untyped mechanics as errors with paths', () => {
@@ -82,9 +83,9 @@ describe('mechanics registry', () => {
     ]))).toEqual([])
   })
 
-  it('reads legacy enum values as info', () => {
+  it('reports renamed enum values as errors naming the new value', () => {
     const issues = check(game, 'class-features', feature([{ type: 'sense', sense: 'infrared_vision', distance: 30 }]))
-    expect(issues).toMatchObject([{ severity: 'info', rule: 'enum-legacy-value' }])
+    expect(issues).toMatchObject([{ severity: 'error', rule: 'enum-legacy-value', message: 'senses value "infrared_vision" was renamed to "infrared-vision"' }])
   })
 })
 
@@ -129,5 +130,23 @@ describe('power system', () => {
   it('casting ability can follow the power alignment', () => {
     const points = { type: 'powercasting-points', mod: { byAlignment: { light: 'wis', dark: 'cha', universal: ['wis', 'cha'] } }, known: false, points: Array(20).fill(1), maxPowerLevel: Array(20).fill(1), multiclassConversion: 1 }
     expect(check(game, 'class-features', feature([points]))).toEqual([])
+  })
+})
+
+describe('absent values', () => {
+  const game = createGame(base)
+  const piece = { id: 'h', name: 'H', kind: 'armor', armorType: 'light', coverage: 'piece', slot: 'head' }
+  const entry = { castingTime: { length: 1, unit: 'action' }, duration: { length: 0, unit: 'instant' }, concentration: false, range: { short: 30 } }
+  const power = (casting: unknown[]) => ({ id: 'p', name: 'P', level: 1, powerType: 'biotic', casting })
+
+  it('are omitted, not written as false or null', () => {
+    expect(check(game, 'armor', piece)).toEqual([])
+    expect(check(game, 'armor', { ...piece, set: false }).map(i => i.path)).toEqual(['set'])
+    expect(check(game, 'armor', { ...piece, image: null }).map(i => i.path)).toEqual(['image'])
+    expect(check(game, 'armor', { ...piece, manufacturer: '' })).toMatchObject([{ path: 'manufacturer', message: 'leave the field out instead of writing an empty value' }])
+  })
+
+  it('but `false` in an upcast entry turns off a value the base entry sets', () => {
+    expect(check(game, 'powers', power([{ ...entry, dc: { save: 'dex' } }, { dc: false }]))).toEqual([])
   })
 })

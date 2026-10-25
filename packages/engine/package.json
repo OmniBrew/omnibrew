@@ -26,7 +26,8 @@
   "exports": {
     ".": "./nuxt.config.ts",
     "./schemas": "./schemas/index.ts",
-    "./validator": "./validator/index.ts"
+    "./validator": "./validator/index.ts",
+    "./content": "./content/index.ts"
   },
   "bin": {
     "omnibrew-validate": "./validator/cli.ts"

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Id, orNone } from '../primitives'
+import { Id } from '../primitives'
 import { defineMechanic, type MechanicDefinition } from './registry'
 
 /**
@@ -115,7 +115,7 @@ export const coreMechanics: MechanicDefinition[] = [
     fields: k => ({
       value: k.OneOrMany(z.string()).optional(),
       effect: z.strictObject({
-        type: orNone(z.union([k.e('advantageEffects'), z.strictObject({ bonus: k.Formula })])),
+        type: z.union([k.e('advantageEffects'), z.strictObject({ bonus: k.Formula })]).nullable(),
         bonus: k.Formula.optional(),
         dieType: z.number().optional(),
         note: z.string().optional(),
@@ -171,7 +171,7 @@ export const coreMechanics: MechanicDefinition[] = [
         damage: k.Damage,
         range: k.Range,
         properties: z.array(Id).optional(),
-        notes: orNone(z.array(k.Note)).optional(),
+        notes: z.array(k.Note).optional(),
         moreInfo: k.MoreInfo.optional(),
         html: z.string().optional(),
         versatile: k.Damage.optional(),

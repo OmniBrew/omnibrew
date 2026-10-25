@@ -14,9 +14,8 @@ export interface ValidationResult {
 }
 
 /**
- * Validates a content repo against a game: schema, cross-references,
- * data/text pairing, prose tags, then the game's own checks.
- * Content is read only; the legacy adapter works on in-memory copies.
+ * Validates a content repo against a game: schema, cross-references, prose
+ * (framework tags and MDC components), then the game's own checks.
  */
 export function validateContent(root: string, def: GameDefinition): ValidationResult {
   const game = createGame(def)
@@ -28,19 +27,13 @@ export function validateContent(root: string, def: GameDefinition): ValidationRe
 
   for (const item of loaded) {
     const { collection, id } = item
-    const file = item.dataFile ?? item.textFile
+    const file = item.file
     files.set(`${collection}/${id}`, file)
     counts[collection] = (counts[collection] ?? 0) + 1
 
     let rec = item.record
     const kind = def.sources[collection]?.itemKind
     if (kind) rec = { ...rec, kind }
-    if (def.legacy) {
-      rec = def.legacy(rec, {
-        collection,
-        note: (rule, message, path) => issues.push({ severity: 'info', category: 'legacy', collection, id, file, rule, message, path: path?.join('.') }),
-      })
-    }
 
     const schema = game.schemas[collection]
     if (schema) {
@@ -61,7 +54,7 @@ export function validateContent(root: string, def: GameDefinition): ValidationRe
   }
 
   issues.push(...checkReferences(game, records, files))
-  issues.push(...checkProse(records, files))
+  issues.push(...checkProse(game, records, files))
   issues.push(...findBacklog(records, files))
   def.checks?.({
     root,

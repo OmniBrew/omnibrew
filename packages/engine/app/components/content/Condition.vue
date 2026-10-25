@@ -1,15 +1,17 @@
 <script setup lang="ts">
 /**
  * MDC inline component for conditions: `:condition{id="primed" sub="necrotic"}`.
- * Replaces the legacy `<me-condition id="primed" sub="necrotic" />` tag.
+ * `id` is a conditions record; `sub` a variant (a prime's damage type); `label` replaces the text.
  */
-defineProps<{
+const props = defineProps<{
   id: string
-  /** Variant, e.g. the damage type of a prime. */
   sub?: string
+  label?: string
 }>()
+
+const text = computed(() => props.label || (props.sub ? `${props.id}: ${props.sub}` : props.id))
 </script>
 
 <template>
-  <span class="font-medium text-primary">{{ id }}<template v-if="sub"> ({{ sub }})</template></span>
+  <span class="font-medium text-primary">{{ text }}</span>
 </template>

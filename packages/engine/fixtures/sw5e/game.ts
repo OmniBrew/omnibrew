@@ -6,10 +6,9 @@ import { defineGame } from '../../schemas/game'
  * SW-shaped content fits the engine's extension points. The real SW5e app comes
  * after the ME5e cutover (plan/06).
  *
- * Sources are normalized (one file per record, no data/text split), which is
- * the layout ME5e content is expected to move to.
+ * Sources use the engine layout: one file per record, one folder per collection.
  */
-const flat = (dir: string) => ({ data: dir })
+const flat = (dir: string) => ({ dir })
 
 export const sw5eFixture = defineGame({
   id: 'sw5e-fixture',

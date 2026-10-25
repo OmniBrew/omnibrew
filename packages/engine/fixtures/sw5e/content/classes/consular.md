@@ -7,10 +7,8 @@ hitDie: 6
 primaryAbility: [wis, cha]
 subclassLabel: Consular Tradition
 profs:
-  armor: false
   weapon:
     has: [simple_lightweapon, simple_vibroweapon]
-  tool: false
   skill:
     choices:
       count: 2

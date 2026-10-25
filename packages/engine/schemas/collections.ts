@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { armorFields, gearFields, itemBase, weaponFields } from './items'
 import type { MechanicKit } from './mechanics/registry'
 import { powerSchema, type PowerSystemConfig } from './power-system'
-import { Id, orNone } from './primitives'
+import { Id } from './primitives'
 
 /**
  * Core collection shapes. Every record also gets `id` (the file name) and
@@ -40,9 +40,9 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
       hitDie: z.literal([6, 8, 10, 12]),
       primaryAbility: z.array(k.Ability).min(1),
       profs: z.strictObject({
-        'armor': orNone(prof()).optional(),
-        'weapon': orNone(prof()).optional(),
-        'tool': orNone(prof()).optional(),
+        'armor': prof().optional(),
+        'weapon': prof().optional(),
+        'tool': prof().optional(),
         'skill': prof(),
         'saving-throw': prof(),
       }),
@@ -127,7 +127,7 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
 
     'skills': k => ({ ...record, name: z.string(), link: k.Ability, is_new: z.boolean().optional() }),
 
-    'tool-profs': k => ({ ...record, name: z.string(), type: orNone(k.e('toolTypes')).optional() }),
+    'tool-profs': k => ({ ...record, name: z.string(), type: k.e('toolTypes').optional() }),
 
     'weapon-properties': () => ({ ...record, name: z.string(), is_new: z.boolean().optional(), takesValue: z.boolean().optional() }),
     'armor-properties': () => ({ ...record, name: z.string(), takesValue: z.boolean().optional() }),
@@ -173,9 +173,9 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
         mod: k.Ability.optional(),
         proficient: z.boolean().optional(),
         range: z.number().optional(),
-        damage: orNone(z.array(k.Damage)).optional(),
-        dc: orNone(k.Dc).optional(),
-        save: orNone(k.Ability).optional(),
+        damage: z.array(k.Damage).optional(),
+        dc: k.Dc.optional(),
+        save: k.Ability.optional(),
         recharge: z.union([z.literal('short'), z.literal('long'), z.array(z.string())]).optional(),
         perDay: z.union([z.boolean(), z.number(), z.string()]).optional(),
         uses: z.number().int().optional(),
@@ -204,19 +204,19 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
         hp: k.Dice,
         speed: z.strictObject({ walk: z.number().optional(), fly: z.number().optional(), swim: z.number().optional(), climb: z.number().optional(), burrow: z.number().optional(), note: z.string().optional() }),
         abilityScores: z.strictObject(Object.fromEntries(['str', 'dex', 'con', 'int', 'wis', 'cha'].map(a => [a, z.number().int().min(1).max(30)]))),
-        savingThrows: orNone(z.array(k.Ability)).optional(),
-        skills: orNone(z.array(Id)).optional(),
-        senses: orNone(k.keyedBy('senses', z.number())).optional(),
-        irv: orNone(z.strictObject({
+        savingThrows: z.array(k.Ability).optional(),
+        skills: z.array(Id).optional(),
+        senses: k.keyedBy('senses', z.number()).optional(),
+        irv: z.strictObject({
           res: z.array(k.e('damageTypes')).optional(),
           imm: z.array(k.e('damageTypes')).optional(),
           damImm: z.array(k.e('damageTypes')).optional(),
           vul: z.array(k.e('damageTypes')).optional(),
           conImm: z.array(Id).optional(),
-        })).optional(),
+        }).optional(),
         cr: z.string(),
         profBonus: z.number().int(),
-        image: orNone(z.string()).optional(),
+        image: z.string().optional(),
         entries: z.strictObject({
           features: z.array(entry).optional(),
           actions: z.array(entry).optional(),
@@ -230,7 +230,7 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
       ...record,
       name: z.string(),
       type: z.string(),
-      subtype: orNone(z.string()).optional(),
+      subtype: z.string().optional(),
       size: k.e('vehicleSizes'),
       ac: z.number().int(),
       hp: z.number().int(),
@@ -242,7 +242,7 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
       range: z.strictObject({ distance: z.number(), units: z.string() }).optional(),
       image: z.string().optional(),
       createdBy: z.string().optional(),
-      weapons: orNone(z.array(z.strictObject({ name: z.string(), damage: z.string() }))).optional(),
+      weapons: z.array(z.strictObject({ name: z.string(), damage: z.string() })).optional(),
       systems: z.array(z.strictObject({
         type: z.string(),
         crew: z.union([z.number().int(), z.string()]),

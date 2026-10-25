@@ -10,7 +10,7 @@ interface Casting {
   range?: { short?: number, aoe?: { type?: string, size?: number } | false }
   concentration?: boolean
 }
-const base = computed(() => (power.value?.casting[0] ?? {}) as Casting)
+const base = computed(() => (power.value?.casting?.[0] ?? {}) as Casting)
 const stats = computed(() => {
   const c = base.value
   const range = c.range?.short ? distance(c.range.short) : 'Self'
@@ -53,9 +53,8 @@ const stats = computed(() => {
         <h3 class="font-medium">
           {{ a.name }}
         </h3>
-        <p class="mt-1 text-sm">
-          {{ a.text }}
-        </p>
+        <!-- Text fields hold MDC too (:distance{...}); render them like the body. -->
+        <MDC :value="a.text" unwrap="p" tag="p" class="mt-1 text-sm" />
       </UCard>
     </section>
   </main>

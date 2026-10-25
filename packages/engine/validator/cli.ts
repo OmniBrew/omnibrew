@@ -14,7 +14,7 @@ Usage:
 
 Options:
   --game <path>       module exporting a GameDefinition (default export or named export)
-  --content <dir>     content repo root (folder holding data/ and text/)
+  --content <dir>     content repo root (the folder holding content/)
   --format <f>        text (default) | md | json | backlog (rules written as notes)
   --link-prefix <p>   backlog: prefix for links to content files (e.g. ../omnibrew-me5e-data/)
   --out <file>        write the report to a file instead of stdout

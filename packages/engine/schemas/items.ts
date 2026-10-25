@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { MechanicKit } from './mechanics/registry'
-import { Id, orNone } from './primitives'
+import { Id } from './primitives'
 
 /**
  * Items are one discriminated union on `kind`. Core kinds are weapon, armor
@@ -10,6 +10,8 @@ import { Id, orNone } from './primitives'
  * - `suit`: one piece covers the body (5e, SW5e, ME "body armor"); may set a base AC.
  * - `piece`: ME piecewise armor: one slot (head/chest/arms/legs) adding bonuses.
  */
+
+const NO_EMPTY = 'leave the field out instead of writing an empty value'
 
 /** A property reference with an optional value: `{ id: 'reload', value: 16 }`, `{ id: 'versatile', value: { dieCount: 1, dieType: 10 } }`. */
 export function propertyRef(k: MechanicKit) {
@@ -25,9 +27,9 @@ export function itemBase(k: MechanicKit) {
     cost: z.union([z.number().nonnegative(), z.string()]).optional(),
     weight: z.number().nonnegative().optional(),
     rarity: k.e('rarities').optional(),
-    image: orNone(z.string()).optional(),
+    image: z.string().optional(),
     flavor: z.string().optional(),
-    manufacturer: orNone(z.string()).optional(),
+    manufacturer: z.string().min(1, NO_EMPTY).optional(),
     author: z.string().optional(),
     homebrew: z.boolean().optional(),
     tags: z.array(k.e('itemTags')).optional(),
@@ -53,7 +55,7 @@ export function armorFields(k: MechanicKit) {
     armorType: k.e('armorTypes'),
     properties: z.array(propertyRef(k)).optional(),
     /** Set-bonus id (ME armor sets). */
-    set: orNone(Id).optional(),
+    set: Id.optional(),
     stealthDisadvantage: z.boolean().optional(),
   }
   return {
@@ -74,7 +76,7 @@ export function gearFields(k: MechanicKit) {
   return {
     kind: z.literal('gear'),
     gearType: k.e('gearTypes'),
-    subType: z.string().optional(),
+    subType: z.string().min(1, NO_EMPTY).optional(),
     consumable: z.boolean().optional(),
     equippable: z.boolean().optional(),
     installation: z.boolean().optional(),

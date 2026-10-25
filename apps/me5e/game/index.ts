@@ -1,18 +1,18 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { defineGame, Id, orNone, type CollectionSource, type GameCheckContext } from '@omnibrew/engine/schemas'
+import { defineGame, Id, orOff, type CollectionSource, type GameCheckContext } from '@omnibrew/engine/schemas'
+import { walkMechanics } from '@omnibrew/engine/validator'
 import { parse } from 'yaml'
 import { z } from 'zod'
-import { meLegacy } from './legacy'
 import { meMechanics } from './mechanics'
 
 /**
  * Mass Effect 5e on the 5e-2014 ruleset.
  *
- * `sources` describes masseffect-5e-data as it is today (data/ + text/en/ split).
- * When the content is normalized, only `sources` and `legacy` should need to change.
+ * `sources` describes OmniBrew/masseffect-5e-data: one folder per collection
+ * under `content/`, one `<id>.md` file per record. The repo's README documents it.
  */
-const dataAndText = (dir: string, text = true): CollectionSource => ({ data: `data/${dir}`, text: text ? `text/en/${dir}` : undefined })
+const content = (dir: string, itemKind?: string): CollectionSource => ({ dir: `content/${dir}`, ...(itemKind ? { itemKind } : {}) })
 
 export const me5e = defineGame({
   id: 'me5e',
@@ -79,7 +79,7 @@ export const me5e = defineGame({
       })).optional(),
     }),
     castingFields: k => ({
-      primes: orNone(k.e('damageTypes')).optional(),
+      primes: orOff(k.e('damageTypes')).optional(),
       detonates: z.boolean().optional(),
     }),
   },
@@ -104,7 +104,7 @@ export const me5e = defineGame({
     armor: () => ({ andromeda: z.boolean().optional() }),
     vehicles: () => ({ sp: z.number().int().nonnegative().optional() }),
     bestiary: k => ({
-      shields: orNone(z.strictObject({ capacity: z.number(), regen: z.number().optional() })).optional(),
+      shields: z.strictObject({ capacity: z.number(), regen: z.number().optional() }).optional(),
       unit: k.e('bestiaryUnits'),
     }),
   },
@@ -130,56 +130,61 @@ export const me5e = defineGame({
   },
 
   sources: {
-    'actions': dataAndText('actions', false),
-    'armor': { ...dataAndText('armor', false), itemKind: 'armor' },
-    'attributions': dataAndText('attributions', false),
-    'backgrounds': dataAndText('backgrounds'),
-    'bestiary': dataAndText('bestiary'),
-    'changelog': dataAndText('changelog', false),
-    'character-progression': dataAndText('character-progression', false),
-    'class-features': dataAndText('class-features', false),
-    'classes': dataAndText('classes'),
-    'edges': dataAndText('edges', false),
-    'feats': dataAndText('feats'),
-    'gear': { ...dataAndText('gear', false), itemKind: 'gear' },
-    'mods': { ...dataAndText('mods', false), itemKind: 'mod' },
-    'npc-stats': dataAndText('npc-stats', false),
-    'powers': dataAndText('powers', false),
-    'set-bonuses': dataAndText('set-bonuses', false),
-    'skills': dataAndText('skills'),
-    'species': dataAndText('species'),
-    'subclasses': dataAndText('subclasses'),
-    'subspecies': dataAndText('subspecies', false),
-    'tool-profs': dataAndText('tool-profs'),
-    'traits': dataAndText('traits'),
-    'vehicles': dataAndText('vehicles'),
-    'weapon-properties': dataAndText('weapon-properties'),
-    'weapons': { ...dataAndText('weapons', false), itemKind: 'weapon' },
-    'conditions': { text: 'text/en/conditions' },
-    'guide': { text: 'text/en/guide' },
-    'manual': { text: 'text/en/manual' },
-    'ship-upgrades': { text: 'text/en/ship-upgrades' },
+    'actions': content('actions'),
+    'armor': content('armor', 'armor'),
+    'attributions': content('attributions'),
+    'backgrounds': content('backgrounds'),
+    'bestiary': content('bestiary'),
+    'changelog': content('changelog'),
+    'character-progression': content('character-progression'),
+    'class-features': content('class-features'),
+    'classes': content('classes'),
+    'edges': content('edges'),
+    'feats': content('feats'),
+    'gear': content('gear', 'gear'),
+    'mods': content('mods', 'mod'),
+    'npc-stats': content('npc-stats'),
+    'powers': content('powers'),
+    'set-bonuses': content('set-bonuses'),
+    'skills': content('skills'),
+    'species': content('species'),
+    'subclasses': content('subclasses'),
+    'subspecies': content('subspecies'),
+    'tool-profs': content('tool-profs'),
+    'traits': content('traits'),
+    'vehicles': content('vehicles'),
+    'weapon-properties': content('weapon-properties'),
+    'weapons': content('weapons', 'weapon'),
+    'conditions': content('conditions'),
+    'guide': content('guide'),
+    'manual': content('manual'),
+    'ship-upgrades': content('ship-upgrades'),
   },
 
-  legacy: meLegacy,
   checks: meChecks,
 })
 
-/** Checks that only make sense for today's ME content and its build script. */
 function meChecks({ root, records, report }: GameCheckContext) {
-  // build-data.js silently drops powers without `version` or `tags`.
-  for (const [id, p] of records.get('powers') ?? []) {
-    for (const key of ['version', 'tags'] as const) {
-      if (p[key] === undefined) {
-        report({ severity: 'error', category: 'schema', collection: 'powers', id, rule: 'power-dropped-by-build', message: `no \`${key}\`: build-data.js skips this power, so it is missing from the site` })
-      }
+  // A power advancement choice can name the power whose advancements it offers.
+  for (const [collection, recs] of records) {
+    for (const [id, rec] of recs) {
+      walkMechanics(rec, (m, path) => {
+        const value = m.type === 'me:advancements-choice' ? (m.limit as { value?: unknown } | undefined)?.value : undefined
+        if (typeof value === 'string' && !records.get('powers')?.has(value)) {
+          report({ severity: 'error', category: 'reference', collection, id, rule: 'ref-missing', message: `${path}.limit.value: "${value}" is not a powers id` })
+        }
+      })
     }
   }
 
-  // Manual and guide chapters are listed in index files; every leaf needs a page and every page an entry.
-  for (const [index, collection] of [['data/manual-index.md', 'manual'], ['data/guides-index.md', 'guide']] as const) {
-    const raw = readFileSync(join(root, index), 'utf8')
-    const tree = parse(raw.split(/^---\s*$/m)[1] ?? '') as Array<{ id: string, sections?: unknown[] }>
+  // Manual and guide chapters are listed in navigation files; every leaf needs a page and every page an entry.
+  for (const [index, collection] of [['content/navigation/manual.yml', 'manual'], ['content/navigation/guide.yml', 'guide']] as const) {
+    const path = join(root, index)
+    if (!existsSync(path)) {
+      report({ severity: 'error', category: 'reference', collection, file: index, rule: 'navigation-missing', message: `${index} does not exist` })
+      continue
+    }
+    const tree = (parse(readFileSync(path, 'utf8')) as { chapters?: unknown[] } | null)?.chapters ?? []
     const leaves: string[] = []
     const all: string[] = []
     const walk = (nodes: unknown[]) => {
@@ -192,7 +197,7 @@ function meChecks({ root, records, report }: GameCheckContext) {
     walk(tree)
     const pages = records.get(collection) ?? new Map()
     for (const id of leaves) {
-      if (!pages.has(id)) report({ severity: 'error', category: 'reference', collection, id, file: index, rule: 'index-entry-missing-page', message: `${index} lists "${id}" but text/en/${collection}/${id}.md does not exist` })
+      if (!pages.has(id)) report({ severity: 'error', category: 'reference', collection, id, file: index, rule: 'index-entry-missing-page', message: `${index} lists "${id}" but content/${collection}/${id}.md does not exist` })
     }
     for (const id of pages.keys()) {
       if (!all.includes(id)) report({ severity: 'warning', category: 'reference', collection, id, rule: 'page-not-in-index', message: `page is not listed in ${index}, so the site never links to it` })

@@ -4,9 +4,12 @@ import type { EnumRegistry } from './enums'
 /** Content ids: file-name slugs. Legacy ME ids carry upper-case family prefixes (`BG_`, `PA_`, `EXL_`). */
 export const Id = z.string().regex(/^[a-z\d][\w-]*$/i, 'not a valid id slug')
 
-/** Legacy "none" markers (`dc: false`, `image: null`). Accepted; the migration should drop the key instead. */
-export function orNone<T extends z.ZodType>(schema: T) {
-  return z.union([schema, z.literal(false), z.null()])
+/**
+ * `false` in a delta entry (power upcast, advancement) turns off a value the
+ * base entry sets. Elsewhere an absent value is simply omitted.
+ */
+export function orOff<T extends z.ZodType>(schema: T) {
+  return z.union([schema, z.literal(false)])
 }
 
 /** Custom issue that the validator reports with an explicit severity. */
@@ -51,7 +54,7 @@ export function createPrimitives(enums: EnumRegistry) {
       const allowed = new Set(values)
       cache.set(name, z.string().superRefine((v, ctx) => {
         if (allowed.has(v)) return
-        if (aliases[v]) flag(ctx, 'info', `legacy ${name} value "${v}" is "${aliases[v]}"`, [], 'enum-legacy-value')
+        if (aliases[v]) flag(ctx, 'error', `${name} value "${v}" was renamed to "${aliases[v]}"`, [], 'enum-legacy-value')
         else ctx.addIssue({ code: 'custom', message: `Invalid option: expected one of ${values.map(x => `"${x}"`).join('|')}`, params: { severity: 'error', rule: 'invalid_value' } })
       }))
     }
@@ -98,7 +101,7 @@ export function createPrimitives(enums: EnumRegistry) {
   const Damage = z.strictObject({
     dieCount: DieCount.optional(),
     dieType: DieType.optional(),
-    type: orNone(z.union([e('damageTypes'), e('healingTypes')])).optional(),
+    type: z.union([e('damageTypes'), e('healingTypes')]).optional(),
     bonus: Formula.optional(),
     /** Ability (or `pc` = powercasting ability) added to the roll; `true`/`false` on bestiary attacks. */
     mod: z.union([Ability, z.literal('pc'), z.boolean()]).optional(),
@@ -110,7 +113,7 @@ export function createPrimitives(enums: EnumRegistry) {
   const Range = z.strictObject({
     short: z.number().nonnegative().optional(),
     long: z.number().nonnegative().optional(),
-    aoe: orNone(Aoe).optional(),
+    aoe: orOff(Aoe).optional(),
     /** Splash damage bound to the area (ME Dirty Bomb). */
     damage: z.array(Damage).optional(),
   })

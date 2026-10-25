@@ -3,8 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import sw5eFixture from '../fixtures/sw5e/game'
+import { createGame, defineGame } from '../schemas'
 import { findBacklog } from '../validator/backlog'
-import { legacyMerge } from '../validator/load'
+import { checkProse } from '../validator/prose'
 import { validateContent } from '../validator/validate'
 
 const fixtureDir = join(import.meta.dirname, '../fixtures/sw5e/content')
@@ -61,15 +62,47 @@ describe('rules written as notes', () => {
   })
 })
 
-describe('legacy data/text merge', () => {
-  it('merges arrays of `{ id }` by id and other arrays by index, like build-data.js', () => {
-    expect(legacyMerge(
-      { a: [{ id: 'x', n: 1 }, { id: 'y', n: 2 }], b: [{ choices: 1 }], c: 1 },
-      { a: [{ id: 'y', t: 'Y' }, { id: 'z', t: 'Z' }], b: [{ text: 't' }], c: 2 },
-    )).toEqual({
-      a: [{ id: 'x', n: 1 }, { id: 'y', n: 2, t: 'Y' }, { id: 'z', t: 'Z' }],
-      b: [{ choices: 1, text: 't' }],
-      c: 2,
-    })
+describe('prose', () => {
+  const game = createGame(defineGame({ ...sw5eFixture, enums: { ...sw5eFixture.enums, extend: { ...sw5eFixture.enums?.extend, edgeTypes: ['commands'] } } }))
+  const prose = (...lines: string[]) => {
+    const records = new Map<string, Map<string, Record<string, unknown>>>([
+      ['conditions', new Map([['prone', { id: 'prone', name: 'Prone' }]])],
+      ['feats', new Map([['f', { id: 'f', body: lines.join('\n') }]])],
+    ])
+    return checkProse(game, records, new Map()).map(i => `${i.severity}:${i.rule}`)
+  }
+
+  it('accepts the engine components wherever MDC reads them', () => {
+    expect(prose(
+      'Within :distance{length="5" adj num-only} of you (:condition{id="prone"}), 60/[:distance{length="100" abbr}].',
+      '## Heading :change-badge{type="new"}',
+      '::edge-list{type="commands"}',
+      '::',
+      `::source-reference{pages="2-3" source="races" :additional='[{"source":"wiki","pages":"Asari"}]'}`,
+      '::',
+      'A ratio of 1:2{x} is not a component.',
+    )).toEqual([])
+  })
+
+  it('rejects framework tags, naming the component to use', () => {
+    const records = new Map([['feats', new Map([['f', { id: 'f', body: 'within <me-distance length="5" /> and <v-chip>new</v-chip>' }]])]])
+    expect(checkProse(game, records, new Map()).map(i => [i.rule, i.message])).toEqual([
+      ['framework-tag', '<me-distance> is a framework tag; content uses MDC components; use :distance'],
+      ['framework-tag', '<v-chip> is a framework tag; content uses MDC components'],
+    ])
+  })
+
+  it('checks component names, kinds, props and references', () => {
+    expect(prose(' :distanse{length="5"}')).toEqual(['error:mdc-unknown-component'])
+    expect(prose(' :distance{lenght="5"}')).toEqual(['warning:mdc-unknown-prop', 'error:mdc-missing-prop'])
+    expect(prose('::distance{length="5"}', '::')).toEqual(['error:mdc-component-kind'])
+    expect(prose(' :change-badge{type="old"}')).toEqual(['error:mdc-invalid-prop'])
+    expect(prose(' :condition{id="stunned"}')).toEqual(['error:ref-missing'])
+    expect(prose('::edge-list{type="nope"}', '::')).toEqual(['error:mdc-invalid-prop'])
+  })
+
+  it('flags components MDC would show as text', () => {
+    expect(prose('a range of 60/:distance{length="100"}')).toEqual(['error:mdc-not-parsed'])
+    expect(prose('<p>within :distance{length="5"}</p>')).toEqual(['error:mdc-in-html'])
   })
 })

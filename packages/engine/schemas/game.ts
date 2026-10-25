@@ -11,23 +11,15 @@ export type Ruleset = '5e-2014' | '5e-2024'
 
 /** Where a collection's files live in a content repo. */
 export interface CollectionSource {
-  /** Folder of mechanics files (`data/powers`). */
-  data?: string
-  /** Folder of prose files merged over the data file with the same name (`text/en/powers`). */
-  text?: string
+  /** Folder holding one `<id>.md` file per record (`content/powers`). */
+  dir: string
   /** Item kind injected into every record of an item collection. */
   itemKind?: string
 }
 
-export interface LegacyContext {
-  collection: string
-  /** Record a normalization the content migration will have to make. */
-  note: (rule: string, message: string, path?: (string | number)[]) => void
-}
-
 export interface GameCheckIssue {
   severity: 'error' | 'warning' | 'info'
-  category: 'schema' | 'reference' | 'pairing' | 'legacy' | 'prose' | 'backlog'
+  category: 'schema' | 'reference' | 'legacy' | 'prose' | 'backlog'
   collection: string
   id?: string
   file?: string
@@ -58,13 +50,8 @@ export interface GameDefinition {
   collections?: Record<string, ShapeFn>
   /** Item kinds beyond weapon/armor/gear. Each shape must include `kind: z.literal(...)`. */
   itemKinds?: Record<string, ShapeFn>
-  /** Content repo layout: collection name → folders. */
+  /** Content repo layout: collection name → folder. */
   sources: Record<string, CollectionSource>
-  /**
-   * Converts a record in today's content format into the engine shape, in memory.
-   * The content itself is not touched; every rename is reported through `ctx.note`.
-   */
-  legacy?: (record: Record<string, unknown>, ctx: LegacyContext) => Record<string, unknown>
   /** Game-specific checks that need the whole content set (indexes, generated records...). */
   checks?: (ctx: GameCheckContext) => void
 }
@@ -76,6 +63,7 @@ export interface Game {
   enums: EnumRegistry
   kit: MechanicKit
   mechanicTypes: string[]
+  /** Renamed mechanic types: old name → current name. */
   legacyMechanicTypes: Map<string, string>
   /** One schema per collection named in `def.sources`. */
   schemas: Record<string, z.ZodType>

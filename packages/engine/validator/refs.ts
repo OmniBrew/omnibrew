@@ -160,6 +160,7 @@ export function checkReferences(game: Game, records: Records, files: Map<string,
           const v = m[key]
           if (isObj(v)) refModel(collection, id, `${path}.${key}`, v.model, v.id)
         }
+        if (isObj(m.limit) && isObj(m.limit.valueLookup)) refModel(collection, id, `${path}.limit.valueLookup`, m.limit.valueLookup.model, m.limit.valueLookup.id)
         switch (m.type) {
           case 'model-choice': {
             if (typeof m.model !== 'string') break
@@ -215,13 +216,6 @@ export function checkReferences(game: Game, records: Records, files: Map<string,
           case 'use-class-for-cantrip-list':
           case 'override-weapon-attack-mod':
             refId(collection, id, `${path}.klass`, ['classes'], m.klass)
-            break
-          case 'advancements-choice':
-          case 'me:advancements-choice':
-            if (isObj(m.limit)) {
-              if (isObj(m.limit.valueLookup)) refModel(collection, id, `${path}.limit.valueLookup`, m.limit.valueLookup.model, m.limit.valueLookup.id)
-              refId(collection, id, `${path}.limit.value`, ['powers'], m.limit.value)
-            }
             break
         }
       })
