@@ -38,10 +38,10 @@ export default defineNuxtConfig({
     defaults: { subsets: ['latin', 'latin-ext'] },
     families: [
       // Headlines: Saira's width axis pinned at 125%, so the one face is always the wide cut.
-      { name: 'Saira', provider: 'google', weights: ['600 700'], providerOptions: { google: { experimental: { variableAxis: { wdth: ['125'] } } } } },
-      { name: 'Chakra Petch', provider: 'google', weights: [600, 700] },
+      { name: 'Saira', provider: 'google', weights: ['600 700'], styles: ['normal'], providerOptions: { google: { experimental: { variableAxis: { wdth: ['125'] } } } } },
+      { name: 'Chakra Petch', provider: 'google', weights: [600, 700], styles: ['normal'] },
       { name: 'IBM Plex Sans', provider: 'google', weights: ['400 700'], styles: ['normal', 'italic'] },
-      { name: 'IBM Plex Mono', provider: 'google', weights: [400, 500, 600] },
+      { name: 'IBM Plex Mono', provider: 'google', weights: [400, 500, 600], styles: ['normal'] },
     ],
   },
 
