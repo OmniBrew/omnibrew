@@ -24,7 +24,7 @@ const { t } = useI18n()
 <template>
   <ItemInfo :item="mod">
     <template v-if="summary" #summary>
-      <ItemSubtitle :text="modSubtitle(t, mod)" :cost="mod.cost" :text-class="rarityClass(mod.rarity)" :author="mod.author" />
+      <ItemSubtitle :text="modSubtitle(t, mod)" :cost="mod.cost" :text-class="rarityClass(mod.rarity)" pip :author="mod.author" />
     </template>
     <template #stats>
       <dl class="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">

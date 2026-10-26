@@ -6,6 +6,8 @@
  */
 defineProps<{
   npc: StatBlockData & { body?: unknown, shields?: { capacity: number, regen?: number } }
+  /** The name inside the block, as this heading level (the creature's page). */
+  titleTag?: 'h1' | 'h2'
 }>()
 
 const { t } = useI18n()
@@ -17,7 +19,7 @@ const { data: slots } = useAsyncData(
 </script>
 
 <template>
-  <StatblockSheet :stats="npc" :rules="npcWeaponRules" :slots="slots">
+  <StatblockSheet :stats="npc" :rules="npcWeaponRules" :slots="slots" :title-tag="titleTag">
     <template #defenses>
       <StatblockLine v-if="npc.shields" :label="t('shields_title')">
         {{ npcShieldsText(t, npc.shields) }}

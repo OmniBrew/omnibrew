@@ -119,6 +119,11 @@ export function characterSchema(ext: CharacterExtension = {}) {
     game: z.string(),
     name: z.string(),
     image: z.string().optional(),
+    /**
+     * The sheet's color: one of the game theme's accents (`game.theme.accents`), picked
+     * in the sheet's settings. Absent: the first class's color (app/utils/accent.ts).
+     */
+    sheetColor: Id.optional(),
     experience: z.strictObject({ points: int().nonnegative(), milestone: int().nonnegative(), useMilestone: z.boolean() }),
     /** Species, variant or subspecies id, or a built-in species of the game (`custom`). */
     species: Id.nullable(),

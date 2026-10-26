@@ -27,7 +27,7 @@ const { t } = useI18n()
 <template>
   <ItemInfo :item="armor">
     <template v-if="summary" #summary>
-      <ItemSubtitle :text="armorSubtitle(t, armor)" :cost="armor.cost" :text-class="rarityClass(armor.rarity)" :author="armor.author" />
+      <ItemSubtitle :text="armorSubtitle(t, armor)" :cost="armor.cost" :text-class="rarityClass(armor.rarity)" pip :author="armor.author" />
     </template>
     <MeArmorSetBonus v-if="armor.set" :set="armor.set" />
     <MeAndromedaChip v-if="armor.andromeda" />

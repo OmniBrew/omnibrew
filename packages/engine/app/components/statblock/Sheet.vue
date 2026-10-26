@@ -8,6 +8,9 @@
  * ratings it names are looked up in their collections.
  *
  * Slot `defenses`: more lines after hit points (ME5e shields).
+ *
+ * The block is a muted panel under a brand bar: name and kind, then the stats on
+ * the left and the traits and actions on the right on wide screens (`wide`).
  */
 import type { StatBlockData, StatBlockRefs, StatBlockRules, StatDamage } from '../../utils/statblock'
 
@@ -16,9 +19,15 @@ const props = withDefaults(defineProps<{
   rules?: StatBlockRules
   /** Power slots by power level and caster level, for leveled powercasting. */
   slots?: number[][]
+  /** The creature's name at the top of the block, as this heading level (its page's h1); none in a list row. */
+  titleTag?: 'h1' | 'h2'
+  /** Two columns on wide screens. */
+  wide?: boolean
 }>(), {
   rules: () => ({}),
   slots: () => [],
+  titleTag: undefined,
+  wide: true,
 })
 
 defineSlots<{ defenses?: () => unknown }>()
@@ -79,66 +88,87 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="text-sm leading-6">
-    <div class="grid gap-6" :class="image ? 'md:grid-cols-[minmax(0,1fr)_14rem]' : ''">
-      <div class="min-w-0">
-        <p class="italic text-muted">
-          {{ creatureKindText(t, stats) }}
-        </p>
-        <USeparator color="secondary" class="my-3" :ui="{ border: 'border-t-2' }" />
-        <StatblockLine :label="t('ac_title')">
-          {{ armorClassText(stats.ac, stats.acNote) }}
-        </StatblockLine>
-        <StatblockLine v-if="stats.hp" :label="t('hit_points_title')">
-          {{ hitPointsText(t, stats.hp, scores.con) }}
-        </StatblockLine>
-        <slot name="defenses" />
-        <StatblockLine v-if="stats.speed" :label="t('speed_title')">
-          <StatblockText :value="speedText(t, stats.speed, feet)" />
-        </StatblockLine>
-
-        <USeparator color="secondary" class="my-3" :ui="{ border: 'border-t-2' }" />
-        <dl class="grid grid-cols-3 gap-y-2 text-center sm:grid-cols-6">
-          <div v-for="a in abilityScoreList(scores)" :key="a.ability">
-            <dt class="font-display text-xs font-semibold uppercase tracking-wider text-muted">
-              {{ t(`abilities.${a.ability}.abbr`) }}
-            </dt>
-            <dd>{{ abilityScoreText(a.score) }}</dd>
+  <div class="text-[0.90625rem]/[1.55]">
+    <div class="rounded-md border border-t-3 border-default border-t-(--ui-tick) bg-muted px-4 pt-4 pb-5 sm:px-6 sm:pt-5">
+      <div class="grid gap-x-10" :class="wide ? 'lg:grid-cols-2' : ''">
+        <div class="min-w-0">
+          <div class="flex items-start gap-4">
+            <div class="min-w-0 flex-1">
+              <component :is="titleTag" v-if="titleTag" class="text-2xl/[1.15] font-bold text-highlighted">
+                {{ stats.name }}
+              </component>
+              <p class="mt-0.5 text-muted italic">
+                {{ creatureKindText(t, stats) }}
+              </p>
+            </div>
+            <img
+              v-if="image"
+              ref="imageEl"
+              :src="image"
+              :alt="stats.name"
+              referrerpolicy="no-referrer"
+              class="max-h-32 w-auto max-w-28 shrink-0 rounded-md object-contain sm:max-h-40 sm:max-w-36"
+              :class="imageLoaded ? 'bg-neutral-200 p-1.5' : 'invisible'"
+              @load="imageLoaded = true"
+              @error="brokenImage = true"
+            >
           </div>
-        </dl>
+          <hr class="statblock-rule">
+          <StatblockLine :label="t('ac_title')">
+            {{ armorClassText(stats.ac, stats.acNote) }}
+          </StatblockLine>
+          <StatblockLine v-if="stats.hp" :label="t('hit_points_title')">
+            {{ hitPointsText(t, stats.hp, scores.con) }}
+          </StatblockLine>
+          <slot name="defenses" />
+          <StatblockLine v-if="stats.speed" :label="t('speed_title')">
+            <StatblockText :value="speedText(t, stats.speed, feet)" />
+          </StatblockLine>
 
-        <USeparator color="secondary" class="my-3" :ui="{ border: 'border-t-2' }" />
-        <StatblockLine v-if="stats.savingThrows?.length" :label="t('saving_throws_title')">
-          {{ savingThrowsText(t, stats.savingThrows, scores, prof) }}
-        </StatblockLine>
-        <StatblockLine v-if="stats.skills?.length" :label="t('skills_title')">
-          {{ skillsText(t, stats.skills, scores, prof, refs.skills) }}
-        </StatblockLine>
-        <StatblockLine v-if="irv.vul?.length" :label="t('npc.damage_vulnerabilities')">
-          {{ damageTypesText(t, irv.vul) }}
-        </StatblockLine>
-        <StatblockLine v-if="irv.res?.length" :label="t('npc.damage_resistances')">
-          {{ damageTypesText(t, irv.res) }}
-        </StatblockLine>
-        <StatblockLine v-if="immunities.length" :label="t('npc.damage_immunities')">
-          {{ damageTypesText(t, immunities) }}
-        </StatblockLine>
-        <StatblockLine v-if="irv.conImm?.length" :label="t('npc.condition_immunities')">
-          {{ conditionsText(t, irv.conImm, refs.conditions) }}
-        </StatblockLine>
-        <StatblockLine :label="t('senses_title')">
-          {{ sensesText(t, passivePerception(scores, prof, stats.skills), stats.senses, feet) }}
-        </StatblockLine>
-        <StatblockLine :label="t('cr_title')">
-          {{ challengeText(t, stats.cr ? refs.challenge[stats.cr] : undefined) }}
-        </StatblockLine>
-        <StatblockLine :label="t('class_feature_columns.prof_bonus')">
-          {{ modifierText(prof) }}
-        </StatblockLine>
+          <hr class="statblock-rule">
+          <dl class="grid grid-cols-3 gap-1 gap-y-2 text-center sm:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6">
+            <div v-for="a in abilityScoreList(scores)" :key="a.ability">
+              <dt class="eyebrow text-muted">
+                {{ t(`abilities.${a.ability}.abbr`) }}
+              </dt>
+              <dd class="mt-0.5 font-mono text-sm whitespace-nowrap text-highlighted tabular-nums">
+                {{ abilityScoreText(a.score) }}
+              </dd>
+            </div>
+          </dl>
 
-        <template v-if="entries.features?.length">
-          <USeparator color="secondary" class="my-3" :ui="{ border: 'border-t-2' }" />
-          <div class="space-y-3">
+          <hr class="statblock-rule">
+          <StatblockLine v-if="stats.savingThrows?.length" :label="t('saving_throws_title')">
+            {{ savingThrowsText(t, stats.savingThrows, scores, prof) }}
+          </StatblockLine>
+          <StatblockLine v-if="stats.skills?.length" :label="t('skills_title')">
+            {{ skillsText(t, stats.skills, scores, prof, refs.skills) }}
+          </StatblockLine>
+          <StatblockLine v-if="irv.vul?.length" :label="t('npc.damage_vulnerabilities')">
+            {{ damageTypesText(t, irv.vul) }}
+          </StatblockLine>
+          <StatblockLine v-if="irv.res?.length" :label="t('npc.damage_resistances')">
+            {{ damageTypesText(t, irv.res) }}
+          </StatblockLine>
+          <StatblockLine v-if="immunities.length" :label="t('npc.damage_immunities')">
+            {{ damageTypesText(t, immunities) }}
+          </StatblockLine>
+          <StatblockLine v-if="irv.conImm?.length" :label="t('npc.condition_immunities')">
+            {{ conditionsText(t, irv.conImm, refs.conditions) }}
+          </StatblockLine>
+          <StatblockLine :label="t('senses_title')">
+            {{ sensesText(t, passivePerception(scores, prof, stats.skills), stats.senses, feet) }}
+          </StatblockLine>
+          <StatblockLine :label="t('cr_title')">
+            {{ challengeText(t, stats.cr ? refs.challenge[stats.cr] : undefined) }}
+          </StatblockLine>
+          <StatblockLine :label="t('class_feature_columns.prof_bonus')">
+            {{ modifierText(prof) }}
+          </StatblockLine>
+        </div>
+
+        <div class="min-w-0" :class="wide ? 'max-lg:mt-4.5' : 'mt-4.5'">
+          <StatblockSection v-if="entries.features?.length" :title="t('npc.traits_title')">
             <StatblockEntry
               v-for="(e, i) in shownEntries(entries.features)"
               :key="e.id ?? i"
@@ -149,63 +179,51 @@ onMounted(() => {
               :rules="rules"
               :slots="slots"
             />
-          </div>
-        </template>
+          </StatblockSection>
 
-        <StatblockSection v-if="entries.actions?.length" :title="t('npc.actions_title')">
-          <StatblockEntry
-            v-for="(e, i) in shownEntries(sortActions(entries.actions))"
-            :key="e.id ?? i"
-            :entry="e"
-            :scores="scores"
-            :prof-bonus="prof"
-            :refs="refs"
-            :rules="rules"
-            :slots="slots"
-          />
-        </StatblockSection>
+          <StatblockSection v-if="entries.actions?.length" :title="t('npc.actions_title')">
+            <StatblockEntry
+              v-for="(e, i) in shownEntries(sortActions(entries.actions))"
+              :key="e.id ?? i"
+              :entry="e"
+              :scores="scores"
+              :prof-bonus="prof"
+              :refs="refs"
+              :rules="rules"
+              :slots="slots"
+            />
+          </StatblockSection>
 
-        <StatblockSection v-if="entries.reactions?.length" :title="t('npc.reactions_title')">
-          <StatblockEntry
-            v-for="(e, i) in shownEntries(entries.reactions)"
-            :key="e.id ?? i"
-            :entry="e"
-            :scores="scores"
-            :prof-bonus="prof"
-            :refs="refs"
-            :rules="rules"
-            :slots="slots"
-          />
-        </StatblockSection>
+          <StatblockSection v-if="entries.reactions?.length" :title="t('npc.reactions_title')">
+            <StatblockEntry
+              v-for="(e, i) in shownEntries(entries.reactions)"
+              :key="e.id ?? i"
+              :entry="e"
+              :scores="scores"
+              :prof-bonus="prof"
+              :refs="refs"
+              :rules="rules"
+              :slots="slots"
+            />
+          </StatblockSection>
 
-        <StatblockSection v-if="entries.legendary" :title="t('npc.legendary_title')">
-          <p v-if="entries.legendary.text">
-            <StatblockText :value="entries.legendary.text" />
-          </p>
-          <StatblockEntry
-            v-for="(e, i) in shownEntries(sortLegendary(entries.legendary.actions))"
-            :key="e.id ?? i"
-            :entry="e"
-            :scores="scores"
-            :prof-bonus="prof"
-            :refs="refs"
-            :rules="rules"
-            :slots="slots"
-          />
-        </StatblockSection>
+          <StatblockSection v-if="entries.legendary" :title="t('npc.legendary_title')">
+            <p v-if="entries.legendary.text">
+              <StatblockText :value="entries.legendary.text" />
+            </p>
+            <StatblockEntry
+              v-for="(e, i) in shownEntries(sortLegendary(entries.legendary.actions))"
+              :key="e.id ?? i"
+              :entry="e"
+              :scores="scores"
+              :prof-bonus="prof"
+              :refs="refs"
+              :rules="rules"
+              :slots="slots"
+            />
+          </StatblockSection>
+        </div>
       </div>
-
-      <img
-        v-if="image"
-        ref="imageEl"
-        :src="image"
-        :alt="stats.name"
-        referrerpolicy="no-referrer"
-        class="order-first mx-auto max-h-40 rounded-lg object-contain md:order-none md:max-h-96 md:w-full md:self-start"
-        :class="imageLoaded ? 'bg-neutral-200 p-2' : 'invisible'"
-        @load="imageLoaded = true"
-        @error="brokenImage = true"
-      >
     </div>
 
     <UCard v-if="hasNotes" class="mt-6">

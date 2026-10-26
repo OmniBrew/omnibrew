@@ -15,7 +15,7 @@ const { data: properties } = await useAsyncData('weapon-properties', () => query
     <UPageBody>
       <div class="divide-y divide-default">
         <section v-for="p in properties" :id="recordId(p)" :key="p.path" class="scroll-mt-24 py-4">
-          <h2 class="font-display text-lg font-semibold text-highlighted">
+          <h2 class="font-label text-base font-semibold text-highlighted">
             {{ p.name }}
             <ChangeBadge v-if="p.is_new" type="new" />
           </h2>

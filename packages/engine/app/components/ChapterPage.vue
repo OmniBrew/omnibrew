@@ -13,6 +13,8 @@ const props = defineProps<{
   collection: string
   /** Chapter id. */
   id: string
+  /** Overline above the chapter title ("Player's Manual"). */
+  headline?: string
 }>()
 
 const { t } = useI18n()
@@ -37,11 +39,11 @@ const title = computed(() => t(chapter.value?.title ?? props.id))
 <template>
   <UPage>
     <slot name="header" :title="title">
-      <RecordHeader :title="title" />
+      <RecordHeader :title="title" :headline="headline" :rule="false" />
     </slot>
     <UPageBody>
-      <section v-for="s in sections" :id="s.id" :key="s.id" class="scroll-mt-24">
-        <h2 class="mt-10 border-b border-default pb-2 font-display text-2xl font-bold text-highlighted first:mt-0">
+      <section v-for="s in sections" :id="s.id" :key="s.id" class="max-w-[45rem] scroll-mt-24 first:[&>h2]:mt-6">
+        <h2 class="relative mt-11 flex flex-wrap items-center gap-x-2.5 border-t border-default pt-4.5 text-[1.3125rem]/7 font-bold text-highlighted before:absolute before:-top-0.5 before:left-0 before:h-[3px] before:w-8 before:bg-(--ui-tick) sm:text-2xl/8">
           {{ s.record!.title }}
           <ChangeBadge v-if="s.is_new" type="new" />
           <ChangeBadge v-else-if="s.is_change" type="change" />
@@ -51,12 +53,12 @@ const title = computed(() => t(chapter.value?.title ?? props.id))
     </UPageBody>
     <template #right>
       <UPageAside>
-        <p class="mb-2 font-display text-sm font-semibold uppercase tracking-wider text-muted">
-          {{ t('buttons.go_to') }}
+        <p class="mb-2 eyebrow text-muted">
+          {{ t('shell.on_this_page') }}
         </p>
-        <ul class="space-y-1 border-l border-default text-sm">
+        <ul class="border-l border-default text-[0.8125rem]/[1.125rem]">
           <li v-for="s in sections" :key="s.id">
-            <a :href="`#${s.id}`" class="-ml-px block border-l border-transparent py-0.5 pl-3 text-muted hover:border-primary hover:text-highlighted">
+            <a :href="`#${s.id}`" class="-ml-px block border-l-2 border-transparent py-1.25 pl-3 text-muted hover:border-primary hover:text-highlighted">
               {{ s.record!.title }}
               <UBadge v-if="s.is_new || s.is_change" :label="t(s.is_new ? 'new' : 'change')" :color="s.is_new ? 'info' : 'warning'" variant="subtle" size="xs" class="ml-1" />
             </a>

@@ -13,7 +13,7 @@ withDefaults(defineProps<{
 
 <template>
   <div :id="anchor" class="scroll-mt-24">
-    <component :is="`h${level}`" class="font-display text-lg font-semibold text-highlighted">
+    <component :is="`h${level}`" class="font-label text-base font-semibold text-highlighted">
       {{ label }}
     </component>
     <div class="mt-1 text-default">

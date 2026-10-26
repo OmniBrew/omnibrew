@@ -6,9 +6,12 @@
  */
 type Mode = 'signIn' | 'signUp' | 'confirm' | 'forgot' | 'reset'
 
+definePageMeta({ layout: 'bare' })
+
 const session = useSession()
 const route = useRoute()
 const { t } = useI18n()
+const { game } = useAppConfig()
 
 useSeoMeta({ title: t('auth.sign_in'), robots: 'noindex' })
 
@@ -93,25 +96,37 @@ const needsCode = computed(() => mode.value === 'confirm' || mode.value === 'res
 </script>
 
 <template>
-  <UPage>
-    <UPageBody>
-      <UPageCard :title="t(titles[mode])" class="mx-auto my-8 w-full max-w-md">
+  <UContainer class="flex min-h-[calc(100vh-var(--ui-header-height)-5rem)] items-center justify-center py-12">
+    <div class="corner-ticks w-full max-w-md rounded-md border border-default bg-muted">
+      <div class="px-6 pt-7 pb-6 sm:px-8">
+        <div class="mb-6 flex items-center gap-3">
+          <img v-if="game.brand.logo" :src="game.brand.logo" alt="" class="size-12 shrink-0">
+          <div class="min-w-0">
+            <p class="eyebrow text-muted">
+              {{ t('auth.account_overline') }}
+            </p>
+            <h1 class="text-[1.75rem]/[2.125rem] font-bold text-highlighted">
+              {{ t(titles[mode]) }}
+            </h1>
+          </div>
+        </div>
         <ClientOnly>
           <div v-if="!session.enabled" class="text-muted">
             {{ t('auth.required_text') }}
           </div>
-          <div v-else class="flex flex-col gap-4">
+          <div v-else class="flex flex-col gap-5">
             <template v-if="mode === 'signIn' || mode === 'signUp'">
               <UButton
                 color="neutral"
                 variant="outline"
+                size="xl"
                 icon="i-simple-icons-google"
                 :label="t('auth.google')"
                 :loading="busy"
                 block
                 @click="google"
               />
-              <USeparator :label="t('auth.or')" />
+              <USeparator :label="t('auth.or')" :ui="{ label: 'eyebrow text-muted' }" />
             </template>
 
             <UAlert v-if="notice" color="info" variant="subtle" :title="notice" />
@@ -119,10 +134,10 @@ const needsCode = computed(() => mode.value === 'confirm' || mode.value === 'res
 
             <form class="flex flex-col gap-4" @submit.prevent="submit">
               <UFormField :label="t('auth.email')" name="email" required>
-                <UInput v-model="email" type="email" autocomplete="username" :disabled="mode === 'confirm' || mode === 'reset'" class="w-full" />
+                <UInput v-model="email" type="email" size="lg" autocomplete="username" :disabled="mode === 'confirm' || mode === 'reset'" class="w-full" />
               </UFormField>
               <UFormField v-if="needsCode" :label="t('auth.code')" name="code" required>
-                <UInput v-model="code" inputmode="numeric" autocomplete="one-time-code" class="w-full" />
+                <UInput v-model="code" size="lg" inputmode="numeric" autocomplete="one-time-code" class="w-full" />
               </UFormField>
               <UFormField
                 v-if="needsPassword"
@@ -131,24 +146,30 @@ const needsCode = computed(() => mode.value === 'confirm' || mode.value === 'res
                 name="password"
                 required
               >
-                <UInput v-model="password" type="password" :autocomplete="mode === 'signIn' ? 'current-password' : 'new-password'" class="w-full" />
+                <template v-if="mode === 'signIn'" #hint>
+                  <ULink as="button" type="button" class="text-sm text-primary" @click="go('forgot')">
+                    {{ t('auth.forgot_password') }}
+                  </ULink>
+                </template>
+                <UInput v-model="password" type="password" size="lg" :autocomplete="mode === 'signIn' ? 'current-password' : 'new-password'" class="w-full" />
               </UFormField>
-              <UButton type="submit" :label="t(submitLabels[mode])" :loading="busy" block />
+              <UButton type="submit" size="xl" :label="t(submitLabels[mode])" :loading="busy" block class="mt-1" />
             </form>
-
-            <div class="flex flex-wrap justify-between gap-2 text-sm">
-              <template v-if="mode === 'signIn'">
-                <ULink as="button" class="text-primary" @click="go('signUp')">{{ t('auth.sign_up') }}</ULink>
-                <ULink as="button" class="text-muted" @click="go('forgot')">{{ t('auth.forgot_password') }}</ULink>
-              </template>
-              <template v-else>
-                <ULink as="button" class="text-primary" @click="go('signIn')">{{ t('auth.back_to_sign_in') }}</ULink>
-                <ULink v-if="mode === 'confirm'" as="button" class="text-muted" @click="resend">{{ t('auth.resend_code') }}</ULink>
-              </template>
-            </div>
           </div>
         </ClientOnly>
-      </UPageCard>
-    </UPageBody>
-  </UPage>
+      </div>
+      <ClientOnly>
+        <div v-if="session.enabled" class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-default px-6 py-3.5 text-sm text-muted">
+          <template v-if="mode === 'signIn'">
+            {{ t('auth.new_here') }}
+            <ULink as="button" class="font-label font-semibold text-primary" @click="go('signUp')">{{ t('auth.sign_up') }}</ULink>
+          </template>
+          <template v-else>
+            <ULink as="button" class="font-label font-semibold text-primary" @click="go('signIn')">{{ t('auth.back_to_sign_in') }}</ULink>
+            <ULink v-if="mode === 'confirm'" as="button" class="text-muted" @click="resend">{{ t('auth.resend_code') }}</ULink>
+          </template>
+        </div>
+      </ClientOnly>
+    </div>
+  </UContainer>
 </template>

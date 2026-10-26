@@ -30,7 +30,7 @@ const heat = computed(() => weaponHeat(props.weapon))
 <template>
   <ItemInfo :item="weapon">
     <template v-if="summary" #summary>
-      <ItemSubtitle :text="weaponSubtitle(t, weapon)" :cost="weapon.cost" :text-class="rarityClass(weapon.rarity)" :author="weapon.author" />
+      <ItemSubtitle :text="weaponSubtitle(t, weapon)" :cost="weapon.cost" :text-class="rarityClass(weapon.rarity)" pip :author="weapon.author" />
     </template>
     <template #stats>
       <ItemWeaponStats :weapon="weapon" :hide-properties="['heat']">

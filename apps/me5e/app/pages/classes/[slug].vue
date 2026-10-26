@@ -48,6 +48,7 @@ watch(() => route.hash, showHash)
       <RecordHeader
         :title="klass.name ?? ''"
         :headline="t('class_title', 1)"
+        headline-class="text-(--klass-accent)"
         :image="`/images/classes/${id}.svg`"
         :author="klass.author"
         :links="[{ label: t('class_title', 2), icon: 'i-lucide-arrow-left', to: '/classes', variant: 'ghost' }]"
@@ -61,7 +62,7 @@ watch(() => route.hash, showHash)
           :unmount-on-hide="false"
           :ui="{
             list: '[--ui-primary:var(--klass-accent)]',
-            trigger: 'flex-1 px-1 font-display text-xs uppercase sm:flex-none sm:px-3 sm:text-sm sm:tracking-wider',
+            trigger: 'flex-1 px-1 sm:flex-none sm:px-3',
             label: 'whitespace-normal text-center',
             content: 'pt-6',
           }"

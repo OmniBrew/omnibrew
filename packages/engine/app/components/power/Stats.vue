@@ -17,7 +17,7 @@ const reaction = computed(() => reactionNote(casting.value))
 
 <template>
   <div>
-    <dl class="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
+    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-default bg-(--ui-border) md:grid-cols-4 *:bg-muted *:px-4 *:py-3">
       <StatItem :label="t('level_title', 1)">
         {{ powerLevel(t, power.level ?? 0) }}
       </StatItem>

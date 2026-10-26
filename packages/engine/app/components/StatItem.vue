@@ -5,10 +5,10 @@ defineProps<{ label: string }>()
 
 <template>
   <div>
-    <dt class="font-display text-xs font-semibold uppercase tracking-wider text-muted">
+    <dt class="eyebrow text-muted">
       {{ label }}
     </dt>
-    <dd class="mt-0.5 text-sm text-default">
+    <dd class="mt-1 text-[0.9375rem]/6 text-highlighted">
       <slot />
     </dd>
   </div>

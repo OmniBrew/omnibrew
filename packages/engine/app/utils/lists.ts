@@ -14,6 +14,8 @@ export interface RecordColumn<T> {
   sort?: (item: T) => string | number | undefined
   /** Classes for the header and cells, e.g. `hidden md:table-cell` to hide on narrow screens. */
   class?: string
+  /** Numbers (damage, range, cost): right-aligned in the tabular mono face. */
+  numeric?: boolean
 }
 
 export interface RecordFilter<T> {

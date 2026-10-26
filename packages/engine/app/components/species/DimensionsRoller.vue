@@ -43,7 +43,7 @@ const results = computed(() => KINDS.flatMap((kind) => {
     </div>
     <dl v-if="results.length" class="mt-4 grid gap-4 sm:grid-cols-3" aria-live="polite">
       <div v-for="r in results" :key="r.kind">
-        <dt class="font-display text-xs font-semibold uppercase tracking-wider text-muted">
+        <dt class="eyebrow text-muted">
           {{ t(titles[r.kind]) }}
         </dt>
         <dd class="mt-0.5">

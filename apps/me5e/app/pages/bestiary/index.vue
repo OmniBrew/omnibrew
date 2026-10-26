@@ -26,7 +26,7 @@ const filters: RecordFilter<Npc>[] = [
 
 <template>
   <UPage>
-    <RecordHeader :title="t('bestiary_title', 2)" :links="[{ label: t('buttons.view_rules'), to: '/manual/bestiary' }]" />
+    <RecordHeader :title="t('bestiary_title', 2)" :links="[{ label: t('buttons.view_rules'), icon: 'i-lucide-book-open', to: '/manual/bestiary' }]" />
     <UPageBody>
       <RecordList :items="npcs" :columns="columns" :filters="filters" :row-key="n => n.path" default-sort="name">
         <template #cell-name="{ item }">

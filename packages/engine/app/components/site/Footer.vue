@@ -7,10 +7,11 @@ const links = computed(() => (game.footerLinks as NavItem[]).map(l => ({ label: 
 </script>
 
 <template>
-  <UFooter>
+  <UFooter :ui="{ root: 'border-t border-default' }">
     <template #left>
-      <p class="text-sm text-muted">
-        {{ t(game.brand.title) }}
+      <p class="flex items-center gap-2.5 text-sm text-muted">
+        <img v-if="game.brand.logo" :src="game.brand.logo" alt="" class="size-5">
+        {{ t(game.brand.tagline || game.brand.title) }}
       </p>
     </template>
     <nav class="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">

@@ -9,15 +9,15 @@ const { locale } = useI18n()
 </script>
 
 <template>
-  <NuxtLink :to="post.path" class="group block overflow-hidden rounded-md border border-default bg-elevated/40 transition hover:border-primary">
-    <div class="relative overflow-hidden bg-muted" :class="imageClass ?? 'h-44'">
-      <img v-if="post.image" :src="post.image" alt="" loading="lazy" class="size-full object-cover transition group-hover:scale-105">
-      <time :datetime="String(post.date)" class="absolute left-0 top-0 bg-primary px-3 py-1 font-display text-sm font-semibold text-inverted">
-        {{ formatDay(post.date, locale, 'short') }}
-      </time>
+  <NuxtLink :to="post.path" class="group block overflow-hidden rounded-md border border-default bg-default transition-colors hover:border-accented hover:bg-muted">
+    <div class="overflow-hidden border-b border-default bg-muted" :class="imageClass ?? 'h-44'">
+      <img v-if="post.image" :src="post.image" alt="" loading="lazy" referrerpolicy="no-referrer" class="size-full object-cover transition-transform group-hover:scale-[1.03] motion-reduce:transition-none">
     </div>
     <div class="p-4">
-      <h3 class="font-display text-xl font-bold text-highlighted">
+      <time :datetime="String(post.date)" class="font-mono text-xs text-muted tabular-nums">
+        {{ formatDay(post.date, locale, 'short') }}
+      </time>
+      <h3 class="mt-1 font-label text-base font-semibold text-highlighted">
         {{ post.title }}
       </h3>
       <p class="mt-1 text-sm text-muted">

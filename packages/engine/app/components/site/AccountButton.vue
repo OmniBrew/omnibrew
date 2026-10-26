@@ -21,11 +21,13 @@ const items = computed<DropdownMenuItem[][]>(() => [
       </UDropdownMenu>
       <UButton
         v-else-if="session.status === 'signedOut'"
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-log-in"
+        variant="outline"
+        size="sm"
         :to="signInLink"
         :aria-label="t('auth.sign_in')"
+        :ui="{ leadingIcon: 'sm:hidden' }"
+        icon="i-lucide-log-in"
+        class="max-sm:ring-0 max-sm:text-muted"
       >
         <span class="hidden sm:inline">{{ t('auth.sign_in') }}</span>
       </UButton>

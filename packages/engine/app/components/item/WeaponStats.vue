@@ -16,7 +16,7 @@ const { t } = useI18n()
 <template>
   <div class="space-y-4">
     <ItemProperties :properties="weapon.properties as ItemProperty[]" :hide="hideProperties" />
-    <dl class="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
+    <dl class="grid grid-cols-2 gap-x-6 gap-y-3 border-y border-default py-3 md:grid-cols-4 [&_dd]:font-mono [&_dd]:tabular-nums">
       <StatItem :label="t('damage_title')">
         {{ itemDamage(t, weapon.damage as ItemDamage, weapon.additionalDamage as ItemDamage[]) }}
       </StatItem>
