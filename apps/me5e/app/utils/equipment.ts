@@ -10,14 +10,18 @@ type Translate = (key: string, ...args: unknown[]) => string
 /** Rarities in the order filters list them (the live site's). */
 export const RARITY_ORDER = ['varies', 'common', 'uncommon', 'rare', 'very_rare', 'spectre']
 
-/** The live site's rarity text colors (config.rarityTextColors), as Tailwind classes for both modes. */
+/**
+ * Rarity text colors for both modes (the theme's game colors, plan/23): each clears
+ * 4.5:1 on the page and on muted panels. Names also show the rarity word, so color
+ * is never the only cue.
+ */
 export const RARITY_COLORS: Record<string, string> = {
   varies: 'text-highlighted',
   common: 'text-highlighted',
-  uncommon: 'text-green-700 dark:text-green-400',
+  uncommon: 'text-emerald-700 dark:text-emerald-400',
   rare: 'text-blue-700 dark:text-blue-400',
-  very_rare: 'text-purple-700 dark:text-purple-400',
-  spectre: 'text-red-700 dark:text-red-500',
+  very_rare: 'text-violet-600 dark:text-violet-400',
+  spectre: 'text-n7-600 dark:text-n7-400',
 }
 
 /** Text color class for a rarity. */

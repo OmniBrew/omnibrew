@@ -62,9 +62,8 @@ export const PROSE_COMPONENTS: Record<string, ProseComponent> = {
   },
   'note': {
     kind: 'block',
-    description: 'A callout set apart from the text: GM advice, examples, optional rules',
+    description: 'A callout set apart from the text: GM advice, examples, optional rules (rendered by `NoteBox`)',
     props: {},
-    external: true,
   },
   'source-reference': {
     kind: 'block',

@@ -180,6 +180,12 @@ describe('character model', () => {
     expect(schema.safeParse({ ...character(), version: 2 }).success).toBe(false)
   })
 
+  it('takes an optional sheet color (an accent id) without a version change', () => {
+    const schema = characterSchema()
+    expect(schema.safeParse({ ...character(), sheetColor: 'adept' }).success).toBe(true)
+    expect(schema.safeParse({ ...character(), sheetColor: 'not an id' }).success).toBe(false)
+  })
+
   it('upgrades step by step and refuses newer versions', () => {
     const steps = { 1: (c: Record<string, unknown>) => ({ ...c, renamed: true }) }
     expect(upgradeCharacter({ version: 1 }, steps, 2)).toEqual({ version: 2, renamed: true })

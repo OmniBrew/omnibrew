@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { modAvailability, modAvailabilityName, modSubtitle, rarityClass, weaponHeat } from '../app/utils/equipment'
+import { powerTypeClass } from '../app/utils/power-types'
 
 // A stand-in for vue-i18n's `t` over the ME5e messages these helpers use.
 const messages: Record<string, string> = {
@@ -32,7 +33,13 @@ describe('ME5e equipment', () => {
 
   it('colors rarities, with a default for unknown ones', () => {
     expect(rarityClass('rare')).toContain('text-blue')
+    expect(rarityClass('spectre')).toBe('text-n7-600 dark:text-n7-400')
     expect(rarityClass(undefined)).toBe('text-highlighted')
+  })
+
+  it('colors power types, with the primary color for others', () => {
+    expect(powerTypeClass('biotic')).toBe('text-violet-600 dark:text-violet-400')
+    expect(powerTypeClass('necrotic')).toBe('text-primary')
   })
 
   it('describes mods and what they fit', () => {

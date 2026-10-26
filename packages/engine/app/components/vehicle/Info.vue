@@ -34,7 +34,7 @@ const has = (value: unknown) => value !== undefined && value !== null
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
     <div class="min-w-0 flex-1 space-y-4 text-sm">
       <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <p class="font-display font-semibold uppercase tracking-wider text-primary">
+        <p class="eyebrow text-primary">
           {{ vehicleSubtitle(t, vehicle) }}
         </p>
         <p class="flex gap-4">
@@ -63,7 +63,7 @@ const has = (value: unknown) => value !== undefined && value !== null
       </dl>
       <USeparator color="secondary" :ui="{ border: 'border-t-2' }" />
       <section v-if="vehicle.systems?.length || has(vehicle.cargo)">
-        <h4 class="font-display text-base font-semibold text-highlighted">
+        <h4 class="font-label text-base font-semibold text-highlighted">
           {{ t('vehicles.systems') }}
         </h4>
         <ul class="mt-1 list-disc space-y-0.5 ps-5">
@@ -76,7 +76,7 @@ const has = (value: unknown) => value !== undefined && value !== null
         </ul>
       </section>
       <section v-if="vehicle.weapons?.length">
-        <h4 class="font-display text-base font-semibold text-highlighted">
+        <h4 class="font-label text-base font-semibold text-highlighted">
           {{ t('vehicles.weapons') }}
         </h4>
         <ul class="mt-1 list-disc space-y-0.5 ps-5">
@@ -86,7 +86,7 @@ const has = (value: unknown) => value !== undefined && value !== null
         </ul>
       </section>
       <section v-if="vehicle.body">
-        <h4 class="font-display text-base font-semibold text-highlighted">
+        <h4 class="font-label text-base font-semibold text-highlighted">
           {{ t('vehicles.description') }}
         </h4>
         <ContentRenderer :value="vehicle" class="prose-record" />

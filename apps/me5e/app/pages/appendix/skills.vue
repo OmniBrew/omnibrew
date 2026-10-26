@@ -11,7 +11,7 @@ const { data: skills } = await useAsyncData('skills', () => queryCollection('ski
     <UPageBody>
       <div class="divide-y divide-default">
         <section v-for="s in skills" :id="recordId(s)" :key="s.path" class="scroll-mt-24 py-4">
-          <h2 class="font-display text-lg font-semibold text-highlighted">
+          <h2 class="font-label text-base font-semibold text-highlighted">
             {{ s.name }}
             <ChangeBadge v-if="s.is_new" type="new" />
           </h2>

@@ -3,8 +3,19 @@ import type { NavItem, SearchGroup } from './types/site'
 // Engine defaults. A game app overrides `game` in its own app.config.ts.
 export default defineAppConfig({
   game: {
-    /** i18n key for the site name, and the logo shown next to it. */
-    brand: { title: 'title', logo: '' },
+    /**
+     * i18n keys for the site name (and a short form for phones, optional) and the
+     * footer's tagline (optional), and the logo shown next to the name.
+     */
+    brand: { title: 'title', shortTitle: '', tagline: '', logo: '' },
+    /**
+     * Sheet colors: the accents a game's theme defines (`data-accent` values, each
+     * with its palette in the game's CSS) and the one used when nothing else applies.
+     * A character sheet takes the player's pick, else the first class's id when it
+     * is an accent, else `defaultAccent` (utils/accent.ts). Empty: sheets keep the
+     * site's primary color.
+     */
+    theme: { accents: [] as string[], defaultAccent: '' },
     /** The production site's address, for canonical links (no trailing slash). */
     siteUrl: '',
     units: {

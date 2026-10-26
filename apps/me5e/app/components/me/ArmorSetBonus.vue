@@ -10,7 +10,7 @@ const bonus = computed(() => sets.value.find(s => recordId(s) === props.set))
 
 <template>
   <section v-if="bonus" class="text-sm">
-    <h4 class="font-display text-xs font-semibold uppercase tracking-wider text-muted">
+    <h4 class="eyebrow text-muted">
       {{ t('set_bonus') }}
     </h4>
     <ul class="mt-1 space-y-1">

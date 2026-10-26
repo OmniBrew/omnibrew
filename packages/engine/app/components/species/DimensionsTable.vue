@@ -27,7 +27,7 @@ const headers = computed(() => [
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-default text-left">
-          <th v-for="h in headers" :key="h" scope="col" class="px-2 py-2 font-display text-xs font-semibold uppercase tracking-wider text-muted">
+          <th v-for="h in headers" :key="h" scope="col" class="px-2 py-2 eyebrow text-muted">
             {{ h }}
           </th>
         </tr>

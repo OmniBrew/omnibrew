@@ -38,9 +38,9 @@ const profs = computed(() => (Object.keys(PROF_LABELS) as (keyof typeof PROF_LAB
 <template>
   <div>
     <KlassFeature :title="t('hit_points_title')">
-      <dl class="grid gap-x-6 gap-y-1 sm:grid-cols-[auto_1fr]">
+      <dl class="grid gap-x-8 gap-y-1.5 rounded-md border border-default bg-muted px-4 py-3 sm:grid-cols-[minmax(8rem,auto)_1fr]">
         <template v-for="[label, value] in hitPoints" :key="label">
-          <dt class="font-semibold text-highlighted">
+          <dt class="eyebrow pt-1 text-muted">
             {{ label }}
           </dt>
           <dd class="mb-2 sm:mb-0">
@@ -51,9 +51,9 @@ const profs = computed(() => (Object.keys(PROF_LABELS) as (keyof typeof PROF_LAB
     </KlassFeature>
 
     <KlassFeature :title="t('proficiencies_title')">
-      <dl class="grid gap-x-6 gap-y-1 sm:grid-cols-[auto_1fr]">
+      <dl class="grid gap-x-8 gap-y-1.5 rounded-md border border-default bg-muted px-4 py-3 sm:grid-cols-[minmax(8rem,auto)_1fr]">
         <template v-for="[label, value] in profs" :key="label">
-          <dt class="font-semibold text-highlighted">
+          <dt class="eyebrow pt-1 text-muted">
             {{ label }}
           </dt>
           <dd class="mb-2 sm:mb-0">

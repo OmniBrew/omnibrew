@@ -23,8 +23,7 @@ defineSlots<{
         <slot name="stats" :casting="casting" />
       </template>
     </PowerStats>
-    <USeparator color="secondary" class="my-4" :ui="{ border: 'border-t-2' }" />
-    <ContentRenderer v-if="power.body" :value="power" class="prose-record" />
+    <ContentRenderer v-if="power.body" :value="power" class="prose-record mt-6 max-w-[45rem]" />
     <slot />
   </div>
 </template>

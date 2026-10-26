@@ -10,5 +10,5 @@ useSeoMeta({ title: chapter ? t(chapter.title ?? id) : t('guide.title'), descrip
 </script>
 
 <template>
-  <ChapterPage :id="id" navigation="guide" collection="guide" />
+  <ChapterPage :id="id" navigation="guide" collection="guide" :headline="t('guide.title')" />
 </template>

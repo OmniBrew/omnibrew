@@ -32,6 +32,11 @@ export default defineNuxtConfig({
     },
   },
 
+  // `::note` renders the engine's note box (a titled aside) instead of Nuxt UI's callout.
+  mdc: {
+    components: { map: { note: 'NoteBox' } },
+  },
+
   content: {
     experimental: {
       // Use Node's built-in node:sqlite (Node >= 22.5) instead of better-sqlite3,

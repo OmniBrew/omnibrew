@@ -27,13 +27,24 @@ const filters: RecordFilter<Power>[] = [
 
 <template>
   <UPage>
-    <RecordHeader :title="t('power_title', 2)" :links="[{ label: t('buttons.view_rules'), to: '/manual/powercasting' }]" />
+    <RecordHeader :title="t('power_title', 2)" :headline="t('manual.title')" :links="[{ label: t('buttons.view_rules'), icon: 'i-lucide-book-open', to: '/manual/powercasting' }]" />
     <UPageBody>
       <RecordList :items="powers" :columns="columns" :filters="filters" :row-key="p => p.path" default-sort="name">
         <template #cell-level="{ item }">
-          <span class="flex items-center gap-2 whitespace-nowrap">
-            <img :src="`/images/powers/${item.powerType}.svg`" :alt="t(`power_types.${item.powerType}`)" class="size-6">
-            {{ powerLevel(t, item.level ?? 0) }}
+          <span class="flex items-center gap-2.5 whitespace-nowrap">
+            <img :src="`/images/powers/${item.powerType}.svg`" :alt="t(`power_types.${item.powerType}`)" class="size-6.5">
+            <span :class="item.level ? 'font-mono' : 'text-muted'">{{ powerLevel(t, item.level ?? 0) }}</span>
+          </span>
+        </template>
+        <template #phone="{ item }">
+          <span class="flex items-center gap-3">
+            <img :src="`/images/powers/${item.powerType}.svg`" :alt="t(`power_types.${item.powerType}`)" class="size-6.5 shrink-0">
+            <span class="min-w-0">
+              <NuxtLink :to="item.path" class="block text-[0.9375rem]/5 font-semibold text-highlighted" @click.stop>{{ item.name }}</NuxtLink>
+              <span class="mt-0.5 block text-[0.78125rem]/[1.125rem] text-muted">
+                {{ powerLevel(t, item.level ?? 0) }} {{ t(`power_types.${item.powerType}`) }} · <PowerDuration :casting="casting(item)" /> · <PowerRange :casting="casting(item)" /> · {{ attackText(t, casting(item), true) }}
+              </span>
+            </span>
           </span>
         </template>
         <template #cell-name="{ item }">

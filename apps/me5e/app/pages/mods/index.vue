@@ -26,7 +26,7 @@ const filters: RecordFilter<Mod>[] = [
     <RecordHeader
       :title="t('mod_page_title')"
       :headline="t('equipment_title', 2)"
-      :links="[{ label: t('buttons.view_rules'), to: '/manual/equipment#mods' }]"
+      :links="[{ label: t('buttons.view_rules'), icon: 'i-lucide-book-open', to: '/manual/equipment#mods' }]"
     />
     <UPageBody>
       <RecordList :items="mods" :columns="columns" :filters="filters" :row-key="m => m.path" default-sort="name">

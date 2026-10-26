@@ -6,8 +6,12 @@
  *
  *   <RecordList :items="powers" :columns="columns" :filters="filters" :row-key="p => p.path">
  *     <template #cell-name="{ item }">…</template>
+ *     <template #phone="{ item }">…</template>
  *     <template #expanded="{ item }"><PowerInfo :power="item" /></template>
  *   </RecordList>
+ *
+ * Under 640 px the table becomes list rows: the `phone` slot (an icon, the bold
+ * name and a muted line with the key stats; the name cell by default) and a chevron.
  */
 import type { RecordColumn, RecordFilter } from '../utils/lists'
 
@@ -33,7 +37,10 @@ const props = withDefaults(defineProps<{
 
 defineSlots<{
   [cell: `cell-${string}`]: (props: { item: T }) => unknown
+  phone?: (props: { item: T }) => unknown
   expanded?: (props: { item: T }) => unknown
+  /** Beside the count above the table (a legend). */
+  meta?: () => unknown
 }>()
 
 const { t } = useI18n()
@@ -69,94 +76,144 @@ function toggle(key: string) {
 const sortIcon = (column: RecordColumn<T>) => sortKey.value !== column.key
   ? 'i-lucide-chevrons-up-down'
   : desc.value ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up'
+const align = (c: RecordColumn<T>) => (c.numeric ? 'text-right' : 'text-left')
 </script>
 
 <template>
   <div>
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="flex flex-col gap-2 lg:flex-row lg:gap-3">
       <UInput
         v-model="search"
         icon="i-lucide-search"
         :placeholder="t('search')"
-        class="sm:col-span-2"
+        class="lg:flex-[1.7]"
         :ui="{ trailing: 'pe-1' }"
       >
         <template v-if="search" #trailing>
           <UButton color="neutral" variant="link" size="sm" icon="i-lucide-x" :aria-label="t('buttons.close')" @click="search = ''" />
         </template>
       </UInput>
-      <USelectMenu
-        v-for="f in filters"
-        :key="f.key"
-        v-model="selected[f.key]"
-        :items="f.options"
-        value-key="value"
-        label-key="label"
-        multiple
-        :placeholder="f.label"
-        :search-input="f.options.length > 10 ? { placeholder: t('search') } : false"
-        clear
-        class="w-full"
-      />
+      <div v-if="filters.length" class="grid gap-2 lg:contents" :style="{ gridTemplateColumns: `repeat(${filters.length}, minmax(0, 1fr))` }">
+        <USelectMenu
+          v-for="f in filters"
+          :key="f.key"
+          v-model="selected[f.key]"
+          :items="f.options"
+          value-key="value"
+          label-key="label"
+          multiple
+          :placeholder="f.label"
+          :search-input="f.options.length > 10 ? { placeholder: t('search') } : false"
+          clear
+          class="w-full min-w-0 lg:flex-1"
+        />
+      </div>
     </div>
 
-    <p class="mt-4 text-xs text-muted">
-      {{ rows.length }} / {{ items.length }}
-    </p>
+    <div class="mt-3 mb-2 flex flex-wrap items-center justify-between gap-2 text-[0.8125rem] text-muted">
+      <p>{{ t('shell.count_of', { n: rows.length, total: items.length }) }}</p>
+      <slot name="meta" />
+    </div>
 
-    <table class="mt-1 w-full text-sm">
-      <thead>
-        <tr class="border-b border-default text-left">
-          <th
-            v-for="c in columns"
-            :key="c.key"
-            scope="col"
-            class="px-2 py-2 font-display text-xs font-semibold uppercase tracking-wider text-muted"
-            :class="c.class"
-            :aria-sort="sortKey === c.key ? (desc ? 'descending' : 'ascending') : undefined"
-          >
-            <button v-if="c.sort" type="button" class="inline-flex items-center gap-1 uppercase hover:text-highlighted" @click="sortBy(c)">
-              {{ c.label }}
-              <UIcon :name="sortIcon(c)" class="size-3.5" />
-            </button>
-            <span v-else>{{ c.label }}</span>
-          </th>
-          <th v-if="expandable" class="w-8" />
-        </tr>
-      </thead>
-      <tbody>
-        <template v-for="item in rows" :key="rowKey(item)">
-          <tr
-            class="border-b border-default/60 transition-colors"
-            :class="expandable ? 'cursor-pointer hover:bg-elevated/60' : ''"
-            @click="expandable && toggle(rowKey(item))"
-          >
-            <td v-for="c in columns" :key="c.key" class="px-2 py-2 align-middle" :class="c.class">
-              <slot :name="`cell-${c.key}`" :item="item">
-                {{ (item as Record<string, unknown>)[c.key] }}
+    <!-- Phones: list rows -->
+    <ul class="overflow-hidden rounded-md border border-default sm:hidden">
+      <li v-for="item in rows" :key="rowKey(item)" class="border-b border-default last:border-b-0">
+        <div
+          class="flex min-h-15 items-center gap-3 px-3 py-2.5"
+          :class="[expandable ? 'cursor-pointer' : '', open.has(rowKey(item)) ? 'bg-muted' : '']"
+          @click="expandable && toggle(rowKey(item))"
+        >
+          <div class="min-w-0 flex-1">
+            <slot name="phone" :item="item">
+              <slot name="cell-name" :item="item">
+                <span class="font-semibold text-highlighted">{{ (item as Record<string, unknown>).name }}</span>
               </slot>
-            </td>
-            <td v-if="expandable" class="px-1 text-right">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                icon="i-lucide-chevron-down"
-                :aria-label="t('buttons.view_details')"
-                :aria-expanded="open.has(rowKey(item))"
-                :ui="{ leadingIcon: ['transition-transform', open.has(rowKey(item)) ? 'rotate-180' : ''] }"
-                @click.stop="toggle(rowKey(item))"
-              />
-            </td>
+            </slot>
+          </div>
+          <UButton
+            v-if="expandable"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :icon="open.has(rowKey(item)) ? 'i-lucide-chevron-up' : 'i-lucide-chevron-right'"
+            :aria-label="t('buttons.view_details')"
+            :aria-expanded="open.has(rowKey(item))"
+            class="text-dimmed"
+            :class="open.has(rowKey(item)) ? 'text-primary' : ''"
+            @click.stop="toggle(rowKey(item))"
+          />
+        </div>
+        <div v-if="expandable && open.has(rowKey(item))" class="bg-muted px-3 pb-4 text-sm">
+          <slot name="expanded" :item="item" />
+        </div>
+      </li>
+    </ul>
+
+    <!-- Wider screens: the table -->
+    <div class="hidden overflow-hidden rounded-md border border-default sm:block">
+      <table class="w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-accented bg-muted">
+            <th
+              v-for="c in columns"
+              :key="c.key"
+              scope="col"
+              class="px-3 py-2.5 font-label text-[11.5px]/4 font-semibold tracking-[0.1em] whitespace-nowrap uppercase"
+              :class="[c.class, align(c), sortKey === c.key ? 'text-highlighted' : 'text-muted']"
+              :aria-sort="sortKey === c.key ? (desc ? 'descending' : 'ascending') : undefined"
+            >
+              <button v-if="c.sort" type="button" class="inline-flex items-center gap-1 uppercase hover:text-highlighted" @click="sortBy(c)">
+                {{ c.label }}
+                <UIcon :name="sortIcon(c)" class="size-3" :class="sortKey === c.key ? 'text-primary' : 'text-dimmed'" />
+              </button>
+              <span v-else>{{ c.label }}</span>
+            </th>
+            <th v-if="expandable" class="w-9" />
           </tr>
-          <tr v-if="expandable && open.has(rowKey(item))" class="border-b border-default bg-muted/40">
-            <td :colspan="columns.length + 1" class="px-4 py-4">
-              <slot name="expanded" :item="item" />
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <template v-for="item in rows" :key="rowKey(item)">
+            <tr
+              class="border-b border-default transition-colors last:border-b-0"
+              :class="[
+                expandable ? 'cursor-pointer' : '',
+                open.has(rowKey(item)) ? 'bg-muted' : expandable ? 'hover:bg-elevated/55' : '',
+              ]"
+              @click="expandable && toggle(rowKey(item))"
+            >
+              <td
+                v-for="c in columns"
+                :key="c.key"
+                class="px-3 py-2.5 align-middle"
+                :class="[c.class, align(c), c.numeric ? 'font-mono whitespace-nowrap tabular-nums' : '']"
+              >
+                <slot :name="`cell-${c.key}`" :item="item">
+                  {{ (item as Record<string, unknown>)[c.key] }}
+                </slot>
+              </td>
+              <td v-if="expandable" class="pe-2 text-right">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-lucide-chevron-down"
+                  :aria-label="t('buttons.view_details')"
+                  :aria-expanded="open.has(rowKey(item))"
+                  :class="open.has(rowKey(item)) ? 'text-primary' : 'text-dimmed'"
+                  :ui="{ leadingIcon: ['transition-transform', open.has(rowKey(item)) ? 'rotate-180' : ''] }"
+                  @click.stop="toggle(rowKey(item))"
+                />
+              </td>
+            </tr>
+            <tr v-if="expandable && open.has(rowKey(item))" class="border-b border-default bg-muted last:border-b-0">
+              <td :colspan="columns.length + 1" class="px-4 pt-1 pb-5">
+                <slot name="expanded" :item="item" />
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
     <p v-if="!rows.length" class="py-8 text-center text-muted">
       {{ t('buttons.no_results') }}
     </p>

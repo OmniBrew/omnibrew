@@ -13,20 +13,20 @@ const { data: version } = await useAsyncData('version', async () =>
 </script>
 
 <template>
-  <ChapterPage :id="id" navigation="manual" collection="manual">
+  <ChapterPage :id="id" navigation="manual" collection="manual" :headline="t('manual.title')">
     <template v-if="id === 'intro'" #header>
       <div class="mx-auto max-w-xl py-8 text-center">
         <img src="/images/me5e_logo_1200w.png" alt="Mass Effect 5e" class="mx-auto w-full max-w-md">
-        <h1 class="mt-8 font-display text-4xl font-bold text-highlighted">
+        <h1 class="mt-8 text-[2.125rem]/10 font-bold text-highlighted">
           {{ t('manual.title') }}
         </h1>
         <p class="mt-1 text-lg text-muted">
           {{ version }}
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
-          <UButton color="secondary" :label="t('changelog_title')" to="/changelog" />
-          <UButton color="secondary" :label="t('buttons.join_community')" to="/about" />
-          <UButton color="secondary" :label="t('license_title')" to="/license" />
+          <UButton color="secondary" variant="outline" :label="t('changelog_title')" to="/changelog" />
+          <UButton color="secondary" variant="outline" :label="t('buttons.join_community')" to="/about" />
+          <UButton color="secondary" variant="outline" :label="t('license_title')" to="/license" />
         </div>
       </div>
     </template>

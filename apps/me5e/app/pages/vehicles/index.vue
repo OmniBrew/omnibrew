@@ -10,7 +10,7 @@ const { data: vehicles } = await useAsyncData('vehicles', () => queryCollection(
     <RecordHeader
       :title="t('vehicle_title', 2)"
       :headline="t('equipment_title', 2)"
-      :links="[{ label: t('buttons.view_rules'), to: '/manual/vehicles' }]"
+      :links="[{ label: t('buttons.view_rules'), icon: 'i-lucide-book-open', to: '/manual/vehicles' }]"
     />
     <UPageBody>
       <VehicleList :vehicles="vehicles" :groups="['transport', 'starship']">

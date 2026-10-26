@@ -14,11 +14,11 @@ const propertyIds = (w: Weapon) => itemPropertyIds(w.properties as ItemProperty[
 
 const columns: RecordColumn<Weapon>[] = [
   { key: 'name', label: t('name_title'), sort: w => w.name },
-  { key: 'damage', label: t('damage_title'), sort: w => itemDamageAverage(w.damage as ItemDamage) },
-  { key: 'heat', label: t('heat_title'), sort: w => weaponHeat(w), class: 'hidden lg:table-cell' },
-  { key: 'range', label: t('range_title'), sort: w => w.range?.short, class: 'hidden lg:table-cell' },
-  { key: 'weight', label: t('weight_title'), sort: w => w.weight, class: 'hidden lg:table-cell' },
-  { key: 'cost', label: t('cost_title'), sort: w => itemCostValue(w.cost), class: 'hidden lg:table-cell' },
+  { key: 'damage', label: t('damage_title'), sort: w => itemDamageAverage(w.damage as ItemDamage), class: 'font-mono' },
+  { key: 'heat', label: t('heat_title'), sort: w => weaponHeat(w), class: 'hidden lg:table-cell', numeric: true },
+  { key: 'range', label: t('range_title'), sort: w => w.range?.short, class: 'hidden lg:table-cell', numeric: true },
+  { key: 'weight', label: t('weight_title'), sort: w => w.weight, class: 'hidden lg:table-cell', numeric: true },
+  { key: 'cost', label: t('cost_title'), sort: w => itemCostValue(w.cost), class: 'hidden lg:table-cell', numeric: true },
 ]
 const filters: RecordFilter<Weapon>[] = [
   { key: 'rarity', label: t('rarity_title'), value: w => w.rarity, options: uniqueOptions(weapons.value, w => w.rarity, v => t(`rarities.${v}`), RARITY_ORDER) },
@@ -32,12 +32,20 @@ const filters: RecordFilter<Weapon>[] = [
     <RecordHeader
       :title="t('weapon_title', 2)"
       :headline="t('equipment_title', 2)"
-      :links="[{ label: t('buttons.view_rules'), to: '/manual/equipment#weapons' }]"
+      :links="[{ label: t('buttons.view_rules'), icon: 'i-lucide-book-open', to: '/manual/equipment#weapons' }]"
     />
     <UPageBody>
       <RecordList :items="weapons" :columns="columns" :filters="filters" :row-key="w => w.path" default-sort="name">
+        <template #meta>
+          <span class="hidden flex-wrap gap-1.5 md:flex">
+            <MeRarityBadge v-for="r in RARITY_ORDER.filter(r => r !== 'varies')" :key="r" :rarity="r" />
+          </span>
+        </template>
         <template #cell-name="{ item }">
           <MeItemName :item="item" :subtitle="t(`weapon_types.${item.weaponType}`, 1)" />
+        </template>
+        <template #phone="{ item }">
+          <MeItemName :item="item" :subtitle="`${t(`weapon_types.${item.weaponType}`, 1)} · ${itemDamage(t, item.damage as ItemDamage, item.additionalDamage as ItemDamage[])}`" />
         </template>
         <template #cell-damage="{ item }">
           {{ itemDamage(t, item.damage as ItemDamage, item.additionalDamage as ItemDamage[]) }}

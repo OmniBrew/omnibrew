@@ -1,74 +1,445 @@
 /*
- * ME5e theme tokens.
+ * ME5e theme: the N7 World "Codex" design (plan/22, plan/23).
  *
  * Not a CSS entry: nuxt.config.ts points the engine's `#game-theme` alias here,
  * and the engine's main.css (Tailwind + Nuxt UI) imports it. `static` makes
  * Tailwind emit every variable, which Nuxt UI needs because app.config.ts
- * picks these palettes by name at runtime.
+ * picks palettes by name (primary alliance, secondary n7, neutral citadel,
+ * brand n7 for the home page's main button).
  *
- * The colors follow n7.world: Alliance light blue for links and actions
- * (Material light blue, the live site's dark-theme primary), N7 red for the
- * brand, and a cool blue-grey neutral for the dark UI.
+ * The overrides below sit outside any layer, so they win over Nuxt UI's
+ * defaults (which live in @layer theme). Dark is the default mode.
+ * The design's tokens.json has the same values; edit both together.
  */
 @theme static {
-  --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
-  /* Headings, the logo text and table headers: a squared, technical face. */
-  --font-display: "Rajdhani", "Roboto", ui-sans-serif, system-ui, sans-serif;
+  /* Headlines: Saira at 125% width. @nuxt/fonts serves it from Google with the
+     width axis pinned at 125 (nuxt.config.ts), so the face is always wide. */
+  --font-display: "Saira", "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  /* Labels: buttons, tabs, chips, badges, overlines, table headers. */
+  --font-label: "Chakra Petch", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* "alliance": Material light blue */
-  --color-alliance-50: #e1f5fe;
-  --color-alliance-100: #b3e5fc;
-  --color-alliance-200: #81d4fa;
-  --color-alliance-300: #4fc3f7;
-  --color-alliance-400: #29b6f6;
-  --color-alliance-500: #039be5;
-  --color-alliance-600: #0288d1;
-  --color-alliance-700: #0277bd;
-  --color-alliance-800: #01579b;
-  --color-alliance-900: #0d3c61;
-  --color-alliance-950: #072540;
+  /* alliance: Alliance blue (primary). Light uses 600, dark 400. */
+  --color-alliance-50: #eef9ff;
+  --color-alliance-100: #d7f2ff;
+  --color-alliance-200: #b2e4ff;
+  --color-alliance-300: #7fd3ff;
+  --color-alliance-400: #4bbbfa;
+  --color-alliance-500: #179ce2;
+  --color-alliance-600: #006aac;
+  --color-alliance-700: #005792;
+  --color-alliance-800: #054778;
+  --color-alliance-900: #0e375c;
+  --color-alliance-950: #0b243e;
 
-  /* "n7": N7 red, anchored on #c62828 at 500 (the live site's red darken-4 is 700) */
-  --color-n7-50: #fdf3f3;
-  --color-n7-100: #fbe5e5;
-  --color-n7-200: #f6cfcf;
-  --color-n7-300: #f0a3a3;
-  --color-n7-400: #e35d5d;
-  --color-n7-500: #c62828;
-  --color-n7-600: #b71c1c;
-  --color-n7-700: #9a1818;
-  --color-n7-800: #741a1a;
-  --color-n7-900: #611a1a;
-  --color-n7-950: #350909;
+  /* n7: N7 red (secondary, brand). */
+  --color-n7-50: #fff2f1;
+  --color-n7-100: #ffe2e0;
+  --color-n7-200: #fcc7c4;
+  --color-n7-300: #f99e99;
+  --color-n7-400: #f46b67;
+  --color-n7-500: #e63e3d;
+  --color-n7-600: #c5141c;
+  --color-n7-700: #a50e15;
+  --color-n7-800: #861317;
+  --color-n7-900: #671516;
+  --color-n7-950: #420e0e;
 
-  /* "citadel": cool, slightly blue slate neutral */
+  /* citadel: cool blue-grey neutral, dark end spaced for dark surfaces. */
   --color-citadel-50: #f6f8fa;
-  --color-citadel-100: #eceff3;
-  --color-citadel-200: #d5dbe3;
-  --color-citadel-300: #b0bac8;
-  --color-citadel-400: #8593a6;
-  --color-citadel-500: #64748b;
-  --color-citadel-600: #4d5b70;
-  --color-citadel-700: #333e4e;
-  --color-citadel-800: #222a36;
-  --color-citadel-900: #161c25;
-  --color-citadel-950: #0d1117;
+  --color-citadel-100: #eceff2;
+  --color-citadel-200: #dadee5;
+  --color-citadel-300: #bdc5cf;
+  --color-citadel-400: #9ca5b3;
+  --color-citadel-500: #7a8493;
+  --color-citadel-600: #5f6877;
+  --color-citadel-700: #3e4552;
+  --color-citadel-800: #242a35;
+  --color-citadel-900: #151a22;
+  --color-citadel-950: #0b0e15;
+
+  /* Sheet accents: one per class, on alliance's lightness curve so
+     600 (light) and 400 (dark) clear AA like the primary does. */
+  /* adept: today's deep purple */
+  --color-adept-50: #f7f5ff;
+  --color-adept-100: #ede9ff;
+  --color-adept-200: #ddd4ff;
+  --color-adept-300: #c9b9ff;
+  --color-adept-400: #b29bff;
+  --color-adept-500: #967bef;
+  --color-adept-600: #694db6;
+  --color-adept-700: #58409a;
+  --color-adept-800: #48357d;
+  --color-adept-900: #372a60;
+  --color-adept-950: #241b40;
+
+  /* engineer: today's amber */
+  --color-engineer-50: #fdf6ea;
+  --color-engineer-100: #fdeacd;
+  --color-engineer-200: #fcd69f;
+  --color-engineer-300: #f9ba5d;
+  --color-engineer-400: #ef9b00;
+  --color-engineer-500: #ce7d00;
+  --color-engineer-600: #935300;
+  --color-engineer-700: #7e4300;
+  --color-engineer-800: #6a3500;
+  --color-engineer-900: #562700;
+  --color-engineer-950: #3a1800;
+
+  /* explorer: today's indigo */
+  --color-explorer-50: #f2f6ff;
+  --color-explorer-100: #e2ecff;
+  --color-explorer-200: #cbdaff;
+  --color-explorer-300: #afc3ff;
+  --color-explorer-400: #8fa8ff;
+  --color-explorer-500: #6d86ff;
+  --color-explorer-600: #4557c5;
+  --color-explorer-700: #3948a7;
+  --color-explorer-800: #2f3c88;
+  --color-explorer-900: #242f68;
+  --color-explorer-950: #171f45;
+
+  /* infiltrator: today's deep orange */
+  --color-infiltrator-50: #fff3ed;
+  --color-infiltrator-100: #ffe3d5;
+  --color-infiltrator-200: #ffcbb4;
+  --color-infiltrator-300: #ffab8a;
+  --color-infiltrator-400: #ff8252;
+  --color-infiltrator-500: #f15a1f;
+  --color-infiltrator-600: #b62800;
+  --color-infiltrator-700: #991f00;
+  --color-infiltrator-800: #7e1c00;
+  --color-infiltrator-900: #611902;
+  --color-infiltrator-950: #411004;
+
+  /* musician: today's teal */
+  --color-musician-50: #eefaf7;
+  --color-musician-100: #d6f5ed;
+  --color-musician-200: #b0ebdd;
+  --color-musician-300: #78ddc9;
+  --color-musician-400: #2ecab2;
+  --color-musician-500: #00ad95;
+  --color-musician-600: #007262;
+  --color-musician-700: #005f51;
+  --color-musician-800: #004e42;
+  --color-musician-900: #004138;
+  --color-musician-950: #002b25;
+
+  /* sentinel: today's brown */
+  --color-sentinel-50: #faf6f3;
+  --color-sentinel-100: #f5eae4;
+  --color-sentinel-200: #ecd8cc;
+  --color-sentinel-300: #dfc0ad;
+  --color-sentinel-400: #cda68e;
+  --color-sentinel-500: #b1886f;
+  --color-sentinel-600: #805b46;
+  --color-sentinel-700: #6b4c39;
+  --color-sentinel-800: #583e30;
+  --color-sentinel-900: #443026;
+  --color-sentinel-950: #2d1f18;
+
+  /* soldier: today's red */
+  --color-soldier-50: #fff2f0;
+  --color-soldier-100: #ffe1dc;
+  --color-soldier-200: #ffc9c2;
+  --color-soldier-300: #ffa9a0;
+  --color-soldier-400: #ff7e75;
+  --color-soldier-500: #f64f4a;
+  --color-soldier-600: #ba181f;
+  --color-soldier-700: #9d1218;
+  --color-soldier-800: #801415;
+  --color-soldier-900: #631412;
+  --color-soldier-950: #420d0b;
+
+  /* tracker: today's green */
+  --color-tracker-50: #f0faf1;
+  --color-tracker-100: #dbf5e0;
+  --color-tracker-200: #bbebc4;
+  --color-tracker-300: #8edda0;
+  --color-tracker-400: #5eca7d;
+  --color-tracker-500: #2dad5c;
+  --color-tracker-600: #00752d;
+  --color-tracker-700: #006224;
+  --color-tracker-800: #004f1e;
+  --color-tracker-900: #00421d;
+  --color-tracker-950: #032b12;
+
+  /* vanguard: today's pink */
+  --color-vanguard-50: #fff2f7;
+  --color-vanguard-100: #ffe2ee;
+  --color-vanguard-200: #ffc7de;
+  --color-vanguard-300: #ffa4ca;
+  --color-vanguard-400: #fe7fb2;
+  --color-vanguard-500: #e15c95;
+  --color-vanguard-600: #a82e66;
+  --color-vanguard-700: #8e2555;
+  --color-vanguard-800: #752045;
+  --color-vanguard-900: #5a1b35;
+  --color-vanguard-950: #3c1123;
+
+  /* experiment: today's blue-grey */
+  --color-experiment-50: #f4f7f9;
+  --color-experiment-100: #e6eef3;
+  --color-experiment-200: #d1dfe8;
+  --color-experiment-300: #b5cbd9;
+  --color-experiment-400: #98b4c6;
+  --color-experiment-500: #7997aa;
+  --color-experiment-600: #4e687a;
+  --color-experiment-700: #415766;
+  --color-experiment-800: #364854;
+  --color-experiment-900: #2a3741;
+  --color-experiment-950: #1b242a;
 }
 
-:root {
-  --ui-radius: 0.25rem;
+:root,
+.light {
+  --ui-radius: 0.125rem;
+  --ui-header-height: 3.5rem;
+  --ui-container: 87.5rem;
+
+  /* Semantic colors: Nuxt UI uses 500 by default, which fails 4.5:1 on white. */
+  --ui-primary: var(--ui-color-primary-600);
+  --ui-secondary: var(--ui-color-secondary-600);
+  --ui-success: var(--ui-color-success-700);
+  --ui-info: var(--ui-color-info-600);
+  --ui-warning: var(--ui-color-warning-800);
+  --ui-error: var(--ui-color-error-700);
+  /* The home page's main call to action: n7-600 with white text in both modes. */
+  --ui-brand: var(--ui-color-brand-600);
+
+  /* Text */
+  --ui-text-dimmed: var(--ui-color-neutral-500);
+  --ui-text-muted: var(--ui-color-neutral-600);
+  --ui-text-toned: var(--ui-color-neutral-700);
+  --ui-text: var(--ui-color-neutral-800);
+  --ui-text-highlighted: var(--ui-color-neutral-950);
+  --ui-text-inverted: #fff;
+
+  /* Surfaces */
+  --ui-bg: #fff;
+  --ui-bg-muted: var(--ui-color-neutral-50);
+  --ui-bg-elevated: var(--ui-color-neutral-100);
+  --ui-bg-accented: var(--ui-color-neutral-200);
+  --ui-bg-inverted: var(--ui-color-neutral-900);
+
+  /* Borders. Accented is the control frame (inputs, outline buttons, checkboxes): 3:1 minimum. */
+  --ui-border: var(--ui-color-neutral-200);
+  --ui-border-muted: var(--ui-color-neutral-200);
+  --ui-border-accented: var(--ui-color-neutral-500);
+  --ui-border-inverted: var(--ui-color-neutral-900);
 }
 
-/* Darker page than Nuxt UI's neutral-900 default, closer to the live site. */
 .dark {
+  --ui-primary: var(--ui-color-primary-400);
+  --ui-secondary: var(--ui-color-secondary-400);
+  --ui-success: var(--ui-color-success-400);
+  --ui-info: var(--ui-color-info-400);
+  --ui-warning: var(--ui-color-warning-400);
+  --ui-error: var(--ui-color-error-400);
+  --ui-brand: var(--ui-color-brand-600);
+
+  --ui-text-dimmed: var(--ui-color-neutral-500);
+  --ui-text-muted: var(--ui-color-neutral-400);
+  --ui-text-toned: var(--ui-color-neutral-300);
+  --ui-text: var(--ui-color-neutral-200);
+  --ui-text-highlighted: var(--ui-color-neutral-50);
+  --ui-text-inverted: var(--ui-color-neutral-950);
+
   --ui-bg: var(--ui-color-neutral-950);
   --ui-bg-muted: var(--ui-color-neutral-900);
-  --ui-bg-elevated: var(--ui-color-neutral-900);
-  --ui-bg-accented: var(--ui-color-neutral-800);
+  --ui-bg-elevated: var(--ui-color-neutral-800);
+  --ui-bg-accented: var(--ui-color-neutral-700);
+  --ui-bg-inverted: var(--ui-color-neutral-50);
+
   --ui-border: var(--ui-color-neutral-800);
+  --ui-border-muted: var(--ui-color-neutral-800);
+  --ui-border-accented: var(--ui-color-neutral-600);
+  --ui-border-inverted: var(--ui-color-neutral-50);
 }
 
-h1, h2, h3, h4, .font-display {
-  font-family: var(--font-display);
-  letter-spacing: 0.01em;
+/*
+ * Sheet color. Put data-accent="<class>" on <html> while a character sheet
+ * route is open (useHead htmlAttrs), so menus and modals teleported to
+ * <body> pick it up too. It swaps the primary scale, then recomputes
+ * --ui-primary, because a custom property inherits its resolved value.
+ * Vitals, rarity and power-type colors are fixed and don't change.
+ */
+:root[data-accent="alliance"],
+[data-accent="alliance"] {
+  --ui-color-primary-50: var(--color-alliance-50);
+  --ui-color-primary-100: var(--color-alliance-100);
+  --ui-color-primary-200: var(--color-alliance-200);
+  --ui-color-primary-300: var(--color-alliance-300);
+  --ui-color-primary-400: var(--color-alliance-400);
+  --ui-color-primary-500: var(--color-alliance-500);
+  --ui-color-primary-600: var(--color-alliance-600);
+  --ui-color-primary-700: var(--color-alliance-700);
+  --ui-color-primary-800: var(--color-alliance-800);
+  --ui-color-primary-900: var(--color-alliance-900);
+  --ui-color-primary-950: var(--color-alliance-950);
+}
+
+:root[data-accent="adept"],
+[data-accent="adept"] {
+  --ui-color-primary-50: var(--color-adept-50);
+  --ui-color-primary-100: var(--color-adept-100);
+  --ui-color-primary-200: var(--color-adept-200);
+  --ui-color-primary-300: var(--color-adept-300);
+  --ui-color-primary-400: var(--color-adept-400);
+  --ui-color-primary-500: var(--color-adept-500);
+  --ui-color-primary-600: var(--color-adept-600);
+  --ui-color-primary-700: var(--color-adept-700);
+  --ui-color-primary-800: var(--color-adept-800);
+  --ui-color-primary-900: var(--color-adept-900);
+  --ui-color-primary-950: var(--color-adept-950);
+}
+
+:root[data-accent="engineer"],
+[data-accent="engineer"] {
+  --ui-color-primary-50: var(--color-engineer-50);
+  --ui-color-primary-100: var(--color-engineer-100);
+  --ui-color-primary-200: var(--color-engineer-200);
+  --ui-color-primary-300: var(--color-engineer-300);
+  --ui-color-primary-400: var(--color-engineer-400);
+  --ui-color-primary-500: var(--color-engineer-500);
+  --ui-color-primary-600: var(--color-engineer-600);
+  --ui-color-primary-700: var(--color-engineer-700);
+  --ui-color-primary-800: var(--color-engineer-800);
+  --ui-color-primary-900: var(--color-engineer-900);
+  --ui-color-primary-950: var(--color-engineer-950);
+}
+
+:root[data-accent="explorer"],
+[data-accent="explorer"] {
+  --ui-color-primary-50: var(--color-explorer-50);
+  --ui-color-primary-100: var(--color-explorer-100);
+  --ui-color-primary-200: var(--color-explorer-200);
+  --ui-color-primary-300: var(--color-explorer-300);
+  --ui-color-primary-400: var(--color-explorer-400);
+  --ui-color-primary-500: var(--color-explorer-500);
+  --ui-color-primary-600: var(--color-explorer-600);
+  --ui-color-primary-700: var(--color-explorer-700);
+  --ui-color-primary-800: var(--color-explorer-800);
+  --ui-color-primary-900: var(--color-explorer-900);
+  --ui-color-primary-950: var(--color-explorer-950);
+}
+
+:root[data-accent="infiltrator"],
+[data-accent="infiltrator"] {
+  --ui-color-primary-50: var(--color-infiltrator-50);
+  --ui-color-primary-100: var(--color-infiltrator-100);
+  --ui-color-primary-200: var(--color-infiltrator-200);
+  --ui-color-primary-300: var(--color-infiltrator-300);
+  --ui-color-primary-400: var(--color-infiltrator-400);
+  --ui-color-primary-500: var(--color-infiltrator-500);
+  --ui-color-primary-600: var(--color-infiltrator-600);
+  --ui-color-primary-700: var(--color-infiltrator-700);
+  --ui-color-primary-800: var(--color-infiltrator-800);
+  --ui-color-primary-900: var(--color-infiltrator-900);
+  --ui-color-primary-950: var(--color-infiltrator-950);
+}
+
+:root[data-accent="musician"],
+[data-accent="musician"] {
+  --ui-color-primary-50: var(--color-musician-50);
+  --ui-color-primary-100: var(--color-musician-100);
+  --ui-color-primary-200: var(--color-musician-200);
+  --ui-color-primary-300: var(--color-musician-300);
+  --ui-color-primary-400: var(--color-musician-400);
+  --ui-color-primary-500: var(--color-musician-500);
+  --ui-color-primary-600: var(--color-musician-600);
+  --ui-color-primary-700: var(--color-musician-700);
+  --ui-color-primary-800: var(--color-musician-800);
+  --ui-color-primary-900: var(--color-musician-900);
+  --ui-color-primary-950: var(--color-musician-950);
+}
+
+:root[data-accent="sentinel"],
+[data-accent="sentinel"] {
+  --ui-color-primary-50: var(--color-sentinel-50);
+  --ui-color-primary-100: var(--color-sentinel-100);
+  --ui-color-primary-200: var(--color-sentinel-200);
+  --ui-color-primary-300: var(--color-sentinel-300);
+  --ui-color-primary-400: var(--color-sentinel-400);
+  --ui-color-primary-500: var(--color-sentinel-500);
+  --ui-color-primary-600: var(--color-sentinel-600);
+  --ui-color-primary-700: var(--color-sentinel-700);
+  --ui-color-primary-800: var(--color-sentinel-800);
+  --ui-color-primary-900: var(--color-sentinel-900);
+  --ui-color-primary-950: var(--color-sentinel-950);
+}
+
+:root[data-accent="soldier"],
+[data-accent="soldier"] {
+  --ui-color-primary-50: var(--color-soldier-50);
+  --ui-color-primary-100: var(--color-soldier-100);
+  --ui-color-primary-200: var(--color-soldier-200);
+  --ui-color-primary-300: var(--color-soldier-300);
+  --ui-color-primary-400: var(--color-soldier-400);
+  --ui-color-primary-500: var(--color-soldier-500);
+  --ui-color-primary-600: var(--color-soldier-600);
+  --ui-color-primary-700: var(--color-soldier-700);
+  --ui-color-primary-800: var(--color-soldier-800);
+  --ui-color-primary-900: var(--color-soldier-900);
+  --ui-color-primary-950: var(--color-soldier-950);
+}
+
+:root[data-accent="tracker"],
+[data-accent="tracker"] {
+  --ui-color-primary-50: var(--color-tracker-50);
+  --ui-color-primary-100: var(--color-tracker-100);
+  --ui-color-primary-200: var(--color-tracker-200);
+  --ui-color-primary-300: var(--color-tracker-300);
+  --ui-color-primary-400: var(--color-tracker-400);
+  --ui-color-primary-500: var(--color-tracker-500);
+  --ui-color-primary-600: var(--color-tracker-600);
+  --ui-color-primary-700: var(--color-tracker-700);
+  --ui-color-primary-800: var(--color-tracker-800);
+  --ui-color-primary-900: var(--color-tracker-900);
+  --ui-color-primary-950: var(--color-tracker-950);
+}
+
+:root[data-accent="vanguard"],
+[data-accent="vanguard"] {
+  --ui-color-primary-50: var(--color-vanguard-50);
+  --ui-color-primary-100: var(--color-vanguard-100);
+  --ui-color-primary-200: var(--color-vanguard-200);
+  --ui-color-primary-300: var(--color-vanguard-300);
+  --ui-color-primary-400: var(--color-vanguard-400);
+  --ui-color-primary-500: var(--color-vanguard-500);
+  --ui-color-primary-600: var(--color-vanguard-600);
+  --ui-color-primary-700: var(--color-vanguard-700);
+  --ui-color-primary-800: var(--color-vanguard-800);
+  --ui-color-primary-900: var(--color-vanguard-900);
+  --ui-color-primary-950: var(--color-vanguard-950);
+}
+
+:root[data-accent="experiment"],
+[data-accent="experiment"] {
+  --ui-color-primary-50: var(--color-experiment-50);
+  --ui-color-primary-100: var(--color-experiment-100);
+  --ui-color-primary-200: var(--color-experiment-200);
+  --ui-color-primary-300: var(--color-experiment-300);
+  --ui-color-primary-400: var(--color-experiment-400);
+  --ui-color-primary-500: var(--color-experiment-500);
+  --ui-color-primary-600: var(--color-experiment-600);
+  --ui-color-primary-700: var(--color-experiment-700);
+  --ui-color-primary-800: var(--color-experiment-800);
+  --ui-color-primary-900: var(--color-experiment-900);
+  --ui-color-primary-950: var(--color-experiment-950);
+}
+
+[data-accent] { --ui-primary: var(--ui-color-primary-600); }
+.dark[data-accent],
+.dark [data-accent] { --ui-primary: var(--ui-color-primary-400); }
+
+@layer base {
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-stretch: 125%;
+  }
+  h4, h5, h6 {
+    font-family: var(--font-label);
+  }
 }

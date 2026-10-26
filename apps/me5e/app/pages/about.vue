@@ -46,7 +46,7 @@ const communities = [
       <div class="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
         <div v-for="p in about?.current" :key="p.name" class="text-center">
           <img :src="p.image" :alt="p.name" class="mx-auto size-24 rounded-full bg-muted object-cover">
-          <p class="mt-2 font-display text-lg font-semibold text-highlighted">
+          <p class="mt-2 font-label text-base font-semibold text-highlighted">
             {{ p.name }}
           </p>
         </div>

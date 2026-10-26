@@ -24,7 +24,7 @@ const slots = defineSlots<{
         {{ item.flavor }}
       </p>
       <slot name="stats" />
-      <USeparator v-if="item.flavor || slots.stats || slots.summary" color="secondary" :ui="{ border: 'border-t-2' }" />
+      <USeparator v-if="item.flavor || slots.stats || slots.summary" />
       <ContentRenderer v-if="item.body" :value="item" class="prose-record text-sm" />
       <slot />
     </div>
@@ -33,7 +33,8 @@ const slots = defineSlots<{
       :src="item.image"
       :alt="item.name ?? ''"
       loading="lazy"
-      class="mx-auto max-h-48 max-w-full shrink-0 object-contain md:mx-0 md:max-h-72 md:w-1/4"
+      referrerpolicy="no-referrer"
+      class="mx-auto max-h-48 max-w-full shrink-0 rounded-md bg-muted bg-[radial-gradient(120%_90%_at_50%_40%,color-mix(in_oklab,var(--ui-primary)_18%,var(--ui-bg-muted)),var(--ui-bg-muted))] object-contain p-3 ring ring-default ring-inset md:mx-0 md:max-h-72 md:w-1/4"
     >
   </div>
 </template>

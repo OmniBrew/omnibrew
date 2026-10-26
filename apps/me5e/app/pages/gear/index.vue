@@ -21,7 +21,7 @@ const filters: RecordFilter<Gear>[] = [
     <RecordHeader
       :title="t('gear_title', 2)"
       :headline="t('equipment_title', 2)"
-      :links="[{ label: t('buttons.view_rules'), to: '/manual/equipment' }]"
+      :links="[{ label: t('buttons.view_rules'), icon: 'i-lucide-book-open', to: '/manual/equipment' }]"
     />
     <UPageBody>
       <RecordList :items="gear" :columns="columns" :filters="filters" :row-key="g => g.path" default-sort="name">

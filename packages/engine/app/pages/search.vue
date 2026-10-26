@@ -85,7 +85,7 @@ function toggle(id: string) {
               <UIcon name="i-lucide-chevron-right" class="size-3" /> {{ h.doc.parent }}
             </template>
           </p>
-          <p class="mt-1 font-display text-lg font-semibold text-highlighted">
+          <p class="mt-1 font-label text-base font-semibold text-highlighted">
             {{ h.doc.title }}
           </p>
           <p class="mt-1 text-sm text-muted">

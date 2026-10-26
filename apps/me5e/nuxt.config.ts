@@ -28,6 +28,23 @@ export default defineNuxtConfig({
   // The live site has always been dark by default.
   colorMode: { preference: 'dark', fallback: 'dark' },
 
+  // `brand`: the home page's main call to action (n7-600 with white text in both modes; main.css).
+  ui: {
+    theme: { colors: ['primary', 'secondary', 'success', 'info', 'warning', 'error', 'neutral', 'brand'] },
+  },
+
+  // The theme's four families (main.css), downloaded from Google at build and served from the site.
+  fonts: {
+    defaults: { subsets: ['latin', 'latin-ext'] },
+    families: [
+      // Headlines: Saira's width axis pinned at 125%, so the one face is always the wide cut.
+      { name: 'Saira', provider: 'google', weights: ['600 700'], styles: ['normal'], providerOptions: { google: { experimental: { variableAxis: { wdth: ['125'] } } } } },
+      { name: 'Chakra Petch', provider: 'google', weights: [600, 700], styles: ['normal'] },
+      { name: 'IBM Plex Sans', provider: 'google', weights: ['400 700'], styles: ['normal', 'italic'] },
+      { name: 'IBM Plex Mono', provider: 'google', weights: [400, 500, 600], styles: ['normal'] },
+    ],
+  },
+
   i18n: {
     // CI type-checks without the content repo; the locale then has no messages.
     locales: [{ code: 'en', language: 'en-US', name: 'English', ...(existsSync(messages) ? { file: messages } : {}) }],

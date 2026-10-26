@@ -31,7 +31,7 @@ const text = computed(() => (props.mark ? t('grenade_name_w_mark', { name: name.
           v-if="subset"
           :text="gearSubtitle(t, { ...grenade, rarity: subset.rarity })"
           :cost="subset.cost"
-          :text-class="rarityClass(subset.rarity)"
+          :text-class="rarityClass(subset.rarity)" pip
         />
         <MDC v-if="subset?.html" :value="subset.html" tag="div" />
         <MeGearInfo v-else :gear="grenade" summary />

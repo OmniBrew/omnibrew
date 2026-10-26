@@ -54,28 +54,28 @@ function select(row: ClassTableRow) {
 
 <template>
   <div ref="root">
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto rounded-md border border-default">
       <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-default">
+        <thead class="bg-muted">
+          <tr :class="header.sub.length ? '' : 'border-b border-accented'">
             <th
               v-for="cell in header.top"
               :key="cell.key"
               scope="col"
               :colspan="cell.colspan"
               :rowspan="cell.rowspan"
-              class="px-2 py-2 font-display text-xs font-semibold uppercase tracking-wider text-muted"
-              :class="[cell.key === 'features' ? 'min-w-48 text-left' : 'text-center', cell.key === 'level' ? 'sticky left-0 z-10 bg-default' : '', cell.group ? 'border-b border-default' : '']"
+              class="px-2.5 py-2 align-bottom font-label text-[11.5px]/4 font-semibold tracking-[0.1em] text-muted uppercase"
+              :class="[cell.key === 'features' ? 'min-w-48 text-left' : 'text-center', cell.key === 'level' ? 'sticky left-0 z-10 bg-muted' : '', cell.group ? 'border-b border-default' : '']"
             >
               {{ label(cell) }}
             </th>
           </tr>
-          <tr v-if="header.sub.length" class="border-b border-default">
+          <tr v-if="header.sub.length" class="border-b border-accented">
             <th
               v-for="c in header.sub"
               :key="c.key"
               scope="col"
-              class="px-2 py-2 text-center font-display text-xs font-semibold uppercase tracking-wider text-muted"
+              class="px-2.5 py-2 text-center font-label text-[11.5px]/4 font-semibold tracking-[0.1em] text-muted uppercase"
             >
               {{ ordinal(c.sub ?? 0) }}
             </th>
@@ -86,17 +86,17 @@ function select(row: ClassTableRow) {
             v-for="row in rows"
             :id="`level-${row.level}`"
             :key="row.level"
-            class="group border-b border-default/60"
-            :class="row.features.length ? 'cursor-pointer hover:bg-elevated' : ''"
+            class="group border-b border-default last:border-b-0 even:bg-muted"
+            :class="row.features.length ? 'cursor-pointer hover:bg-elevated/80' : ''"
             @click="select(row)"
           >
             <td
               v-for="c in columns"
               :key="c.key"
-              class="px-2 py-2"
+              class="px-2.5 py-1.5"
               :class="[
-                c.kind === 'features' ? 'text-left' : 'text-center tabular-nums',
-                c.kind === 'level' ? 'sticky left-0 z-10 bg-default' : '',
+                c.kind === 'features' ? 'text-left' : 'text-center font-mono tabular-nums',
+                c.kind === 'level' ? 'sticky left-0 z-10 bg-default text-left group-even:bg-muted' : '',
                 c.kind === 'level' && row.features.length ? 'group-hover:bg-elevated' : '',
               ]"
             >
@@ -105,7 +105,7 @@ function select(row: ClassTableRow) {
                   v-if="row.features.length"
                   type="button"
                   aria-haspopup="dialog"
-                  class="font-semibold text-highlighted hover:text-primary"
+                  class="font-semibold text-highlighted hover:text-(--klass-accent,var(--ui-primary))"
                   @click.stop="select(row)"
                 >
                   {{ ordinal(row.level) }}
