@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- the site imports this file too (old exports), and only tsconfig.game.json lists the declaration
+/// <reference path="./jsonpack.d.ts" />
 import { CHARACTER_VERSION, characterSchema, type Character, type ChoiceValue } from '@omnibrew/engine/character'
 import { gearRecords, type RulesContent } from '@omnibrew/engine/rules'
 import type { Game } from '@omnibrew/engine/schemas'

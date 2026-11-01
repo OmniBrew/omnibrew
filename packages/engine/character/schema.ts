@@ -26,6 +26,8 @@ export interface CharacterExtension {
   options?: () => z.ZodRawShape
   /** Values a player typed over the computed ones. */
   overrides?: () => z.ZodRawShape
+  /** A new character's game parts. */
+  defaults?: () => { state: Record<string, unknown>, options: Record<string, unknown>, overrides: Record<string, unknown> }
 }
 
 const int = () => z.number().int()

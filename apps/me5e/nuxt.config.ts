@@ -19,6 +19,8 @@ export default defineNuxtConfig({
     // so they compile in the same Tailwind build as Tailwind and Nuxt UI.
     '#game-theme': fileURLToPath(new URL('./app/assets/css/main.css', import.meta.url)),
     ...(existsSync(amplifyOutputs) ? { '#amplify-outputs': amplifyOutputs } : {}),
+    // ME's parts for the character pages: only those pages import it (app/game-client.ts).
+    '#game-client': fileURLToPath(new URL('./app/game-client.ts', import.meta.url)),
   },
 
   ssr: true,
@@ -50,8 +52,25 @@ export default defineNuxtConfig({
     locales: [{ code: 'en', language: 'en-US', name: 'English', ...(existsSync(messages) ? { file: messages } : {}) }],
   },
 
+  // The content the character pages compute with (engine modules/rules-bundle.ts, plan/24 §1.2):
+  // every collection the rules read, with prose split out by collection.
+  rulesBundle: {
+    game: me5e,
+    contentRoot,
+    exclude: ['attributions', 'bestiary', 'changelog', 'guide', 'manual', 'navigation', 'npc-stats', 'ship-upgrades', 'vehicles'],
+    keepBody: ['weapon-properties'],
+  },
+
+  // The character pages run in the browser only (they read the signed-in user's data); each
+  // prerenders as an empty shell, so `?id=` links work on a static host.
+  routeRules: {
+    '/characters': { ssr: false },
+    '/characters/**': { ssr: false },
+  },
+
   nitro: {
     prerender: {
+      routes: ['/characters', '/characters/sheet', '/characters/builder'],
       // Content links to pages that never existed (the live site 404s too; plan/14).
       ignore: ['/guide/encounter-creation'],
     },

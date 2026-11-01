@@ -453,7 +453,7 @@ export const meRules: GameRules = {
     attack: weaponAttack,
     special: {
       bf: { property: 'burst-fire', build: burstFire },
-      dt: { property: 'double-tap', build: doubleTap },
+      dt: { property: 'double-tap', actionType: 'bonus-action', build: doubleTap },
     },
   },
 }

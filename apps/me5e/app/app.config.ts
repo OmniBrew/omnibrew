@@ -9,6 +9,12 @@ export default defineAppConfig({
       accents: ['alliance', 'adept', 'engineer', 'explorer', 'infiltrator', 'musician', 'sentinel', 'soldier', 'tracker', 'vanguard', 'experiment'],
       defaultAccent: 'alliance',
     },
+    // The character pages (plan/24): class icons (ME's sheet panels are in app/game-client.ts).
+    sheet: {
+      classIcon: '/images/classes/{id}.svg',
+      accentIcons: { alliance: '/images/misc/sys_alliance.png' },
+      conditions: 'conditions',
+    },
     siteUrl: 'https://n7.world',
     // ME5e shows metric by default, rounds 5 ft to 2 m and a mile to 1.6 km.
     units: { default: 'metric', metersPerFoot: 0.4, kmPerMile: 1.6 },
@@ -56,6 +62,7 @@ export default defineAppConfig({
     ],
     headerLinks: [
       { label: 'manual.title', to: '/manual/intro' },
+      { label: 'characters.title', to: '/characters' },
       { label: 'about_title', to: '/about' },
     ],
     footerLinks: [

@@ -139,6 +139,75 @@ export interface GameRules {
   /** Extra actions on the sheet (ME barrier). */
   actions?: (sheet: Sheet) => SheetCard[]
   weapons: WeaponRules
+  /** What playing the sheet changes beyond hit points (rules/actions.ts). */
+  play?: GamePlay
+}
+
+/**
+ * A pool of protection besides hit points (ME barrier, tech armor, shields), for the
+ * vitals panel and damage. Pools are listed in the order damage applies; temp HP and
+ * hit points come after them.
+ */
+export interface VitalPool {
+  id: string
+  /** i18n key of its name. */
+  label: string
+  /** Its fixed color as text-color classes (bars and pips draw in `currentColor`; never the sheet accent). */
+  color: string
+  current: number
+  max: number
+  /** Counted in ticks (shown as pips), not points. */
+  ticks?: boolean
+  /** Damage goes through it (barrier ticks are spent by the player instead). */
+  absorbs: boolean
+  /** The damage dialog may skip it ("bypass shields"). */
+  bypassable?: boolean
+  /** The damage dialog may double the damage it takes ("double damage to shields"). */
+  doublable?: boolean
+  /** Restored by the Regen button. */
+  regen?: number
+  /** The damage dialog may add to it (tech armor). */
+  gainable?: boolean
+  /** Dice rolled when the player spends one (barrier: damage reduction). */
+  roll?: string
+  /** The character with the pool at `current` (clamped to 0..max by the caller). */
+  set: (character: Character, current: number) => Character
+}
+
+/** A condition with levels (exhaustion, ME indoctrination). */
+export interface GradientCondition {
+  /** The condition record's id. */
+  id: string
+  value: number
+  max: number
+  set: (character: Character, value: number) => Character
+}
+
+/** A yes/no the rest menu asks (ME: reduce indoctrination by one on a long rest). */
+export interface RestOption {
+  id: string
+  rest: 'short' | 'long'
+  /** i18n key. */
+  label: string
+}
+
+/** Why an item can't be equipped (an i18n key and its params), or null. */
+export type EquipCheck = (sheet: Sheet, uuid: string) => { key: string, params?: Record<string, unknown> } | null
+
+export interface GamePlay {
+  /** Pools before temp HP, in the order damage applies. */
+  pools?: (sheet: Sheet) => VitalPool[]
+  /** Conditions with levels; exhaustion is the engine's unless the game lists it. */
+  gradients?: (sheet: Sheet) => GradientCondition[]
+  restOptions?: RestOption[]
+  /** A rest's changes beyond the engine's (ME barrier uses and shields), with the rest menu's answers. */
+  rest?: (sheet: Sheet, character: Character, type: 'short' | 'long', options: Record<string, boolean>) => Character
+  /** Equip rules (ME weapon slots, capacities). */
+  canEquip?: EquipCheck
+  /** Changes when an item is equipped or unequipped (ME shoulder mounts let go of an unequipped weapon). */
+  onEquip?: (sheet: Sheet, character: Character, uuid: string, equipped: boolean) => Character
+  /** Power picker: whether learned powers may take advancements (ME `me:prevent-advancements`). */
+  advancements?: (sheet: Sheet, classId: string | null) => boolean
 }
 
 export interface WeaponRules {
@@ -163,7 +232,7 @@ export interface WeaponRules {
   /** Changes one weapon's attack card after it is built (ME heat, mode range and notes). */
   attack?: (card: SheetCard, weapon: WeaponContext, sheet: Sheet) => SheetCard
   /** Special attacks a weapon property unlocks (ME burst fire, double tap), by group. */
-  special?: Record<string, { property: string, build: (card: SheetCard, weapon: WeaponContext, augments: AttackAugments, sheet: Sheet) => SheetCard | null }>
+  special?: Record<string, { property: string, /** The action it takes (default `action`). */ actionType?: string, build: (card: SheetCard, weapon: WeaponContext, augments: AttackAugments, sheet: Sheet) => SheetCard | null }>
 }
 
 export interface WeaponMode {

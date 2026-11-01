@@ -16,6 +16,15 @@ export default defineAppConfig({
      * site's primary color.
      */
     theme: { accents: [] as string[], defaultAccent: '' },
+    /** The character pages (plan/24). */
+    sheet: {
+      /** A class's icon (`{id}` is the class id); empty: no icons. */
+      classIcon: '',
+      /** Icons of sheet accents that aren't classes (the picker's swatches). */
+      accentIcons: {} as Record<string, string>,
+      /** Collection whose records name the sheet's conditions (the conditions dialog). */
+      conditions: 'conditions',
+    },
     /** The production site's address, for canonical links (no trailing slash). */
     siteUrl: '',
     units: {

@@ -8,7 +8,8 @@ import { defineNuxtConfig } from 'nuxt/config'
 const resolve = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
 export default defineNuxtConfig({
-  modules: ['@nuxt/ui', '@nuxt/content', '@pinia/nuxt', '@nuxtjs/i18n'],
+  // rules-bundle: the content the character pages compute with (`rulesBundle` in the game app's config).
+  modules: ['@nuxt/ui', '@nuxt/content', '@pinia/nuxt', '@nuxtjs/i18n', resolve('./modules/rules-bundle')],
 
   css: [resolve('./app/assets/css/main.css')],
 
@@ -19,6 +20,9 @@ export default defineNuxtConfig({
     // The backend's client config (Amplify Gen 2 amplify_outputs.json). Empty here: the site
     // then runs signed out. A game app points it at its own file when it has one.
     '#amplify-outputs': resolve('./app/amplify-outputs.json'),
+    // The game's parts for the character pages (definition, importer, sheet panels). The
+    // default has none; a game app points this at its own module (see app/game-client.ts).
+    '#game-client': resolve('./app/game-client.ts'),
   },
 
   hooks: {

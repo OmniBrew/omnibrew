@@ -138,6 +138,11 @@ export class Sheet {
     return this.collected.mechanics
   }
 
+  /** Choices the sources offer, picked or not (rules/choices.ts reads them). */
+  get offeredChoices() {
+    return this.collected.offered
+  }
+
   /** Choices the character made that no current mechanic asks for. */
   get unusedChoices() {
     return this.collected.unused
@@ -265,6 +270,11 @@ export class Sheet {
   /** Card mechanics (actions, bonus actions, reactions, other, attacks) with attack augments applied. */
   get actions(): SheetCard[] {
     return this.cached('actions', () => computeActions(this))
+  }
+
+  /** Actions only the game has (ME barrier). */
+  get gameActions(): SheetCard[] {
+    return this.cached('gameActions', () => this.rules.actions?.(this) ?? [])
   }
 
   /** Extra attacks with the Attack action. */

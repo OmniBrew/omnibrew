@@ -27,3 +27,6 @@ Thumbs.db
 # Amplify Gen 2 (apps/me5e/amplify): generated client config and build files
 amplify_outputs*
 .amplify
+
+# @nuxt/test-utils writes its setup marker here
+.nuxtrc

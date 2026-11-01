@@ -11,6 +11,10 @@
  * defaults (which live in @layer theme). Dark is the default mode.
  * The design's tokens.json has the same values; edit both together.
  */
+
+/* The vitals pools' fixed colors are classes in the game's play rules. */
+@source "../../../game/play.ts";
+
 @theme static {
   /* Headlines: Saira at 125% width. @nuxt/fonts serves it from Google with the
      width axis pinned at 125 (nuxt.config.ts), so the face is always wide. */
