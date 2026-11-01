@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import type { Character } from '../character'
-import { CharacterValidationError, createUserData, DataError, type DataClient, type DataSession, isOwner, ownerKey, readJson, slugify } from '../data'
+import { CharacterValidationError, ConflictError, createUserData, DataError, type DataClient, type DataSession, isOwner, ownerKey, readJson, slugify } from '../data'
 
 // The data layer against a mocked Amplify client: what it sends and how it reads replies.
 
@@ -61,6 +61,7 @@ function mockClient() {
       HomebrewVote: { listHomebrewVoteByOwner: vi.fn() },
     },
     queries: { getPublicHomebrew: vi.fn(), listPublicHomebrew: vi.fn() },
+    graphql: vi.fn(),
     mutations: { ensureProfile: vi.fn(), setHomebrewUse: vi.fn(), setHomebrewVote: vi.fn() },
   }
   return client
@@ -99,8 +100,30 @@ describe('characters', () => {
   it('validates and stores the model as JSON', async () => {
     const { client, data } = setup()
     const stored = await data.characters.create(character(), 'gen1-id')
-    expect(client.models.Character.create).toHaveBeenCalledWith({ id: 'gen1-id', game: 'test', version: 1, name: 'Shepard', data: JSON.stringify(character()) })
-    expect(stored).toMatchObject({ id: 'gen1-id', mine: true, character: character() })
+    expect(client.models.Character.create).toHaveBeenCalledWith({ id: 'gen1-id', game: 'test', version: 1, name: 'Shepard', data: JSON.stringify(character()), revision: 1 })
+    expect(stored).toMatchObject({ id: 'gen1-id', revision: 1, mine: true, character: character() })
+  })
+
+  it('saves with the revision it started from, and reports a lost race as ConflictError', async () => {
+    const { client, data } = setup()
+    client.graphql.mockResolvedValueOnce({ data: { updateCharacter: { id: 'c', owner, data: JSON.stringify(character()), revision: 4 } } })
+    const saved = await data.characters.update('c', character(), 3)
+    expect(saved.revision).toBe(4)
+    const call = client.graphql.mock.calls[0]![0] as { query: string, variables: { input: Record<string, unknown>, condition: unknown } }
+    expect(call.query).toMatch(/updateCharacter\(input: \$input, condition: \$condition\)/)
+    expect(call.variables.input).toMatchObject({ id: 'c', revision: 4, name: 'Shepard' })
+    expect(call.variables.condition).toEqual({ revision: { eq: 3 } })
+
+    // A row saved before 3c-1 has no revision yet.
+    client.graphql.mockResolvedValueOnce({ data: { updateCharacter: { id: 'c', owner, data: JSON.stringify(character()), revision: 1 } } })
+    await data.characters.update('c', character(), null)
+    expect((client.graphql.mock.calls[1]![0] as { variables: { condition: unknown } }).variables.condition).toEqual({ revision: { attributeExists: false } })
+
+    // The client throws GraphQL errors as `{ data, errors }`.
+    client.graphql.mockRejectedValueOnce({ data: { updateCharacter: null }, errors: [{ message: 'The conditional request failed', errorType: 'DynamoDB:ConditionalCheckFailedException' }] })
+    await expect(data.characters.update('c', character(), 3)).rejects.toBeInstanceOf(ConflictError)
+    client.graphql.mockRejectedValueOnce({ data: null, errors: [{ message: 'Unauthorized', errorType: 'Unauthorized' }] })
+    await expect(data.characters.update('c', character(), 3)).rejects.not.toBeInstanceOf(ConflictError)
   })
 
   it('refuses an invalid character or one of another game, before calling the API', async () => {

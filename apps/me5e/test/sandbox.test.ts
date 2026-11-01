@@ -2,12 +2,15 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { Schema } from '@omnibrew/backend'
-import type { Character } from '@omnibrew/engine/character'
-import { createUserData, DataError, type DataSession, type UserData } from '@omnibrew/engine/data'
+import { newCharacter, type Character } from '@omnibrew/engine/character'
+import { ConflictError, createUserData, DataError, type DataSession, type UserData } from '@omnibrew/engine/data'
+import { actions, setChoice } from '@omnibrew/engine/rules'
+import { loadRules } from '@omnibrew/engine/rules/load'
 import { Amplify } from 'aws-amplify'
 import { fetchAuthSession, getCurrentUser, signIn, signOut } from 'aws-amplify/auth'
 import { generateClient } from 'aws-amplify/data'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { me5e } from '../game'
 import { meCharacter } from '../game/character'
 
 /**
@@ -18,8 +21,10 @@ import { meCharacter } from '../game/character'
  *   SANDBOX_TEST=1 corepack pnpm vitest run apps/me5e/test/sandbox.test.ts
  *
  * The accounts come from apps/me5e/.env (SANDBOX_TEST_EMAIL/_PASSWORD, ..._2). Everything
- * the test creates is deleted at the end.
+ * the test creates is deleted at the end. The builder round trip (plan/24) also needs the
+ * content repo next to this checkout.
  */
+const contentDir = fileURLToPath(new URL('../../../../omnibrew-me5e-data', import.meta.url))
 
 const outputsFile = fileURLToPath(new URL('../amplify_outputs.json', import.meta.url))
 const envFile = fileURLToPath(new URL('../.env', import.meta.url))
@@ -82,6 +87,7 @@ async function as(user: 1 | 2 | null) {
 
 describe.skipIf(!enabled)('sandbox backend', () => {
   const characterId = randomUUID()
+  const builtId = randomUUID()
   const created = { homebrew: [] as string[], bookmarks: [] as string[] }
   let userA: DataSession
   let publishedId: string
@@ -100,6 +106,7 @@ describe.skipIf(!enabled)('sandbox backend', () => {
     await as(1)
     await data.homebrew.setUse(publishedId, false).catch(() => {})
     await data.characters.remove(characterId).catch(() => {})
+    await data.characters.remove(builtId).catch(() => {})
     for (const id of created.bookmarks) await data.bookmarks.remove(id).catch(() => {})
     for (const id of created.homebrew) await data.homebrew.remove(id).catch(() => {})
     await generateClient<Schema>().models.Profile.delete({ id: session!.sub }).catch(() => {})
@@ -121,6 +128,43 @@ describe.skipIf(!enabled)('sandbox backend', () => {
     expect((await data.characters.list()).map(c => c.id)).toContain(characterId)
     await data.characters.update(characterId, { ...character('Commander Shepard'), state: { ...character('x').state, credits: 5 } })
     expect((await data.characters.get(characterId))?.character).toMatchObject({ name: 'Commander Shepard', state: { credits: 5 } })
+  })
+
+  it('saves only from the latest revision: a stale save is a conflict', async () => {
+    const current = (await data.characters.get(characterId))!
+    const first = await data.characters.update(characterId, { ...current.character, name: 'Tab One' }, current.revision)
+    expect(first.revision).toBe((current.revision ?? 0) + 1)
+    // A second tab still holding the old revision loses.
+    await expect(data.characters.update(characterId, { ...current.character, name: 'Tab Two' }, current.revision)).rejects.toBeInstanceOf(ConflictError)
+    expect((await data.characters.get(characterId))?.character.name).toBe('Tab One')
+    // "Keep mine": save over it from the newer revision.
+    const mine = await data.characters.update(characterId, { ...current.character, name: 'Commander Shepard' }, first.revision)
+    expect(mine.revision).toBe(first.revision! + 1)
+  })
+
+  it.skipIf(!existsSync(contentDir))('round-trips a built character: builder, save, reload, sheet', async () => {
+    const rules = loadRules(contentDir, me5e)
+    // The builder: species, class and its picks, abilities, a weapon; then play: damage and a used resource.
+    let c = newCharacter({ id: 'me5e', character: meCharacter }, 'Sandbox Infiltrator')
+    c.species = 'batarian'
+    c.classes = [{ id: 'infiltrator', levels: 3, subclass: null, hitPoints: [8, 5, 5], rolledHitPoints: false, asi: {} }]
+    c.abilityScores = { ...c.abilityScores, method: 'buy', base: { str: 8, dex: 15, con: 14, int: 15, wis: 10, cha: 8 } }
+    c = setChoice(c, 'class/infiltrator/skill', ['stealth', 'perception', 'investigation'])
+    c = actions.addItem(c, { id: 'm-3-predator', kind: 'weapon' })
+    c = actions.setEquipped(rules.sheet(c), c.equipment[0]!.uuid, true)
+    c = actions.damage(rules.sheet(c), 4)
+    const before = rules.sheet(c)
+
+    const stored = await data.characters.create(c, builtId)
+    const reloaded = (await data.characters.get(builtId))!
+    expect(reloaded.revision).toBe(stored.revision)
+    expect(reloaded.character).toEqual(c)
+    const after = rules.sheet(reloaded.character)
+    expect({ ac: after.ac, hp: after.hp, skills: after.skills, attacks: after.weaponAttacks.attacks.map(a => after.card(a).hit) })
+      .toEqual({ ac: before.ac, hp: before.hp, skills: before.skills, attacks: before.weaponAttacks.attacks.map(a => before.card(a).hit) })
+    expect(after.skills.stealth!.proficient).toBe(true)
+    expect(after.hp.current).toBe(after.hp.max - 4)
+    await data.characters.remove(builtId)
   })
 
   it('adds, lists and removes bookmarks', async () => {

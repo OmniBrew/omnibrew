@@ -254,3 +254,36 @@ function placeholders(sheet: Sheet, item: SheetCard, card: ResolvedCard) {
     }, 0))
   })
 }
+
+/** Adds a number to a formula (or a plain number). */
+const plus = (f: unknown, n: number) => {
+  if (!n) return f
+  if (typeof f === 'number') return { type: 'flat', value: f + n }
+  return { type: 'multi', value: [f ?? { type: 'flat', value: 0 }, { type: 'flat', value: n }] }
+}
+
+/**
+ * A card with the roll dialog's answers folded in (B62): every option answered yes adds
+ * its hit, DC and damage, and its extra dice to every damage roll. `answers[i]` answers
+ * `card.options[i]`. Resolve the result with `sheet.card`.
+ */
+export function withAnswers(card: SheetCard, answers: boolean[]): SheetCard {
+  const picked = ((card.options ?? []) as AttackOption[]).filter((_, i) => answers[i])
+  if (!picked.length) return card
+  const sum = (key: 'hit' | 'dc' | 'damage') => picked.reduce((a, o) => a + (o[key] || 0), 0)
+  const damage = card.damage as Rec[] | undefined
+  return {
+    ...card,
+    ...(card.attack ? { attack: { ...card.attack, bonus: plus(card.attack.bonus, sum('hit')) } } : {}),
+    ...(card.dc ? { dc: { ...card.dc, bonus: plus(card.dc.bonus, sum('dc')) } } : {}),
+    ...(damage?.length
+      ? {
+          damage: [
+            ...damage.map((d, i) => (i === 0 ? { ...d, bonus: plus(d.bonus, sum('damage')) } : d)),
+            ...picked.flatMap(o => o.addDamage.map(d => ({ ...d, type: d.type ?? damage[0]!.type, addTo: 'all' }))),
+          ],
+        }
+      : {}),
+    options: [],
+  }
+}

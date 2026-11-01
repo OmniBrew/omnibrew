@@ -36,6 +36,11 @@ export const schemaEntries = {
     data: a.json().required(),
     /** The old-character migrator's report (Phase 3d). */
     migration: a.json(),
+    /**
+     * Bumped by every save; a save names the revision it started from and fails if
+     * another tab or device saved since (plan/24 §1.6). Absent on rows saved before 3c-1.
+     */
+    revision: a.integer(),
   })
     .secondaryIndexes(index => [index('owner').name('byOwner').queryField('listCharacterByOwner')])
     .authorization(allow => [

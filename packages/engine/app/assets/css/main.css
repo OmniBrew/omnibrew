@@ -48,6 +48,22 @@
   .corner-ticks::before { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; }
   .corner-ticks::after { right: -1px; bottom: -1px; border-right-width: 2px; border-bottom-width: 2px; }
 
+  /* A sheet heading (Actions tab sections): a hairline with a 2 px primary tick under its start. */
+  .section-tick {
+    position: relative;
+    padding-bottom: 0.375rem;
+    border-bottom: 1px solid var(--ui-border);
+  }
+  .section-tick::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 2rem;
+    height: 2px;
+    background: var(--ui-primary);
+  }
+
   /* A stat block's divider: a 2 px brand rule that tapers to transparent. */
   .statblock-rule {
     height: 2px;
@@ -65,6 +81,21 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+/* Record prose inside the character sheet's cards: compact, 14 px. */
+.sheet-prose {
+  h2, h3, h4 { @apply mt-3 mb-1 font-label font-semibold text-highlighted; }
+  p { @apply my-1.5 leading-6; }
+  ul { @apply my-1.5 list-disc ps-5; }
+  ol { @apply my-1.5 list-decimal ps-5; }
+  li { @apply my-0.5; }
+  a { @apply text-primary hover:underline; }
+  table { @apply my-2 w-full border-collapse text-xs; }
+  th { @apply border-b border-accented px-2 py-1 text-start font-label font-semibold text-muted; }
+  td { @apply border-b border-default px-2 py-1; }
+  > :first-child { @apply mt-0; }
+  > :last-child { @apply mb-0; }
 }
 
 /* Plain HTML prose written in a page (legal texts), styled like rendered content. */

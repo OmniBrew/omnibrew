@@ -43,7 +43,10 @@ const featureLinks = [
         <p class="mt-1 font-medium text-highlighted">
           {{ t('homepage.subtitle') }}
         </p>
-        <UButton to="/manual/intro" color="brand" size="lg" trailing-icon="i-lucide-arrow-right" :label="t('homepage.get_started')" class="mt-5" />
+        <div class="mt-5 flex flex-wrap justify-center gap-3">
+          <UButton to="/manual/intro" color="brand" size="lg" trailing-icon="i-lucide-arrow-right" :label="t('homepage.get_started')" />
+          <UButton to="/characters" color="neutral" variant="outline" size="lg" icon="i-lucide-user-round-plus" :label="t('homepage.build_character')" />
+        </div>
       </div>
     </section>
 

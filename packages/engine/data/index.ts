@@ -43,8 +43,18 @@ export class CharacterValidationError extends DataError {
   }
 }
 
+/** A save lost to a newer one: another tab or device saved the character since it was loaded. */
+export class ConflictError extends DataError {
+  constructor(readonly id: string) {
+    super(`update character: ${id} was saved elsewhere since it was loaded`)
+    this.name = 'ConflictError'
+  }
+}
+
 export interface StoredCharacter {
   id: string
+  /** Save counter: `update` names it so a save never overwrites a newer one. Null on rows from before 3c-1. */
+  revision: number | null
   /** Whether the signed-in user owns it (shared links show others' characters). */
   mine: boolean
   /** Upgraded to the current model version. */
@@ -158,6 +168,12 @@ export function slugify(title: string) {
   return title.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
+const UPDATE_CHARACTER = /* GraphQL */ `
+  mutation UpdateCharacter($input: UpdateCharacterInput!, $condition: ModelCharacterConditionInput) {
+    updateCharacter(input: $input, condition: $condition) { id owner data revision createdAt updatedAt }
+  }
+`
+
 export function createUserData({ client, game, session }: UserDataOptions) {
   const schema = characterSchema(game.character)
   const authMode = () => (session() ? 'userPool' : 'identityPool') as 'userPool' | 'identityPool'
@@ -176,14 +192,14 @@ export function createUserData({ client, game, session }: UserDataOptions) {
     return parsed.data
   }
 
-  type CharacterRow = { id: string, owner?: string | null, data: unknown, createdAt?: string, updatedAt?: string }
+  type CharacterRow = { id: string, owner?: string | null, data: unknown, revision?: number | null, createdAt?: string, updatedAt?: string }
 
   function toStored(row: CharacterRow): StoredCharacter {
     const raw = readJson<Record<string, unknown>>(row.data, {})
     // Read with the current model; a stored character that no longer validates is a bug
     // to see, not to hide, so it throws like a bad write would.
     const character = validateCharacter(upgradeCharacter(raw))
-    return { id: row.id, mine: isOwner(row.owner, session()), character, createdAt: row.createdAt, updatedAt: row.updatedAt }
+    return { id: row.id, revision: row.revision ?? null, mine: isOwner(row.owner, session()), character, createdAt: row.createdAt, updatedAt: row.updatedAt }
   }
 
   function characterFields(character: Character) {
@@ -210,16 +226,37 @@ export function createUserData({ client, game, session }: UserDataOptions) {
     async create(character: Character, id?: string): Promise<StoredCharacter> {
       requireSession('create character')
       const valid = validateCharacter(character)
-      const row = unwrap(await client.models.Character.create({ ...(id ? { id } : {}), ...characterFields(valid) }) as Result<CharacterRow | null>, 'create character')
+      const row = unwrap(await client.models.Character.create({ ...(id ? { id } : {}), ...characterFields(valid), revision: 1 }) as Result<CharacterRow | null>, 'create character')
       if (!row) throw new DataError('create character: no result')
       return toStored(row)
     },
 
-    /** Validates and saves a character the user owns. */
-    async update(id: string, character: Character): Promise<StoredCharacter> {
+    /**
+     * Validates and saves a character the user owns. With `revision` (the one it was
+     * loaded at, null for a row from before 3c-1), the save fails with `ConflictError`
+     * if the stored revision moved on, and bumps it otherwise.
+     */
+    async update(id: string, character: Character, revision?: number | null): Promise<StoredCharacter> {
       requireSession('update character')
       const valid = validateCharacter(character)
-      const row = unwrap(await client.models.Character.update({ id, ...characterFields(valid) }) as Result<CharacterRow | null>, 'update character')
+      if (revision === undefined) {
+        const row = unwrap(await client.models.Character.update({ id, ...characterFields(valid) }) as Result<CharacterRow | null>, 'update character')
+        if (!row) throw new DataError(`update character: ${id} not found`)
+        return toStored(row)
+      }
+      // The model client takes no `condition`; the AppSync mutation does.
+      const condition = revision === null ? { revision: { attributeExists: false } } : { revision: { eq: revision } }
+      let result: Result<{ updateCharacter: CharacterRow | null } | null>
+      try {
+        result = await client.graphql({ query: UPDATE_CHARACTER, variables: { input: { id, ...characterFields(valid), revision: (revision ?? 0) + 1 }, condition } }) as Result<{ updateCharacter: CharacterRow | null } | null>
+      }
+      catch (error) {
+        // The client throws GraphQL errors as `{ data, errors }`.
+        result = error as Result<{ updateCharacter: CharacterRow | null } | null>
+        if (!result?.errors) throw error
+      }
+      if (result.errors?.some(e => /ConditionalCheckFailed/.test((e as { errorType?: string }).errorType ?? e.message))) throw new ConflictError(id)
+      const row = unwrap(result, 'update character')?.updateCharacter
       if (!row) throw new DataError(`update character: ${id} not found`)
       return toStored(row)
     },

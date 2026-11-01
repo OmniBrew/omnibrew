@@ -41,7 +41,8 @@
     "./character": "./character/index.ts",
     "./rules": "./rules/index.ts",
     "./rules/load": "./rules/load.ts",
-    "./data": "./data/index.ts"
+    "./data": "./data/index.ts",
+    "./app/game-client": "./app/game-client.ts"
   },
   "bin": {
     "omnibrew-validate": "./validator/cli.ts"

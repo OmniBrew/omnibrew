@@ -14,5 +14,7 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["game/**/*.ts", "migrate/**/*.ts", "parity/**/*.ts", "test/**/*.ts"]
+  "include": ["game/**/*.ts", "migrate/**/*.ts", "parity/**/*.ts", "test/**/*.ts"],
+  // Page tests run in the Nuxt runtime (auto-imports, .vue files): Vitest's nuxt project compiles them.
+  "exclude": ["test/nuxt/**"]
 }

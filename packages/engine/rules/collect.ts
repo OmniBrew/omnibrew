@@ -18,6 +18,16 @@ import type { Mech, MechanicSource, Rec } from './types'
 export interface Collected {
   mechanics: Mech[]
   unused: Choice[]
+  /** Every choice the sources offer, picked or not, in source order (the builder's pickers). */
+  offered: OfferedChoice[]
+}
+
+/** A choice a mechanic offers: where its picks are stored, and what was picked (null: nothing yet). */
+export interface OfferedChoice {
+  path: string
+  key: string
+  mechanic: Mech
+  choice: Choice | null
 }
 
 /** Choice values as mechanics, the shape the live site stored them in (`{ type: 'skill', value }`). */
@@ -38,6 +48,7 @@ export function choiceMechanics(key: string, choice: Choice, model: boolean): Re
 
 export function collectMechanics(sheet: Sheet, sources: MechanicSource[]): Collected {
   const remaining = sheet.character.choices.slice()
+  const offered: OfferedChoice[] = []
 
   const hydrateChoice = (model: string, choice: Choice, path: string, append: Rec): Mech[] => {
     const base = choiceMechanics(model, choice, true).map(i => ({ ...i, ...append, source: path }) as Mech)
@@ -64,6 +75,7 @@ export function collectMechanics(sheet: Sheet, sources: MechanicSource[]): Colle
       }
       const key = sheet.choiceKey(m as Mech)
       const at = remaining.findIndex(s => s.path === `${path}/${key}`)
+      offered.push({ path: `${path}/${key}`, key, mechanic: { ...m, source: path } as Mech, choice: at < 0 ? null : remaining[at]! })
       if (at < 0) continue
       const [choice] = remaining.splice(at, 1)
       if (m.type === 'model-choice') out.push(...hydrateChoice(key, choice!, path, m.append ?? {}))
@@ -87,7 +99,7 @@ export function collectMechanics(sheet: Sheet, sources: MechanicSource[]): Colle
       if (option?.whenOn) preToggle.push(...(option.whenOn as Rec[]).filter(i => i.type && i.type !== 'resource').map(i => ({ ...i, toggleId: toggle.id }) as Mech))
     }
   }
-  return { mechanics: applyAugments(preToggle), unused: remaining }
+  return { mechanics: applyAugments(preToggle), unused: remaining, offered }
 }
 
 /**

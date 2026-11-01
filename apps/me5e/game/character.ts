@@ -33,4 +33,10 @@ export const meCharacter: CharacterExtension = {
     /** Equipment uuid, class id or `armor`: which shield source counts. */
     shieldSource: z.string().optional(),
   }),
+  // The live `characterTemplate`; every slot rule on, as live.
+  defaults: () => ({
+    state: { paragon: 0, renegade: 0, indoctrination: 0, shieldsLost: 0, barrier: { used: 0, ticksUsed: 0 }, shoulderMounts: [], techArmorMax: 0 },
+    options: { weaponSlots: true, grenadeSlots: true, medigelSlots: true, thermalClipSlots: true, thermalClips: true, programInstall: true, consumeThermalClips: true },
+    overrides: { shields: null, regen: null },
+  }),
 }
