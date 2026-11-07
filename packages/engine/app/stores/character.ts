@@ -60,8 +60,15 @@ export const useCharacterStore = defineStore('character', () => {
     }
   }
 
-  async function open(characterId: string) {
-    if (id.value === characterId && state.value === 'ready') return
+  // The pages showing the open character. Moving between the builder and the sheet
+  // mounts the new page before the old one unmounts, so the old page's leaving must
+  // not close the character the new page just opened.
+  const holders = new Set<symbol>()
+
+  /** Opens a character for a page (`holder`, released with `release` when the page goes). */
+  async function open(characterId: string, holder?: symbol) {
+    if (holder) holders.add(holder)
+    if (id.value === characterId && (state.value === 'ready' || state.value === 'loading')) return
     await close()
     id.value = characterId
     state.value = 'loading'
@@ -124,6 +131,12 @@ export const useCharacterStore = defineStore('character', () => {
     await saver.resolve('mine', mine ?? undefined)
   }
 
+  /** A page is done with the character: closes it once no page holds it. */
+  async function release(holder: symbol) {
+    holders.delete(holder)
+    if (!holders.size) await close()
+  }
+
   async function close() {
     if (saver.dirty) await saver.flush().catch(() => {})
     saver.reset()
@@ -137,7 +150,7 @@ export const useCharacterStore = defineStore('character', () => {
 
   return {
     id, record, character, sheet, rules: loaded, state, error, saveState, saveError, editable,
-    open, reload, apply, replace, flush, resolveConflict, close,
+    open, release, reload, apply, replace, flush, resolveConflict, close,
     get dirty() {
       return saver.dirty
     },

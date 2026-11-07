@@ -19,10 +19,11 @@ useSeoMeta({ title: () => `${store.character?.name || t('characters.unnamed')} Â
 useCharacterAutosave()
 
 const id = computed(() => (typeof route.query.id === 'string' ? route.query.id : ''))
+const holder = Symbol('builder')
 watch(id, (value) => {
-  if (value) void store.open(value)
+  if (value) void store.open(value, holder)
 }, { immediate: true })
-onBeforeUnmount(() => void store.close())
+onBeforeUnmount(() => void store.release(holder))
 
 const STEPS = ['species', 'class', 'abilities', 'background', 'powers', 'equipment', 'details'] as const
 type Step = (typeof STEPS)[number]
@@ -30,7 +31,11 @@ const PREFIXES: Partial<Record<Step, string[]>> = { species: ['species/'], class
 
 const step = computed<Step>({
   get: () => (STEPS.includes(route.query.step as Step) ? route.query.step as Step : 'species'),
-  set: v => void router.replace({ query: { ...route.query, step: v } }),
+  set: (v) => {
+    void router.replace({ query: { ...route.query, step: v } })
+    // A new step starts at the top, from the step buttons or the Back / Next buttons.
+    window.scrollTo({ top: 0 })
+  },
 })
 const index = computed(() => STEPS.indexOf(step.value))
 
