@@ -177,6 +177,16 @@ export function selectedPowers(sheet: Sheet): SelectedPower[] {
   return [...sheet.character.powers.map(p => ({ id: p.id, klass: p.class ?? undefined, advancement: p.advancement })), ...granted]
 }
 
+
+/** A bonus plus a sheet override: two flat bonuses sum; anything else becomes a `multi` formula. A bonus an upcast entry wrote without a type is flat. */
+export function addBonus(bonus: unknown, n: number): Rec {
+  const own = bonus && typeof bonus === 'object' ? ((bonus as Rec).type ? bonus as Rec : { type: 'flat', ...(bonus as Rec) }) : undefined
+  if (!own) return { type: 'flat', value: n }
+  if (!n) return own
+  if (own.type === 'flat' && typeof own.value === 'number') return { type: 'flat', value: own.value + n }
+  return { type: 'multi', value: [own, { type: 'flat', value: n }] }
+}
+
 const merge = (...parts: Array<Rec | null | undefined>) => parts.reduce<Rec>((a, p) => (p ? mergeDeep(a, p) as Rec : a), {})
 
 export function computePowers(sheet: Sheet): PowerCard[] {
@@ -191,12 +201,11 @@ export function computePowers(sheet: Sheet): PowerCard[] {
     const mod = p.mod || (p.klass ? sheet.powercastingAbilities[p.klass] : undefined) || rules.typeAbility[power.powerType] || false
     const attackMod = base.attack?.mod === 'pc' ? false : base.attack?.mod
     const dcMod = base.dc?.mod === 'pc' ? false : base.dc?.mod
-    // A sheet's power attack bonus applies to attacks and save DCs; its power damage bonus replaces a damage roll's own bonus.
-    const attack = base.attack ? { ...base.attack, mod: attackMod || mod, bonus: { type: 'flat', value: overrides.attack.power } } : false
-    const dc = base.dc ? { ...base.dc, mod: dcMod || mod, bonus: { type: 'flat', value: overrides.attack.power } } : false
-    const damage = base.damage
-      ? base.damage.map((d: Rec) => (d.mod === 'pc' ? { ...d, mod, bonus: { type: 'flat', value: overrides.damage.power } } : { ...d, bonus: { type: 'flat', value: overrides.damage.power } }))
-      : false
+    // The power's own attack, DC and damage bonuses stay on the card; the sheet's power overrides
+    // are added once every upcast tier is merged (Q27: live replaced the power's own bonus).
+    const attack = base.attack ? { ...base.attack, mod: attackMod || mod } : false
+    const dc = base.dc ? { ...base.dc, mod: dcMod || mod } : false
+    const damage = base.damage ? base.damage.map((d: Rec) => (d.mod === 'pc' ? { ...d, mod } : d)) : false
     const advancement = p.advancement ? (power.advancements ?? []).find((a: Rec) => a.id === p.advancement) : undefined
     const basePower: PowerCard = {
       id: power.id,
@@ -229,6 +238,11 @@ export function computePowers(sheet: Sheet): PowerCard[] {
         out.push(merge({ ...basePower, level, upcast: i !== 0 }, i === 0 ? {} : casting[i], advCasting(i)) as PowerCard)
       }
     }
+  }
+  for (const card of out) {
+    if (card.attack) card.attack = { ...card.attack, bonus: addBonus(card.attack.bonus, overrides.attack.power) }
+    if (card.dc) card.dc = { ...card.dc, bonus: addBonus(card.dc.bonus, overrides.attack.power) }
+    if (Array.isArray(card.damage)) card.damage = card.damage.map((d: Rec) => ({ ...d, bonus: addBonus(d.bonus, overrides.damage.power) }))
   }
 
   const asAttacks = sheet.ofType('power-attack')

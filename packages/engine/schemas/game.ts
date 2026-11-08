@@ -73,6 +73,24 @@ export interface GameDefinition {
   character?: CharacterExtension
   /** The game's rules for the rules engine (`rules/`): handlers of its mechanics, tables and hooks. */
   rules?: GameRules
+  /**
+   * Fields holding a record's card picture, tried in order, per collection (the builder's
+   * species cards, a Discord post's avatar). Collections not named use `thumbnail`, then `img`.
+   */
+  cardImage?: Record<string, string[]>
+}
+
+/** The fields a record's card picture is read from (`GameDefinition.cardImage`). */
+export const DEFAULT_CARD_IMAGE = ['thumbnail', 'img']
+
+/** A record's card picture: the first non-empty field the game names for its collection. */
+export function cardImage(def: Pick<GameDefinition, 'cardImage'>, collection: string, record: Record<string, unknown> | null | undefined): string {
+  if (!record) return ''
+  for (const field of def.cardImage?.[collection] ?? DEFAULT_CARD_IMAGE) {
+    const value = record[field]
+    if (typeof value === 'string' && value) return value
+  }
+  return ''
 }
 
 export const defineGame = (def: GameDefinition) => def

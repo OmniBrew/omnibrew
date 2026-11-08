@@ -172,4 +172,6 @@ export const me5eDefinition = defineGame({
   rules: { ...meRules, play: mePlay },
 
   character: meCharacter,
+  // Species cards: the square thumbnail (B105), else the body picture, which fills the square for every species but the volus.
+  cardImage: { species: ['thumbnail', 'bodyImg', 'img'] },
 })
