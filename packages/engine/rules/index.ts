@@ -50,3 +50,4 @@ export { bundleFiles, bundleRecords, splitBundle, type BundleOptions, type Prose
 export * as actions from './actions'
 export * from './tabs'
 export * from './choices'
+export * as companions from './companions'

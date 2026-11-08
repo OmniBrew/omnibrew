@@ -1,3 +1,4 @@
+import type { CompanionExtension } from './companion'
 import { z } from 'zod'
 import { Id } from '../schemas/primitives'
 
@@ -28,6 +29,8 @@ export interface CharacterExtension {
   overrides?: () => z.ZodRawShape
   /** A new character's game parts. */
   defaults?: () => { state: Record<string, unknown>, options: Record<string, unknown>, overrides: Record<string, unknown> }
+  /** Companion fields and pools only this game has (`companion.ts`). */
+  companion?: CompanionExtension
 }
 
 const int = () => z.number().int()

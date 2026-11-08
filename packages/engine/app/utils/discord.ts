@@ -1,4 +1,16 @@
-import type { RollEntry } from '../stores/rolls'
+/** What a post needs of a roll (the roll store's `RollEntry`). */
+export interface PostedRoll {
+  at: string
+  label: string
+  notation: string
+  total: number
+  dice: Array<{ value: number, dropped?: boolean, sides?: number }>
+  kind?: string
+  advantage?: string
+  crit?: boolean
+  fumble?: boolean
+  parts?: Array<{ type: string, notation: string, total: number }>
+}
 
 /**
  * Discord webhooks (plan/26 §1.5): kept on the profile (owner-only, B70), at most five,
@@ -86,7 +98,7 @@ export interface RollPostText {
 const COLORS = { crit: 0x10B981, fumble: 0xEF4444, roll: 0x0EA5E9 }
 
 /** The dice of a roll as text: kept dice, then dropped ones struck through (`[14, ~~6~~]`). */
-export function diceText(entry: Pick<RollEntry, 'dice'>): string {
+export function diceText(entry: Pick<PostedRoll, 'dice'>): string {
   if (!entry.dice.length) return ''
   return `[${entry.dice.map(d => (d.dropped ? `~~${d.value}~~` : String(d.value))).join(', ')}]`
 }
@@ -94,7 +106,7 @@ export function diceText(entry: Pick<RollEntry, 'dice'>): string {
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
 
 /** One roll as a Discord message: the character as the sender, one embed with the result. */
-export function rollPayload(entry: RollEntry, sender: { name: string, avatar?: string }, text: RollPostText): DiscordPayload {
+export function rollPayload(entry: PostedRoll, sender: { name: string, avatar?: string }, text: RollPostText): DiscordPayload {
   const dice = diceText(entry)
   const notes = [entry.advantage && text.advantage, entry.crit && text.crit, entry.fumble && text.fumble].filter(Boolean)
   const fields = (entry.parts ?? []).length > 1

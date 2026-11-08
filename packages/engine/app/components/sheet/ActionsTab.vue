@@ -11,11 +11,12 @@ const { sheet } = useSheet()
 
 const sections = computed(() => actionSections(sheet.value))
 const toggles = computed(() => sheetToggles(sheet.value).filter(x => !sections.value.attacks.some(e => 'card' in e && e.card === x.card)))
-const filter = ref<'all' | ActionSection>('all')
+const filter = ref<'all' | ActionSection | 'companions'>('all')
+const { character } = useSheet()
 
 const label = (s: ActionSection) => t(`sheet.actions.sections.${s}`)
 const count = (s: ActionSection) => sections.value[s].reduce((a, e) => a + ('card' in e ? 1 : e.group.items.length), 0)
-const shown = computed(() => ACTION_SECTIONS.filter(s => (filter.value === 'all' || filter.value === s) && sections.value[s].length))
+const shown = computed(() => (filter.value === 'companions' ? [] : ACTION_SECTIONS.filter(s => (filter.value === 'all' || filter.value === s) && sections.value[s].length)))
 const title = (g: ActionGroup) => ('key' in g.title ? t(g.title.key, g.title.params ?? {}) : g.title.text)
 
 const notes = computed(() => sheet.value.globalNotes)
@@ -37,13 +38,27 @@ const extraAttacks = computed(() => sheet.value.extraAttacks)
         {{ chip === 'all' ? t('all_title') : label(chip) }}
         <span v-if="chip !== 'all' && count(chip)" class="font-mono text-xs text-muted">{{ count(chip) }}</span>
       </button>
+      <!-- Companions (the live "Companion" chip): their stat blocks instead of the action list. -->
+      <button
+        type="button"
+        class="inline-flex h-7 items-center gap-1.5 rounded-sm px-2 font-label text-[0.8125rem] font-semibold ring-1 transition-colors max-sm:h-9"
+        :class="filter === 'companions' ? 'bg-primary/10 text-primary ring-primary/55' : 'text-default ring-accented hover:bg-elevated'"
+        :aria-pressed="filter === 'companions'"
+        data-chip="companions"
+        @click="filter = 'companions'"
+      >
+        {{ t('sheet.companions.title') }}
+        <span v-if="character.companions.length" class="font-mono text-xs text-muted">{{ character.companions.length }}</span>
+      </button>
     </div>
 
-    <div v-if="toggles.length" class="flex flex-wrap gap-2">
+    <SheetCompanions v-if="filter === 'companions'" />
+
+    <div v-if="toggles.length && filter !== 'companions'" class="flex flex-wrap gap-2">
       <SheetToggle v-for="x in toggles" :key="x.toggle.id" :toggle="x.toggle" :label="x.card.name ?? ''" />
     </div>
 
-    <ul v-if="notes.length" class="flex flex-col gap-1 rounded-sm border border-default bg-default p-3 text-sm">
+    <ul v-if="notes.length && filter !== 'companions'" class="flex flex-col gap-1 rounded-sm border border-default bg-default p-3 text-sm">
       <li v-for="(n, i) in notes" :key="i">
         <MDC :value="n.text" tag="span" unwrap="p" class="sheet-prose" />
       </li>
@@ -77,7 +92,7 @@ const extraAttacks = computed(() => sheet.value.extraAttacks)
         </details>
       </template>
     </section>
-    <p v-if="!shown.length" class="text-sm text-muted">
+    <p v-if="!shown.length && filter !== 'companions'" class="text-sm text-muted">
       {{ t('sheet.actions.empty') }}
     </p>
   </div>

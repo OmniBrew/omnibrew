@@ -6,9 +6,10 @@
  */
 import type { Profile } from '@omnibrew/engine/data'
 import { MAX_WEBHOOKS, normalizeWebhooks, rollPayload, webhookErrors, createDiscordPoster, type DiscordWebhook } from '../utils/discord'
-import { pictureFileError, pictureUrl, removePicture, resizePicture, uploadPicture } from '../utils/profile-picture'
+import { pictureFileError } from '../utils/profile-picture'
 
 const session = useSession()
+const { resizePicture, uploadPicture, pictureUrl, removePicture } = useProfilePicture()
 const preferences = usePreferences()
 const colorMode = useColorMode()
 const toast = useToast()
@@ -94,7 +95,7 @@ async function test(w: DiscordWebhook, i: number) {
   if (problem) return
   testing.value = w.id
   const result = await poster.post(w.url.trim(), rollPayload(
-    { id: 'test', at: new Date().toISOString(), label: t('profile.webhooks.test_label'), kind: 'custom', notation: '1d20', total: 20, dice: [{ sides: 20, value: 20 }] },
+    { at: new Date().toISOString(), label: t('profile.webhooks.test_label'), kind: 'custom', notation: '1d20', total: 20, dice: [{ sides: 20, value: 20 }] },
     { name: username.value.trim() || 'N7 World' },
     { kind: t('sheet.roll.kind.custom'), damageType: x => x, footer: t('profile.webhooks.footer') },
   ))

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createDiscordPoster, diceText, isWebhookUrl, MAX_WEBHOOKS, normalizeWebhooks, rollPayload, setWebhookCharacter, webhookErrors } from '../app/utils/discord'
-import type { RollEntry } from '../app/stores/rolls'
+import { createDiscordPoster, diceText, isWebhookUrl, MAX_WEBHOOKS, normalizeWebhooks, rollPayload, setWebhookCharacter, webhookErrors, type PostedRoll } from '../app/utils/discord'
 
 const URL = 'https://discord.com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz_ABCDEFG-123'
 
@@ -48,7 +47,7 @@ describe('the profile’s webhooks', () => {
   })
 })
 
-const entry = (patch: Partial<RollEntry> = {}): RollEntry => ({ id: 'r', at: '2026-11-08T12:00:00.000Z', label: 'Pistol', kind: 'attack', notation: '2d20kh1+7', total: 21, dice: [{ sides: 20, value: 14 }, { sides: 20, value: 6, dropped: true }], ...patch })
+const entry = (patch: Partial<PostedRoll> = {}): PostedRoll => ({ at: '2026-11-08T12:00:00.000Z', label: 'Pistol', kind: 'attack', notation: '2d20kh1+7', total: 21, dice: [{ sides: 20, value: 14 }, { sides: 20, value: 6, dropped: true }], ...patch })
 const text = { kind: 'Attack', advantage: 'Advantage', crit: 'Critical hit!', fumble: 'Natural 1', damageType: (t: string) => t.toUpperCase(), footer: 'N7 World' }
 
 describe('a roll as a Discord post', () => {
