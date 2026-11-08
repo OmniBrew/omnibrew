@@ -41,7 +41,7 @@ const Page = defineComponent({
 
 function open(character: Character) {
   const store = useCharacterStore()
-  store.rules = { game, rules }
+  store.rules = { game, rules, records: new Map(), withRecords: () => rules }
   store.record = { id: 'fixture', character, local: true, mine: false, revision: null }
   store.character = character
   store.state = 'ready'

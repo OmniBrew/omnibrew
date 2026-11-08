@@ -26,6 +26,17 @@ export interface UserDataOptions {
   game: { id: string, character?: CharacterExtension }
   /** The current session, or null when signed out. */
   session: () => DataSession | null
+  /**
+   * Checks a homebrew record before it is shared (plan/26 §1.3): its kind's schema, references
+   * and prose (`validateRecord`). Errors block saving it as development or published; a private
+   * draft saves as it is, so a half-written form is never lost.
+   */
+  validateHomebrew?: (kind: string, data: Record<string, unknown>, id: string) => Promise<HomebrewIssue[]> | HomebrewIssue[]
+}
+
+export interface HomebrewIssue {
+  path?: string
+  message: string
 }
 
 export class DataError extends Error {
@@ -36,6 +47,13 @@ export class DataError extends Error {
 }
 
 /** A character that doesn't match the game's character model. */
+export class HomebrewValidationError extends DataError {
+  constructor(readonly issues: HomebrewIssue[]) {
+    super(`homebrew is invalid: ${issues.map(i => `${i.path || '(record)'} ${i.message}`).join('; ')}`, issues)
+    this.name = 'HomebrewValidationError'
+  }
+}
+
 export class CharacterValidationError extends DataError {
   constructor(readonly issues: { path: PropertyKey[], message: string }[]) {
     super(`character is invalid: ${issues.map(i => `${i.path.join('.') || '(root)'} ${i.message}`).join('; ')}`, issues)
@@ -174,7 +192,7 @@ const UPDATE_CHARACTER = /* GraphQL */ `
   }
 `
 
-export function createUserData({ client, game, session }: UserDataOptions) {
+export function createUserData({ client, game, session, validateHomebrew }: UserDataOptions) {
   const schema = characterSchema(game.character)
   const authMode = () => (session() ? 'userPool' : 'identityPool') as 'userPool' | 'identityPool'
 
@@ -402,10 +420,15 @@ export function createUserData({ client, game, session }: UserDataOptions) {
 
     /**
      * Creates or updates the user's homebrew. Published homebrew stays published (others
-     * use it; the live site's rule). Validating `data` against its kind's record schema is 3c.
+     * use it; the live site's rule). Shared homebrew (development, published) must pass
+     * `validateHomebrew`; a private draft saves as it is.
      */
-    async save(input: HomebrewInput): Promise<Homebrew> {
+    async save(input: HomebrewInput, validate = validateHomebrew): Promise<Homebrew> {
       requireSession('save homebrew')
+      if (input.status !== 'private' && validate) {
+        const issues = await validate(input.kind, input.data, input.id ?? '00000000-0000-4000-8000-000000000000')
+        if (issues.length) throw new HomebrewValidationError(issues)
+      }
       const fields = { kind: input.kind, title: input.title, slug: slugify(input.title), data: JSON.stringify(input.data), status: input.status }
       if (!input.id) {
         const row = unwrap(await client.models.Homebrew.create(fields) as Result<HomebrewRow | null>, 'create homebrew')

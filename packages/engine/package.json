@@ -37,6 +37,7 @@
     ".": "./nuxt.config.ts",
     "./schemas": "./schemas/index.ts",
     "./validator": "./validator/index.ts",
+    "./validator/record": "./validator/record.ts",
     "./content": "./content/index.ts",
     "./character": "./character/index.ts",
     "./rules": "./rules/index.ts",

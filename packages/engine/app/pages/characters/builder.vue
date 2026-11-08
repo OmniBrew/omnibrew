@@ -50,6 +50,13 @@ const missing = computed(() => {
   return out
 })
 const stale = computed(() => store.sheet?.unusedChoices.filter(c => !c.path.startsWith('reputation/')) ?? [])
+// Homebrew copies the character no longer uses (plan/26 §1.4), removable like stale picks.
+const staleCopies = computed(() => (store.character ? unusedCopies(store.character) : []))
+const copyName = (id: string) => String(store.character?.homebrew?.[id]?.data.name ?? id)
+function removeStaleCopies() {
+  if (!store.character) return
+  store.replace(staleCopies.value.reduce((c, id) => removeCopy(c, id), store.character))
+}
 </script>
 
 <template>
@@ -106,6 +113,20 @@ const stale = computed(() => store.sheet?.unusedChoices.filter(c => !c.path.star
         </template>
         <template #actions>
           <UButton :label="t('builder.stale_remove')" color="warning" variant="outline" size="sm" @click="store.replace(removeChoices(store.character!, stale.map(c => c.path)))" />
+        </template>
+      </UAlert>
+      <UAlert v-if="store.goneHomebrew.length" color="neutral" variant="subtle" icon="i-lucide-flask-conical-off" :title="t('homebrew.gone_title', { n: store.goneHomebrew.length })" :description="t('homebrew.gone_text', { names: store.goneHomebrew.map(copyName).join(', ') })" class="mb-4" />
+      <UAlert v-if="staleCopies.length" color="neutral" variant="subtle" icon="i-lucide-flask-conical" :title="t('homebrew.stale_copies', { n: staleCopies.length })" class="mb-4">
+        <template #description>
+          <p>{{ t('homebrew.stale_copies_text') }}</p>
+          <ul class="mt-1 text-xs">
+            <li v-for="copyId in staleCopies" :key="copyId">
+              {{ copyName(copyId) }}
+            </li>
+          </ul>
+        </template>
+        <template #actions>
+          <UButton :label="t('builder.stale_remove')" color="neutral" variant="outline" size="sm" @click="removeStaleCopies" />
         </template>
       </UAlert>
 

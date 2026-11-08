@@ -84,7 +84,8 @@ export function walkMechanics(value: unknown, visit: (m: Rec, path: string) => v
   }
 }
 
-export function checkReferences(game: Game, records: Records, files: Map<string, string | undefined>): Issue[] {
+/** `only` limits the checks to some records (one homebrew record against all of content). */
+export function checkReferences(game: Game, records: Records, files: Map<string, string | undefined>, only?: (collection: string, id: string) => boolean): Issue[] {
   const issues: Issue[] = []
   const has = (collection: string, id: string) => records.get(collection)?.has(id) ?? false
   const edgeTypes = new Set(game.enums.values.edgeTypes)
@@ -131,6 +132,7 @@ export function checkReferences(game: Game, records: Records, files: Map<string,
 
   for (const [collection, recs] of records) {
     for (const [id, rec] of recs) {
+      if (only && !only(collection, id)) continue
       for (const ref of FIELD_REFS.filter(r => r.collection === collection)) {
         for (const hit of select(rec, ref.path)) {
           if (ref.when && !ref.when(hit.parent)) continue

@@ -30,10 +30,17 @@ onMounted(async () => {
   }
 })
 
+function storedDoc(b: { type: string, recordId: string, data?: unknown }): RecordDoc | undefined {
+  const d = b.data as { title?: unknown, to?: unknown } | null | undefined
+  if (!d || typeof d.title !== 'string') return undefined
+  return { id: `${b.type}/${b.recordId}`, title: d.title, group: b.type, collection: b.type, to: typeof d.to === 'string' && d.to.startsWith('/') ? d.to : undefined }
+}
+
 const groups = computed(() => groupBookmarks(bookmarks.items, game.bookmarks ?? []).map(g => ({
   ...g,
   items: g.items
-    .map(b => ({ bookmark: b, doc: index.value?.get(`${b.type}/${b.recordId}`) }))
+    // Records without a page in the index (homebrew) carry their title and page on the bookmark.
+    .map(b => ({ bookmark: b, doc: index.value?.get(`${b.type}/${b.recordId}`) ?? storedDoc(b) }))
     .sort((a, b) => (a.doc?.title ?? a.bookmark.recordId).localeCompare(b.doc?.title ?? b.bookmark.recordId)),
 })))
 

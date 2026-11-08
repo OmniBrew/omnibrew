@@ -146,6 +146,17 @@ export function characterSchema(ext: CharacterExtension = {}) {
     equipment: z.array(EquipmentEntry),
     /** Companions are free-form stat blocks the player fills in. */
     companions: z.array(z.looseObject({})),
+    /**
+     * Homebrew records the character uses, copied when picked (plan/26 §1.4): the sheet
+     * computes from them for any viewer, and they outlast a deleted record. Keyed by the
+     * Homebrew row id (a UUID), as powers and equipment name them.
+     */
+    homebrew: z.record(z.string(), z.strictObject({
+      kind: z.string(),
+      data: z.looseObject({}),
+      author: z.string().nullable().optional(),
+      updatedAt: z.string().nullable().optional(),
+    })).optional(),
     customFeatures: z.array(CustomFeature),
     details: z.strictObject({
       characteristics: z.record(z.string(), z.string()),

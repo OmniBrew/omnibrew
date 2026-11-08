@@ -15,7 +15,7 @@ const contentDir = resolve(import.meta.dirname, '../../../../../omnibrew-me5e-da
 const game = createGame(me5e)
 const rules = loadRules(contentDir, me5e, game)
 
-mockNuxtImport('useRules', () => () => Promise.resolve({ game, rules }))
+mockNuxtImport('useRules', () => () => Promise.resolve({ game, rules, records: new Map(), withRecords: () => rules }))
 
 describe('the character store', () => {
   it('keeps the character open while another page holds it', async () => {

@@ -1,3 +1,4 @@
+import type { HomebrewDefinition } from './homebrew'
 import { z } from 'zod'
 import type { CharacterExtension } from '../character/schema'
 import type { GameRules } from '../rules/types'
@@ -78,6 +79,8 @@ export interface GameDefinition {
    * species cards, a Discord post's avatar). Collections not named use `thumbnail`, then `img`.
    */
   cardImage?: Record<string, string[]>
+  /** What players can write as homebrew: kinds with their forms, and the effects they can add (`homebrew.ts`). */
+  homebrew?: HomebrewDefinition
 }
 
 /** The fields a record's card picture is read from (`GameDefinition.cardImage`). */

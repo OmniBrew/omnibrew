@@ -5,6 +5,8 @@ import { groupRecords, loadContent, type LoadedRecord } from './load'
 import { checkProse } from './prose'
 import { checkReferences } from './refs'
 
+const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+
 export interface ValidationResult {
   game: string
   root: string
@@ -46,6 +48,8 @@ export function validateContent(root: string, def: GameDefinition): ValidationRe
     const file = item.file
     files.set(`${collection}/${id}`, file)
     counts[collection] = (counts[collection] ?? 0) + 1
+    // Homebrew ids are UUIDs (plan/26 §1.3); content ids never look like one, so the two can't collide.
+    if (UUID.test(id)) issues.push({ severity: 'error', category: 'reference', collection, id, file, rule: 'id-like-homebrew', message: `"${id}" looks like a homebrew id (a UUID); give the record a name-based id` })
 
     let rec = item.record
     const kind = def.sources[collection]?.itemKind
