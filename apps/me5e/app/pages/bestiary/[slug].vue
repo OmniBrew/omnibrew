@@ -19,7 +19,10 @@ useSeoMeta({ title: npc.value.name, description: t('meta.info', { name: npc.valu
           by {{ npc.author }}
         </p>
       </div>
-      <UButton :label="t('bestiary_title', 2)" icon="i-lucide-arrow-left" to="/bestiary" variant="ghost" />
+      <div class="flex flex-wrap gap-2">
+        <BookmarkButton type="bestiary" :record-id="recordId(npc)" />
+        <UButton :label="t('bestiary_title', 2)" icon="i-lucide-arrow-left" to="/bestiary" variant="ghost" />
+      </div>
     </header>
     <UPageBody class="mt-0">
       <MeNpcStatBlock :npc="npc" title-tag="h1" />

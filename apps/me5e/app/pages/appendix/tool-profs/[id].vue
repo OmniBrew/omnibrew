@@ -11,6 +11,7 @@ useSeoMeta({ title: tool.value.name, description: t('meta.info', { name: tool.va
 <template>
   <UPage v-if="tool">
     <RecordHeader
+      :bookmark="{ type: 'tool-profs', id: recordId(tool) }"
       :title="tool.name ?? ''"
       :headline="tool.type ? t(`tool_prof_types.${tool.type}`) : t('tool_profs_title')"
       :links="[{ label: t('tool_profs_title'), icon: 'i-lucide-arrow-left', to: '/appendix/tool-profs', variant: 'ghost' }]"

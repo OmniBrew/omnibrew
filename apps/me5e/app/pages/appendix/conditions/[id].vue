@@ -11,6 +11,7 @@ useSeoMeta({ title: condition.value.name, description: t('meta.info', { name: co
 <template>
   <UPage v-if="condition">
     <RecordHeader
+      :bookmark="{ type: 'conditions', id: recordId(condition) }"
       :title="condition.name ?? ''"
       :headline="t('conditions_title')"
       :links="[{ label: t('conditions_title'), icon: 'i-lucide-arrow-left', to: '/appendix/conditions', variant: 'ghost' }]"

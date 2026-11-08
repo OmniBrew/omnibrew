@@ -10,6 +10,7 @@ useSeoMeta({ title: mod.value.name, description: t('meta.info', { name: mod.valu
 <template>
   <UPage v-if="mod">
     <RecordHeader
+      :bookmark="{ type: 'mods', id: recordId(mod) }"
       :title="mod.name ?? ''"
       :headline="t('mod_title', 1)"
       :links="[{ label: t('mod_title', 2), icon: 'i-lucide-arrow-left', to: '/mods', variant: 'ghost' }]"

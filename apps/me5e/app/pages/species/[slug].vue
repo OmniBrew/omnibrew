@@ -89,6 +89,7 @@ watch(() => route.hash, reveal)
     </template>
 
     <RecordHeader
+      :bookmark="{ type: 'species', id: rootId }"
       :title="species.name ?? ''"
       :headline="t('species_title', 1)"
       :author="species.author"

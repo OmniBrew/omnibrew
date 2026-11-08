@@ -9,6 +9,12 @@ const { t } = useI18n()
 const signInLink = computed(() => ({ path: '/auth/sign-in', query: route.path.startsWith('/auth/') ? {} : { redirect: route.fullPath } }))
 const items = computed<DropdownMenuItem[][]>(() => [
   [{ label: t('auth.signed_in_as', { email: session.user?.email ?? '' }), type: 'label' }],
+  [
+    { label: t('auth.profile_title'), icon: 'i-lucide-user-round-cog', to: '/profile' },
+    { label: t('characters.title'), icon: 'i-lucide-users-round', to: '/characters' },
+    { label: t('bookmarks_title'), icon: 'i-lucide-bookmark', to: '/bookmarks' },
+    { label: t('homebrew.my_title'), icon: 'i-lucide-flask-conical', to: '/homebrew/my-homebrew' },
+  ],
   [{ label: t('auth.sign_out'), icon: 'i-lucide-log-out', onSelect: () => session.logOut() }],
 ])
 </script>

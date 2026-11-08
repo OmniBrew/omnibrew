@@ -10,6 +10,7 @@ useSeoMeta({ title: background.value.name, description: t('meta.info', { name: b
 <template>
   <UPage v-if="background">
     <RecordHeader
+      :bookmark="{ type: 'backgrounds', id: recordId(background) }"
       :title="background.name ?? ''"
       :headline="t('background_title', 1)"
       :links="[{ label: t('background_title', 2), icon: 'i-lucide-arrow-left', to: '/backgrounds', variant: 'ghost' }]"
