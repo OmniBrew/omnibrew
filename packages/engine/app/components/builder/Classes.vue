@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * The Class step (the live MeCbClasses*): classes and their levels (20 in all), the
- * subclass, hit points per level (average or rolled), an ability increase or a feat at
- * each increase level, experience, and the choices the classes offer.
+ * The Class step (the live MeCbClasses*): classes as cards (icon, hit die, primary
+ * ability, summary), one click to add, as the live "+"; then each class's levels (20 in
+ * all), subclass, hit points per level (average or rolled), an ability increase or a
+ * feat at each increase level; the choices the classes offer; experience.
  */
 import type { Character, ClassEntry } from '@omnibrew/engine/character'
 import { actions, type Rec } from '@omnibrew/engine/rules'
@@ -21,12 +22,17 @@ function hitPoints(entry: Pick<ClassEntry, 'id'>, levels: number, first: boolean
   return Array.from({ length: levels }, (_, i) => current[i] ?? (i === 0 && first ? die : average(die)))
 }
 
-const adding = ref('')
+// The cards show while the character has no class, or after "Add another class".
+const adding = ref(false)
+const available = computed(() => classes.value.filter(k => !character.value.classes.some(c => c.id === k.id)))
 function addClass(id: string) {
   if (!id || level.value >= 20) return
   change(c => c.classes.push({ id, levels: 1, subclass: null, hitPoints: hitPoints({ id }, 1, c.classes.length === 0), rolledHitPoints: false, asi: {} }))
-  adding.value = ''
+  adding.value = false
 }
+const { game } = useAppConfig()
+const icon = (id: string) => (game.sheet.classIcon ? game.sheet.classIcon.replace('{id}', id) : '')
+const primary = (k: Rec) => ((k.primaryAbility ?? []) as string[]).map(a => t(`abilities.${a}.title`)).join(', ')
 function setLevels(i: number, levels: number) {
   change((c) => {
     const k = c.classes[i]!
@@ -55,19 +61,9 @@ const xp = computed(() => character.value.experience)
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex flex-wrap items-end gap-3">
-      <USwitch :model-value="xp.useMilestone" :label="t('builder.class.milestone')" @update:model-value="v => change(c => (c.experience.useMilestone = !!v))" />
-      <UFormField v-if="xp.useMilestone" :label="t('sheet.details.milestone')">
-        <UInputNumber :model-value="xp.milestone" :min="0" class="w-28" @update:model-value="v => change(c => (c.experience.milestone = Number(v) || 0))" />
-      </UFormField>
-      <UFormField v-else :label="t('xp_title')">
-        <UInputNumber :model-value="xp.points" :min="0" :step="100" class="w-36" @update:model-value="v => change(c => (c.experience.points = Number(v) || 0))" />
-      </UFormField>
-      <span class="ms-auto text-sm text-muted">{{ t('builder.class.total_level', { n: level }) }}</span>
-    </div>
-
     <article v-for="(entry, i) in character.classes" :key="`${entry.id}-${i}`" class="flex flex-col gap-3 rounded-md border border-default bg-default p-3" :data-class="entry.id">
       <header class="flex flex-wrap items-center gap-3">
+        <img v-if="icon(entry.id)" :src="icon(entry.id)" alt="" class="size-10 shrink-0">
         <h2 class="flex-1 font-label text-lg font-semibold text-highlighted">
           {{ record(entry.id).name ?? entry.id }}
         </h2>
@@ -125,17 +121,47 @@ const xp = computed(() => character.value.experience)
       </details>
     </article>
 
-    <div v-if="level < 20" class="flex flex-wrap items-center gap-2">
-      <USelect
-        v-model="adding"
-        :items="classes.filter(k => !character.classes.some(c => c.id === k.id)).map(k => ({ label: k.name, value: k.id }))"
-        :placeholder="character.classes.length ? t('builder.class.multiclass') : t('builder.class.choose')"
-        class="w-full sm:w-72"
-        :aria-label="t('builder.class.choose')"
-      />
-      <UButton :label="t('builder.class.add')" icon="i-lucide-plus" :disabled="!adding" @click="addClass(adding)" />
-    </div>
+    <template v-if="level < 20">
+      <div v-if="adding || !character.classes.length" class="flex flex-col gap-2">
+        <div class="flex items-center gap-3">
+          <h2 class="flex-1 font-label text-base font-semibold text-highlighted">
+            {{ character.classes.length ? t('builder.class.multiclass') : t('builder.class.choose') }}
+          </h2>
+          <UButton v-if="character.classes.length" :label="t('buttons.close')" color="neutral" variant="ghost" size="sm" @click="adding = false" />
+        </div>
+        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <li v-for="k in available" :key="k.id">
+            <button
+              type="button"
+              class="flex h-full w-full items-start gap-3 rounded-md border border-default bg-default p-3 text-start transition-colors hover:border-primary hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary"
+              :aria-label="t('builder.class.add_named', { name: k.name })"
+              @click="addClass(k.id)"
+            >
+              <img v-if="icon(k.id)" :src="icon(k.id)" alt="" class="size-10 shrink-0">
+              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span class="font-label text-base font-semibold text-highlighted">{{ k.name }}</span>
+                <span class="text-xs font-semibold text-default">{{ t('builder.class.hit_die', { n: k.hitDie }) }}<template v-if="primary(k)"> · {{ t('primary_ability_title') }}: {{ primary(k) }}</template></span>
+                <span v-if="k.snippet" class="line-clamp-2 text-xs text-muted">{{ k.snippet }}</span>
+              </span>
+              <UIcon name="i-lucide-plus" class="size-5 shrink-0 text-primary" />
+            </button>
+          </li>
+        </ul>
+      </div>
+      <UButton v-else :label="t('builder.class.multiclass')" icon="i-lucide-plus" color="neutral" variant="outline" class="self-start" @click="adding = true" />
+    </template>
 
     <BuilderChoices :prefixes="['class/']" />
+
+    <div class="flex flex-wrap items-end gap-3">
+      <USwitch :model-value="xp.useMilestone" :label="t('builder.class.milestone')" @update:model-value="v => change(c => (c.experience.useMilestone = !!v))" />
+      <UFormField v-if="xp.useMilestone" :label="t('sheet.details.milestone')">
+        <UInputNumber :model-value="xp.milestone" :min="0" class="w-28" @update:model-value="v => change(c => (c.experience.milestone = Number(v) || 0))" />
+      </UFormField>
+      <UFormField v-else :label="t('xp_title')">
+        <UInputNumber :model-value="xp.points" :min="0" :step="100" class="w-36" @update:model-value="v => change(c => (c.experience.points = Number(v) || 0))" />
+      </UFormField>
+      <span class="ms-auto text-sm text-muted">{{ t('builder.class.total_level', { n: level }) }}</span>
+    </div>
   </div>
 </template>

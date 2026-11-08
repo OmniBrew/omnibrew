@@ -1,6 +1,6 @@
 <script setup lang="ts">
-/** A record's prose on the sheet, from its collection's prose file (fetched on first use), with a link to its page. */
-const props = defineProps<{ collection: string, id: string }>()
+/** A record's prose on the sheet, from its collection's prose file (fetched on first use), with a link to its page (`link`, on by default). */
+const props = withDefaults(defineProps<{ collection: string, id: string, link?: boolean }>(), { link: true })
 const { t } = useI18n()
 const { game } = useAppConfig()
 
@@ -20,6 +20,7 @@ watch(() => [props.collection, props.id], async () => {
 
 const { sheet } = useSheet()
 const page = computed(() => {
+  if (!props.link) return null
   const record = sheet.value.content.get(props.collection, props.id)
   if (!record) return null
   const path = recordPath(game.routes, props.collection, record)

@@ -21,16 +21,17 @@ useCharacterAutosave()
 
 const id = computed(() => (typeof route.query.id === 'string' ? route.query.id : ''))
 
+const holder = Symbol('sheet')
 watch(id, async (value) => {
   ui.close()
   if (!value) return
-  await store.open(value)
+  await store.open(value, holder)
   rolls.use(value)
 }, { immediate: true })
 
 onBeforeUnmount(() => {
   ui.close()
-  void store.close()
+  void store.release(holder)
 })
 </script>
 
