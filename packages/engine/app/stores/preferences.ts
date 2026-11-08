@@ -32,9 +32,13 @@ export const usePreferences = defineStore('preferences', () => {
   }
 
   function toggleUnits() {
-    units.value = units.value === 'metric' ? 'imperial' : 'metric'
+    setUnits(units.value === 'metric' ? 'imperial' : 'metric')
+  }
+
+  function setUnits(value: UnitSystem) {
+    units.value = value
     save()
   }
 
-  return { units, restore, toggleUnits }
+  return { units, restore, toggleUnits, setUnits }
 })

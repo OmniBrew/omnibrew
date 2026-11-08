@@ -27,6 +27,8 @@ export const useSession = defineStore('session', () => {
   const enabled = ref(amplifyEnabled)
 
   const signedIn = computed(() => status.value === 'signedIn')
+  /** Counts sign-ins made on this page (not a session restored on load): the profile's preferences apply then. */
+  const signIns = ref(0)
 
   let listening = false
   /** Amplify, listening to its auth events (sign-in elsewhere, sign-out, a failed token refresh). */
@@ -67,7 +69,9 @@ export const useSession = defineStore('session', () => {
         email: typeof claims.email === 'string' ? claims.email : null,
         groups: Array.isArray(claims['cognito:groups']) ? claims['cognito:groups'].map(String) : [],
       }
+      const was = status.value
       status.value = 'signedIn'
+      if (was === 'signedOut' || (force && was === 'loading')) signIns.value++
     }
     catch {
       user.value = null
@@ -148,6 +152,7 @@ export const useSession = defineStore('session', () => {
   }
 
   return {
+    signIns,
     status, user, enabled, signedIn, isAdmin,
     refresh, signInWithPassword, signInWithGoogle, register, confirmRegistration, resendCode,
     startPasswordReset, finishPasswordReset, logOut, takeRedirect,
