@@ -86,6 +86,8 @@ export function coreCollections(power: PowerSystemConfig): Record<string, ShapeF
       subspecies: Id.optional(),
       mechanics: k.mechanics.optional(),
       img: z.string().optional(),
+      /** A square picture for the builder's species cards, when the others crop badly. */
+      thumbnail: z.string().optional(),
       snippet: z.string().optional(),
       age: z.string().optional(),
       alignment: z.string().optional(),

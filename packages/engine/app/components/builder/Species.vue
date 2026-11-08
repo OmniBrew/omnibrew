@@ -36,7 +36,7 @@ function pick(s: Rec) {
   choosing.value = false
 }
 
-const picture = (s: Rec | null | undefined) => String(s?.bodyImg ?? s?.img ?? '')
+const picture = (s: Rec | null | undefined) => String(s?.thumbnail ?? s?.bodyImg ?? s?.img ?? '')
 const asi = (s: Rec) => s.abilityScoreIncrease || summarizeAsi(t, s.mechanics)
 
 // A variant states what it changes; the rest comes from its species.
