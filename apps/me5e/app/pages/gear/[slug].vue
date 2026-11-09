@@ -10,6 +10,7 @@ useSeoMeta({ title: gear.value.name, description: t('meta.info', { name: gear.va
 <template>
   <UPage v-if="gear">
     <RecordHeader
+      :bookmark="{ type: 'gear', id: recordId(gear) }"
       :title="gear.name ?? ''"
       :headline="t('gear_title', 1)"
       :links="[{ label: t('gear_title', 2), icon: 'i-lucide-arrow-left', to: '/gear', variant: 'ghost' }]"

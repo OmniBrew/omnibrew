@@ -50,3 +50,6 @@ export interface SearchDoc {
   to?: string
   text: string
 }
+
+/** A record in the record index (`/record-index.json`): a search document without its text. */
+export type RecordDoc = Omit<SearchDoc, 'text'>

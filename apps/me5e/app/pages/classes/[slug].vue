@@ -46,6 +46,7 @@ watch(() => route.hash, showHash)
   <MeClassTheme v-if="klass" :klass="id">
     <UPage>
       <RecordHeader
+        :bookmark="{ type: 'classes', id: id }"
         :title="klass.name ?? ''"
         :headline="t('class_title', 1)"
         headline-class="text-(--klass-accent)"

@@ -20,7 +20,9 @@ withDefaults(defineProps<{
   links?: ButtonProps[]
   /** The section rule under the heading; off where the first section's rule does the job. */
   rule?: boolean
-}>(), { headline: undefined, headlineClass: 'text-primary', image: undefined, imageSize: 'lg', author: undefined, links: undefined, rule: true })
+  /** Shows a bookmark button for this record (its collection and id). */
+  bookmark?: { type: string, id: string }
+}>(), { headline: undefined, headlineClass: 'text-primary', image: undefined, imageSize: 'lg', author: undefined, links: undefined, rule: true, bookmark: undefined })
 </script>
 
 <template>
@@ -39,7 +41,8 @@ withDefaults(defineProps<{
         </p>
         <slot />
       </div>
-      <div v-if="links?.length" class="flex flex-wrap gap-2">
+      <div v-if="links?.length || bookmark" class="flex flex-wrap gap-2">
+        <BookmarkButton v-if="bookmark" :type="bookmark.type" :record-id="bookmark.id" />
         <UButton v-for="(link, i) in links" :key="i" variant="outline" v-bind="link" />
       </div>
     </div>

@@ -18,6 +18,7 @@ const ui = useSheetUi()
 useSeoMeta({ title: () => store.character?.name || t('sheet.title'), robots: 'noindex' })
 useSheetAccent(() => store.character)
 useCharacterAutosave()
+useDiscordPosting()
 
 const id = computed(() => (typeof route.query.id === 'string' ? route.query.id : ''))
 

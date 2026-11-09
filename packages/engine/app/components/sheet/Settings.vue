@@ -15,6 +15,23 @@ const { sheet, character, apply } = useSheet()
 const open = ui.model('settings')
 
 const tab = ref<'overrides' | 'preferences' | 'custom'>('overrides')
+const store = useCharacterStore()
+const session = useSession()
+const discord = useDiscord()
+const toast = useToast()
+// Discord webhooks are the signed-in owner's; a local character can't post (it has no stored id).
+const canPost = computed(() => session.signedIn && store.editable && Boolean(store.id) && !isLocalId(store.id))
+watch([open, canPost], ([o, c]) => {
+  if (o && c) discord.load()
+})
+async function setWebhook(webhookId: string, on: boolean) {
+  try {
+    await discord.setCharacter(webhookId, store.id!, on)
+  }
+  catch {
+    toast.add({ title: t('sheet.webhooks.save_failed'), color: 'error', icon: 'i-lucide-circle-alert' })
+  }
+}
 const change = (fn: (c: Character) => void) => apply(s => actions.edit(s.character, fn))
 const num = (v: unknown) => (v === null || v === undefined || v === '' ? null : Math.floor(Number(v)) || 0)
 
@@ -168,6 +185,41 @@ function addFeature() {
           :description="te(`sheet.preferences.${key}_text`) ? t(`sheet.preferences.${key}_text`) : undefined"
           @update:model-value="v => change(c => (c.options.game[key] = !!v))"
         />
+        <section class="mt-2 border-t border-default pt-4" aria-labelledby="sheet-webhooks">
+          <h3 id="sheet-webhooks" class="eyebrow mb-1 text-muted">
+            {{ t('profile.webhooks.title') }}
+          </h3>
+          <p v-if="!canPost" class="text-sm text-muted">
+            {{ t(session.signedIn ? 'sheet.webhooks.not_stored' : 'sheet.webhooks.sign_in') }}
+          </p>
+          <div v-else-if="discord.status === 'loading'" class="py-2">
+            <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin text-dimmed" />
+          </div>
+          <p v-else-if="discord.status === 'error'" class="text-sm text-error">
+            {{ t('sheet.webhooks.load_failed') }}
+          </p>
+          <template v-else>
+            <p v-if="!discord.webhooks?.length" class="text-sm text-muted">
+              {{ t('sheet.webhooks.none') }}
+            </p>
+            <div v-else class="flex flex-col gap-3">
+              <p class="text-sm text-muted">
+                {{ t('sheet.webhooks.text') }}
+              </p>
+              <USwitch
+                v-for="(w, i) in discord.webhooks"
+                :key="w.id"
+                :model-value="w.characters.includes(store.id!)"
+                :label="w.name || t('profile.webhooks.name_placeholder', { n: i + 1 })"
+                data-webhook-switch
+                @update:model-value="v => setWebhook(w.id, !!v)"
+              />
+            </div>
+            <ULink to="/profile" class="mt-2 inline-block text-sm text-primary">
+              {{ t('sheet.webhooks.manage') }}
+            </ULink>
+          </template>
+        </section>
       </div>
 
       <div v-else class="flex flex-col gap-3">

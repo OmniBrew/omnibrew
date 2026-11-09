@@ -34,3 +34,5 @@ export const sheet: SheetParts = {
     'barrier-ticks': ResourceBarrierTicks,
   },
 }
+
+export { meHomebrewParts as homebrew } from '../game/homebrew-preview'

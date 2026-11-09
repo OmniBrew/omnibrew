@@ -5,6 +5,7 @@ import { generateExaltedLineages } from './exalted-lineages'
 import { meMechanics } from './mechanics'
 import { mePlay } from './play'
 import { meRules } from './rules'
+import { meHomebrew } from './homebrew'
 
 /**
  * Mass Effect 5e on the 5e-2014 ruleset.
@@ -172,4 +173,7 @@ export const me5eDefinition = defineGame({
   rules: { ...meRules, play: mePlay },
 
   character: meCharacter,
+  // Species cards: the square thumbnail (B105), else the body picture, which fills the square for every species but the volus.
+  cardImage: { species: ['thumbnail', 'bodyImg', 'img'] },
+  homebrew: meHomebrew,
 })

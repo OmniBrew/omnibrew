@@ -5,6 +5,10 @@ import { definition } from '#game-client'
 export interface LoadedRules {
   game: Game
   rules: Rules
+  /** The bundle's records (collection → id → record), before any homebrew. */
+  records: Map<string, Map<string, Record<string, unknown>>>
+  /** Rules over other records (content plus homebrew), built by the same engine. */
+  withRecords: (records: Map<string, Map<string, Record<string, unknown>>>) => Rules
 }
 
 let loading: Promise<LoadedRules> | null = null
@@ -29,7 +33,8 @@ export function useRules(): Promise<LoadedRules> {
       $fetch<import('@omnibrew/engine/rules').RulesBundle>(fileUrl(`${config.game}.${config.hash}.json`)),
     ])
     const game = createGame(def)
-    return { game, rules: engine.createRules(game, engine.bundleRecords(bundle)) }
+    const records = engine.bundleRecords(bundle)
+    return { game, rules: engine.createRules(game, records), records, withRecords: r => engine.createRules(game, r) }
   })()
   loading.catch(() => {
     loading = null

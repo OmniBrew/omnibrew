@@ -66,11 +66,14 @@ export default defineNuxtConfig({
   routeRules: {
     '/characters': { ssr: false },
     '/characters/**': { ssr: false },
+    '/bookmarks': { ssr: false },
+    '/homebrew': { ssr: false },
+    '/homebrew/**': { ssr: false },
   },
 
   nitro: {
     prerender: {
-      routes: ['/characters', '/characters/sheet', '/characters/builder'],
+      routes: ['/characters', '/characters/sheet', '/characters/builder', '/bookmarks', '/homebrew', '/homebrew/my-homebrew', '/homebrew/view', '/homebrew/edit'],
       // Content links to pages that never existed (the live site 404s too; plan/14).
       ignore: ['/guide/encounter-creation'],
     },

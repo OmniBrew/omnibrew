@@ -43,6 +43,7 @@ const content = recs({
     { id: 'overload-power', name: 'Overload', level: 1, powerType: 'tech', classes: ['sentinel'], casting: [{ castingTime: { unit: 'action', length: 1 } }] },
     { id: 'spark', name: 'Spark', level: 0, powerType: 'tech', classes: ['sentinel'], casting: [{ castingTime: { unit: 'action', length: 1 } }] },
     { id: 'pull', name: 'Pull', level: 0, powerType: 'biotic', classes: ['vanguard'], casting: [{ castingTime: { unit: 'action', length: 1 } }] },
+    { id: 'field', name: 'Field', level: 1, powerType: 'tech', classes: [], casting: [{ castingTime: { unit: 'action', length: 1 }, attack: { type: 'ranged' }, damage: [{ type: 'temp', bonus: { type: 'flat', value: 5 } }] }, { damage: [{ bonus: { value: 10 } }] }] },
   ],
   'weapons': [
     { id: 'rifle', name: 'Rifle', kind: 'weapon', weaponType: 'assault_rifle', slots: 2, damage: { dieCount: 2, dieType: 8, type: 'piercing' }, range: { short: 60, long: 240 }, properties: [] },
@@ -282,5 +283,26 @@ describe('the Actions tab', () => {
     const yes = s.card(withAnswers(card, [true]))
     expect(yes.hit!.bonus).toBe(3)
     expect(yes.damages![0]!.types.piercing).toMatchObject({ 8: 1, 6: 1, bonus: 2 })
+  })
+})
+
+describe("a power's own bonuses (Q27)", () => {
+  const field = (power: { attack: number, damage: number }) => sheet(character((c) => {
+    c.powers.push({ id: 'field', class: 'sentinel', advancement: null })
+    c.overrides.attack.power = power.attack
+    c.overrides.damage.power = power.damage
+  })).powers.filter(p => p.id === 'field')
+
+  it("keeps the power's own damage bonus without overrides", () => {
+    const [first, second] = field({ attack: 0, damage: 0 })
+    expect(first!.damage).toMatchObject([{ bonus: { type: 'flat', value: 5 } }])
+    expect(second!.damage).toMatchObject([{ bonus: { type: 'flat', value: 10 } }])
+  })
+
+  it("adds the sheet's overrides to it, at every level", () => {
+    const [first, second] = field({ attack: 1, damage: 2 })
+    expect(first!.damage).toMatchObject([{ bonus: { type: 'flat', value: 7 } }])
+    expect(second!.damage).toMatchObject([{ bonus: { type: 'flat', value: 12 } }])
+    expect(first!.attack).toMatchObject({ bonus: { type: 'flat', value: 1 } })
   })
 })

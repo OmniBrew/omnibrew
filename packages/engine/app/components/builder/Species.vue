@@ -7,6 +7,7 @@
  * species' ability increases into free picks.
  */
 import { actions, speciesTraits, type Rec } from '@omnibrew/engine/rules'
+import { cardImage } from '@omnibrew/engine/schemas'
 
 const { t } = useI18n()
 const { sheet, character, apply } = useSheet()
@@ -36,7 +37,7 @@ function pick(s: Rec) {
   choosing.value = false
 }
 
-const picture = (s: Rec | null | undefined) => String(s?.thumbnail ?? s?.bodyImg ?? s?.img ?? '')
+const picture = (s: Rec | null | undefined) => cardImage(sheet.value.game.def, 'species', s)
 const asi = (s: Rec) => s.abilityScoreIncrease || summarizeAsi(t, s.mechanics)
 
 // A variant states what it changes; the rest comes from its species.

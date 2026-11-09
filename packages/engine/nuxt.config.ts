@@ -82,7 +82,7 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       // The site search's index and robots.txt (server/routes), static files once generated.
-      routes: ['/search-index.json', '/robots.txt'],
+      routes: ['/search-index.json', '/record-index.json', '/robots.txt'],
     },
   },
 

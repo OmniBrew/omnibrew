@@ -7,7 +7,7 @@
  */
 import type { Component } from 'vue'
 import type { Character } from '@omnibrew/engine/character'
-import type { RulesContent } from '@omnibrew/engine/rules'
+import type { PreviewSample, Rec, RulesContent } from '@omnibrew/engine/rules'
 import type { Game, GameDefinition } from '@omnibrew/engine/schemas'
 
 /** What a game's migrator says about an old character it converted: issues by kind (unknown ids, renamed...). */
@@ -32,3 +32,13 @@ export interface SheetParts {
 }
 
 export const sheet: SheetParts = { slots: {}, resources: {} }
+
+/** The game's parts for the homebrew pages (plan/26 §1.3). */
+export interface HomebrewParts {
+  /** Sample characters for the editor's preview. */
+  samples: PreviewSample[]
+  /** Places a record the engine can't (`placeRecord` returns null): ME mods go on a host item. */
+  place?: (character: Character, collection: string, record: Rec, content: RulesContent) => Character | null
+}
+
+export const homebrew: HomebrewParts | null = null

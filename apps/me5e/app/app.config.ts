@@ -53,6 +53,8 @@ export default defineAppConfig({
       ] },
       { label: 'tools_guides_title', heading: true, children: [
         { label: 'guide.title', icon: 'i-lucide-puzzle', to: '/guide', chapters: 'guide' },
+        { label: 'bookmarks_title', icon: 'i-lucide-bookmark', to: '/bookmarks' },
+        { label: 'homebrew.title', icon: 'i-lucide-flask-conical', to: '/homebrew' },
       ] },
       { label: 'title', heading: true, children: [
         { label: 'assets_title', icon: 'i-lucide-download', to: '/assets' },
@@ -74,6 +76,8 @@ export default defineAppConfig({
       { label: 'legal.acceptable_use', to: '/legal/acceptable-use' },
     ],
     routes: recordRoutes,
+    // What a reader can bookmark, in the bookmarks page's order (plan/26 §1.1; the live groups plus the record pages added since).
+    bookmarks: ['weapons', 'armor', 'mods', 'gear', 'vehicles', 'powers', 'bestiary', 'feats', 'backgrounds', 'species', 'classes', 'conditions', 'tool-profs'],
     // build-index.js's groups and collections.
     search: [
       { id: 'character', label: 'character_title', icon: 'i-lucide-user-round', collections: ['backgrounds', 'feats', 'species', 'traits', 'class-features'] },

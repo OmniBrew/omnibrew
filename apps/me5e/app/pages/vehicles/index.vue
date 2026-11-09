@@ -16,6 +16,10 @@ const { data: vehicles } = await useAsyncData('vehicles', () => queryCollection(
       <VehicleList :vehicles="vehicles" :groups="['transport', 'starship']">
         <template #default="{ vehicle }">
           <MeVehicleInfo :vehicle="vehicle" />
+          <!-- Vehicles have no pages of their own: the bookmark sits in the open row. -->
+          <div class="mt-3">
+            <BookmarkButton type="vehicles" :record-id="recordId(vehicle)" size="sm" />
+          </div>
         </template>
       </VehicleList>
     </UPageBody>

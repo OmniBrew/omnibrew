@@ -1,5 +1,5 @@
 import type { Character } from '@omnibrew/engine/character'
-import type { Sheet } from '@omnibrew/engine/rules'
+import type { Rules, Sheet } from '@omnibrew/engine/rules'
 
 export type LoadState = 'idle' | 'loading' | 'ready' | 'missing' | 'error'
 
@@ -27,8 +27,46 @@ export const useCharacterStore = defineStore('character', () => {
   const saveState = ref<SaveState>('saved')
   const saveError = ref<unknown>(null)
 
-  const sheet = computed<Sheet | null>(() => (character.value && loaded.value ? loaded.value.rules.sheet(character.value) : null))
   const editable = computed(() => Boolean(record.value?.mine))
+
+  // Homebrew (plan/26 §1.4): the character's copies, then the player's collection (newer for
+  // its owner), join the content the rules read. Rules are rebuilt only when that set changes.
+  const library = useHomebrewLibrary()
+  const session = useSession()
+  let homebrewRules: { key: string, rules: Rules } | null = null
+  const rules = computed<Rules | null>(() => {
+    const l = loaded.value
+    const c = character.value
+    if (!l) return null
+    const extra = [...(c ? copiesOf(c) : []), ...library.collection]
+    if (!extra.length) return l.rules
+    const key = extra.map(h => `${h.id}@${h.updatedAt ?? ''}`).join('|')
+    if (homebrewRules?.key !== key) {
+      const itemKinds = Object.fromEntries(Object.entries(l.game.def.sources).map(([name, src]) => [name, src.itemKind]))
+      homebrewRules = { key, rules: l.withRecords(mergeHomebrew(l.records, extra, itemKinds)) }
+    }
+    return homebrewRules.rules
+  })
+  const sheet = computed<Sheet | null>(() => (character.value && rules.value ? rules.value.sheet(character.value) : null))
+
+  /** Copied homebrew whose record is gone (deleted by its author, or made private): the copy keeps working. */
+  const goneHomebrew = ref<string[]>([])
+  async function checkGone(c: Character) {
+    const ids = Object.keys(c.homebrew ?? {}).filter(hid => !available.value.has(hid) && !library.mine.some(h => h.id === hid))
+    if (!ids.length) return
+    const data = await useUserData()
+    const found = await Promise.all(ids.map(hid => data?.homebrew.getPublic(hid).catch(() => undefined)))
+    goneHomebrew.value = ids.filter((_, i) => found[i] === null)
+  }
+
+  /** The homebrew the owner can see, by id: their collection. */
+  const available = computed(() => new Map(library.collection.map(h => [h.id, h])))
+  /** Brings the character's homebrew copies up to date (owner only); returns the ids refreshed. */
+  function withCopies(next: Character): { character: Character, refreshed: string[] } {
+    if (!editable.value || library.status !== 'ready') return { character: next, refreshed: [] }
+    const synced = syncCopies(next, available.value)
+    return { character: synced.character, refreshed: synced.refreshed }
+  }
 
   const saver = createSaver<Character>({
     save: async (value) => {
@@ -85,6 +123,19 @@ export const useCharacterStore = defineStore('character', () => {
       character.value = found.character
       state.value = 'ready'
       listen()
+      // The owner's collection joins the catalogs; newer versions of copied homebrew replace the copies.
+      if (found.mine && session.signedIn) {
+        goneHomebrew.value = []
+        void library.load().then(() => {
+          if (id.value !== characterId || !character.value) return
+          void checkGone(character.value)
+          const { character: next, refreshed } = withCopies(character.value)
+          if (next === character.value) return
+          character.value = next
+          saver.change(next)
+          if (refreshed.length) useToast().add({ title: useNuxtApp().$i18n.t('homebrew.copies_refreshed', { n: refreshed.length }), icon: 'i-lucide-refresh-cw' })
+        })
+      }
     }
     catch (e) {
       error.value = e
@@ -103,8 +154,9 @@ export const useCharacterStore = defineStore('character', () => {
   /** Applies a change (an action from rules/actions.ts) and schedules the save. View-only sheets don't change. */
   function apply(change: CharacterChange) {
     if (!sheet.value || !editable.value) return
-    const next = change(sheet.value)
-    if (next === character.value) return
+    const changed = change(sheet.value)
+    if (changed === character.value) return
+    const next = withCopies(changed).character
     character.value = next
     saver.change(next)
   }
@@ -112,8 +164,8 @@ export const useCharacterStore = defineStore('character', () => {
   /** Replaces the whole character (the builder, import). */
   function replace(next: Character) {
     if (!editable.value) return
-    character.value = next
-    saver.change(next)
+    character.value = withCopies(next).character
+    saver.change(character.value)
   }
 
   const flush = () => saver.flush()
@@ -149,7 +201,7 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   return {
-    id, record, character, sheet, rules: loaded, state, error, saveState, saveError, editable,
+    id, record, character, sheet, rules: loaded, goneHomebrew, state, error, saveState, saveError, editable,
     open, release, reload, apply, replace, flush, resolveConflict, close,
     get dirty() {
       return saver.dirty

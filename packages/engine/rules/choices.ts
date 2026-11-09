@@ -16,6 +16,8 @@ export interface ChoiceItem {
   disabled?: boolean
   /** A group heading (tool types). */
   group?: string
+  /** A homebrew record (plan/26 §1.4), and its author. */
+  homebrew?: { author?: string }
 }
 
 export type ChoiceKind = 'pick' | 'asi' | 'hidden'
@@ -89,7 +91,7 @@ function items(sheet: Sheet, point: OfferedChoice, labels: { weapon: (id: string
       const elsewhere = m.isolated
         ? new Set<string>()
         : new Set(sheet.offeredChoices.filter(o => o.key === point.key && o.path !== point.path).flatMap(o => o.choice?.values ?? []).filter((v): v is string => typeof v === 'string'))
-      return records.map(r => ({ value: r.id as string, label: r.name as string, ...(elsewhere.has(r.id) ? { disabled: true } : {}) }))
+      return records.map(r => ({ value: r.id as string, label: r.name as string, ...(elsewhere.has(r.id) ? { disabled: true } : {}), ...(r.homebrew ? { homebrew: { ...(r.author ? { author: String(r.author) } : {}) } } : {}) }))
     }
   }
 }

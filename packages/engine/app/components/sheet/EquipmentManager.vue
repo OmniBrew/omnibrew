@@ -90,6 +90,7 @@ const expanded = ref<string | null>(null)
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold text-highlighted">
                 {{ r.name }}
+                <UBadge v-if="r.homebrew" :label="t('homebrew.badge')" color="secondary" variant="subtle" size="sm" class="ms-1" :title="r.author ? t('homebrew.by', { name: String(r.author) }) : undefined" />
               </p>
               <p class="truncate text-xs text-muted">
                 {{ [r.rarity ? tr(`rarities.${r.rarity}`, r.rarity) : '', r.weaponType ? tr(`weapon_types.${r.weaponType}`, r.weaponType) : '', r.armorType ? tr(`armor_types.${r.armorType}`, r.armorType) : '', r.type ? tr(`gear_types.${r.type}`, r.type) : ''].filter(Boolean).join(' · ') }}
@@ -107,6 +108,7 @@ const expanded = ref<string | null>(null)
           <button type="button" class="flex w-full items-center gap-2 p-3 text-start" :aria-expanded="expanded === item.entry.uuid" @click="expanded = expanded === item.entry.uuid ? null : item.entry.uuid">
             <UIcon name="i-lucide-chevron-right" class="size-4 text-muted transition-transform" :class="{ 'rotate-90': expanded === item.entry.uuid }" />
             <span class="flex-1 truncate font-semibold text-highlighted">{{ item.data.name ?? item.entry.id }}</span>
+            <UBadge v-if="item.data.homebrew" :label="t('homebrew.badge')" color="secondary" variant="subtle" size="sm" />
             <span v-if="item.entry.uses !== undefined" class="font-mono text-xs text-muted">×{{ item.entry.uses }}</span>
             <UBadge v-if="item.entry.equipped" :label="t('sheet.gear.equipped')" color="primary" variant="soft" size="sm" />
           </button>

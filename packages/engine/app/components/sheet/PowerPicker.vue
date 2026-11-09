@@ -75,6 +75,7 @@ const levelName = (l: number) => (l === 0 ? t('sheet.powers.cantrips') : t(`ordi
             <button type="button" class="flex min-w-0 flex-1 items-center gap-2 text-start" :aria-expanded="expanded === r.power.id" @click="expanded = expanded === r.power.id ? null : r.power.id">
               <span class="truncate font-semibold text-highlighted">{{ r.power.name }}</span>
               <span class="text-xs text-muted">{{ levelName(r.power.level) }}</span>
+              <UBadge v-if="r.power.homebrew" :label="t('homebrew.badge')" color="secondary" variant="subtle" size="sm" :title="r.power.author ? t('homebrew.by', { name: r.power.author }) : undefined" />
               <UBadge v-if="r.fromFeature" :label="t('sheet.powers.from_feature')" color="neutral" variant="soft" size="sm" />
               <UBadge v-if="r.notAvailable" :label="t('sheet.powers.not_available')" color="error" variant="soft" size="sm" />
               <UBadge v-if="r.advancement" :label="(r.power.advancements ?? []).find((a: Rec) => a.id === r.advancement)?.name ?? r.advancement" color="primary" variant="soft" size="sm" />

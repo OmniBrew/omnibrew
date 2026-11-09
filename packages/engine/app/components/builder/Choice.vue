@@ -85,6 +85,7 @@ const shown = computed(() => (many.value && search.value ? props.view.items.filt
           @click="toggle(item.value)"
         >
           {{ item.label }}
+          <UBadge v-if="item.homebrew" :label="t('homebrew.badge')" color="secondary" variant="subtle" size="sm" class="ms-1.5" :title="item.homebrew.author ? t('homebrew.by', { name: item.homebrew.author }) : undefined" />
         </button>
         <p v-if="!view.items.length" class="text-sm text-muted">
           {{ t('builder.no_options') }}

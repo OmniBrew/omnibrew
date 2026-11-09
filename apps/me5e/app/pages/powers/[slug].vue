@@ -10,6 +10,7 @@ useSeoMeta({ title: power.value.name, description: t('meta.info', { name: power.
 <template>
   <UPage v-if="power">
     <RecordHeader
+      :bookmark="{ type: 'powers', id: recordId(power) }"
       :title="power.name ?? ''"
       :headline="`${t(`power_types.${power.powerType}`)} ${t('power_title', 1)} · ${powerLevel(t, power.level ?? 0)}`"
       :headline-class="powerTypeClass(power.powerType)"

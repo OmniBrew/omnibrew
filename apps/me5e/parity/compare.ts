@@ -61,6 +61,14 @@ const withSegment = (s: string, prefix: string, value: string | undefined) => s.
 export const KNOWN: Known[] = [
   // --- live-site bugs the engine fixes ---
   {
+    id: 'power-own-bonus',
+    reason: 'Live bug: the sheet\'s power attack and damage overrides replaced a power\'s own attack, DC and damage bonus instead of adding to it (B.E.C. Field\'s 5 temporary hit points showed as 0). The engine adds them (Q27). Only the powers with a bonus of their own change: B.E.C. Field, Salvo, Tear.',
+    fix: (text, _, next) => {
+      if (!/^power (?:bec-field|salvo|tear)@/.test(text)) return text
+      return ['dmg ', 'hit ', 'dc '].reduce((t, p) => withSegment(t, p, segment(next, p)), text)
+    },
+  },
+  {
     id: 'die-increase-past-d12',
     reason: 'Live bug: "increase the die type" past a d12 kept the d12 and subtracted the extra steps from the roll; the rule (Empowered Hunter Mode, weapon mods) says +1 per step. The engine adds.',
     fix: (text, _, next) => {

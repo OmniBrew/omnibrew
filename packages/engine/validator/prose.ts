@@ -18,10 +18,12 @@ function strings(value: unknown, out: string[] = []): string[] {
   return out
 }
 
-export function checkProse(game: Game, records: Map<string, Map<string, Rec>>, files: Map<string, string | undefined>): Issue[] {
+/** `only` limits the checks to some records (one homebrew record against all of content). */
+export function checkProse(game: Game, records: Map<string, Map<string, Rec>>, files: Map<string, string | undefined>, only?: (collection: string, id: string) => boolean): Issue[] {
   const issues: Issue[] = []
   for (const [collection, recs] of records) {
     for (const [id, rec] of recs) {
+      if (only && !only(collection, id)) continue
       const report = (severity: Issue['severity'], rule: string, message: string) =>
         issues.push({ severity, category: 'prose', collection, id, file: files.get(`${collection}/${id}`), rule, message })
 

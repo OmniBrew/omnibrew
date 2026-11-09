@@ -33,6 +33,16 @@ export const meCharacter: CharacterExtension = {
     /** Equipment uuid, class id or `armor`: which shield source counts. */
     shieldSource: z.string().optional(),
   }),
+  // Companions keep the live shields fields (`baseCompanion`): shields absorb damage before hit points.
+  companion: {
+    fields: () => ({
+      shields: z.preprocess(v => (typeof v === 'string' && v.trim() !== '' ? Number(v) : v), z.number().finite()).catch(0),
+      currentShields: z.preprocess(v => (typeof v === 'string' && v.trim() !== '' ? Number(v) : v), z.number().finite()).catch(0),
+      regen: z.preprocess(v => (typeof v === 'string' && v.trim() !== '' ? Number(v) : v), z.number().finite()).catch(0),
+    }),
+    defaults: () => ({ shields: 0, currentShields: 0, regen: 0 }),
+    pools: [{ id: 'shields', label: 'sheet.vitals.shields', color: 'text-alliance-600 dark:text-alliance-400', current: 'currentShields', max: 'shields', regen: 'regen' }],
+  },
   // The live `characterTemplate`; every slot rule on, as live.
   defaults: () => ({
     state: { paragon: 0, renegade: 0, indoctrination: 0, shieldsLost: 0, barrier: { used: 0, ticksUsed: 0 }, shoulderMounts: [], techArmorMax: 0 },
