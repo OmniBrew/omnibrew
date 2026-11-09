@@ -135,7 +135,8 @@ describe('the preview', () => {
 
 const messages = resolve(__dirname, '../../../../omnibrew-me5e-data/messages/en.yml')
 describe.skipIf(!existsSync(messages))('homebrew strings (local)', () => {
-  const en = parse(readFileSync(messages, 'utf8'))
+  // vitest runs a skipped describe's body to collect its tests, so guard the read too
+  const en = existsSync(messages) ? parse(readFileSync(messages, 'utf8')) : {}
   const has = (key: string) => key.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Rec)[k] : undefined), en) !== undefined
 
   it('every form, effect and sample label has a string', () => {
