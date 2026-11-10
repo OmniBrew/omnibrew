@@ -28,6 +28,14 @@ export function getPath(obj: unknown, path: string): unknown {
   return cur
 }
 
+/**
+ * A deep copy of JSON data. Not `structuredClone`: the editor's records live in Vue state,
+ * and `structuredClone` throws on a reactive proxy (`DataCloneError`).
+ */
+export function cloneData<T>(value: T): T {
+  return value === undefined ? value : JSON.parse(JSON.stringify(value)) as T
+}
+
 const isEmpty = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
   || (typeof v === 'object' && v !== null && !Array.isArray(v) && Object.keys(v).length === 0)
 
@@ -37,7 +45,7 @@ const isEmpty = (v: unknown) => v === undefined || v === null || v === '' || (Ar
  * their place (`casting.0`).
  */
 export function setPath<T>(obj: T, path: string, value: unknown): T {
-  const root = structuredClone(obj ?? {}) as Rec
+  const root = cloneData(obj ?? {}) as Rec
   const ks = keys(path)
   const chain: Array<Record<string | number, unknown>> = [root]
   let cur: Record<string | number, unknown> = root
@@ -74,7 +82,7 @@ export function missingFields(fields: FieldDef[], record: unknown): string[] {
 /** A new homebrew record of a kind, optionally based on an official record (its fields and prose, a new id). */
 export function newHomebrewRecord(kind: HomebrewKindDef, name: string, basedOn?: Rec | null): Rec {
   if (basedOn) {
-    const { id: _id, author: _author, homebrew: _hb, kind: _kind, ...rest } = structuredClone(basedOn)
+    const { id: _id, author: _author, homebrew: _hb, kind: _kind, ...rest } = cloneData(basedOn)
     return { ...rest, name }
   }
   return { ...kind.defaults(), name }
@@ -182,7 +190,7 @@ export function syncCopies<T extends CharacterLike>(character: T, available: Map
     if (!copy) added.push(id)
     else if (source.updatedAt && (!copy.updatedAt || source.updatedAt > copy.updatedAt)) refreshed.push(id)
     else continue
-    copies[id] = { kind: source.kind, data: structuredClone(source.data), author: source.author ?? null, updatedAt: source.updatedAt ?? null }
+    copies[id] = { kind: source.kind, data: cloneData(source.data), author: source.author ?? null, updatedAt: source.updatedAt ?? null }
   }
   if (!added.length && !refreshed.length) return { character, added, refreshed }
   return { character: { ...character, homebrew: copies }, added, refreshed }
