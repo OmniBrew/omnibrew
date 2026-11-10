@@ -1,8 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { copiesOf, diffSummaries, escapeTags, getPath, isHomebrewId, mergeHomebrew, missingFields, referencedHomebrew, removeCopy, setPath, syncCopies, unusedCopies } from '../app/utils/homebrew'
+import { reactive } from 'vue'
+import { cloneData, copiesOf, diffSummaries, escapeTags, getPath, isHomebrewId, mergeHomebrew, missingFields, newHomebrewRecord, referencedHomebrew, removeCopy, setPath, syncCopies, unusedCopies } from '../app/utils/homebrew'
 
 const A = '3f0f6a2e-1c5d-4c1e-9a43-0d6f2b1a7c11'
 const B = '9b1d2c3e-4f50-4a6b-8c7d-0e1f2a3b4c5d'
+
+describe('reactive records', () => {
+  // the editor's records live in Vue state; structuredClone throws on a proxy (the
+  // "Homebrew couldn't load" after Start from scratch)
+  const record = () => reactive({ name: 'X', casting: [{ range: { short: 30 } }] })
+  it('copies reactive data', () => {
+    expect(() => structuredClone(record())).toThrow()
+    const copy = cloneData(record())
+    expect(copy).toEqual({ name: 'X', casting: [{ range: { short: 30 } }] })
+  })
+  it('sets paths and starts records from reactive data', () => {
+    expect(setPath(record(), 'casting.0.range.short', 60)).toEqual({ name: 'X', casting: [{ range: { short: 60 } }] })
+    const kind = { defaults: () => ({}) } as unknown as Parameters<typeof newHomebrewRecord>[0]
+    expect(newHomebrewRecord(kind, 'Y', reactive({ id: 'a', name: 'X', cost: 5 }))).toEqual({ name: 'Y', cost: 5 })
+  })
+})
 
 describe('field paths', () => {
   it('reads and writes nested paths, creating arrays for numeric keys', () => {

@@ -23,7 +23,7 @@ const tiers = computed(() => {
 
 const dmg = (tier: number, d: number) => ((casting.value[tier]?.damage as Rec[] | undefined)?.[d] ?? {}) as Rec
 function set(tier: number, d: number, key: 'dieCount' | 'bonus', value: unknown) {
-  const next = structuredClone(casting.value)
+  const next = cloneData(casting.value)
   while (next.length <= tier) next.push({})
   const entry = next[tier]!
   const list = ((entry.damage as Rec[] | undefined) ?? base.value.map(() => ({}))).slice()

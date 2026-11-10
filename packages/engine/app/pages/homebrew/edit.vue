@@ -9,7 +9,7 @@
  * be copied into a new draft.
  */
 import type { Homebrew, HomebrewStatus } from '@omnibrew/engine/data'
-import { newHomebrewRecord } from '../../utils/homebrew'
+import { cloneData, newHomebrewRecord } from '../../utils/homebrew'
 
 type Rec = Record<string, unknown>
 const { t } = useI18n()
@@ -45,7 +45,7 @@ watch([() => session.signedIn, id], async ([signedIn, value]) => {
       state.value = 'missing'
       return
     }
-    draft.value = structuredClone(item.value.data)
+    draft.value = cloneData(item.value.data)
     saveState.value = 'saved'
     state.value = 'ready'
   }
