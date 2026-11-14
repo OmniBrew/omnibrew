@@ -6,6 +6,7 @@ import type { Game } from '@omnibrew/engine/schemas'
 import jsonpack from 'jsonpack/main'
 import { meLegacy } from './legacy'
 import { LEGACY_CURRENT, legacyMigrate } from './legacy-character'
+import { RENAMED_IDS } from './renamed'
 
 /**
  * Old character → engine character model (plan/18). Re-runnable and pure:
@@ -46,14 +47,13 @@ export interface CharacterMigrationReport {
   notes: MigrationIssue[]
 }
 
-/** Record ids renamed since the live data (collection → old → new). */
-export const RENAMED_IDS: Record<string, Record<string, string>> = {
-  vehicles: { 'destiny-acension': 'destiny-ascension' },
-  // An earlier spelling of the turian trait, still picked by saved characters (plan/18, prod sample).
-  traits: { 'thilium-skin': 'thulium-skin' },
-}
+export { RENAMED_IDS } from './renamed'
 
 const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+/** The model's id form (engine `Id`). */
+const ID = /^[a-z\d][\w-]*$/i
+/** Free text in the model's id form: accents dropped, other characters to hyphens. */
+const idForm = (text: string, fallback: string) => text.normalize('NFKD').replaceAll(/\p{M}/gu, '').replaceAll(/[^\w-]+/g, '-').replaceAll(/^[-_]+|-+$/g, '') || fallback
 
 export function unpackCharacter(data: string | Rec): Rec {
   return typeof data === 'string' ? jsonpack.unpack(data) as Rec : data
@@ -98,6 +98,13 @@ class Context {
     }
     if (this.opts.content.get(collection, id) || (collection === 'gear' && gearRecords(this.opts.content).some(g => g.id === id))) return id
     if (homebrew && UUID.test(id)) this.report.homebrew.push({ at, id, collection, message: 'homebrew record' })
+    else if (!ID.test(id)) {
+      // Free text from very old characters ("Human (Earthborn)", "-Heavy-Chest-1"): kept in id form,
+      // so the character still fits the model (found by the 3d dry run, plan/28 §5).
+      const kept = idForm(id, 'unknown')
+      this.report.unknown.push({ at, id, collection, message: `no ${collection} record "${id}" (kept as "${kept}")` })
+      return kept
+    }
     else this.report.unknown.push({ at, id, collection, message: `no ${collection} record "${id}"` })
     return id
   }
@@ -203,7 +210,11 @@ function equipment(old: Rec[], ctx: Context): Character['equipment'] {
       const mods = strings(e.mods).map((m, j) => ({ id: ctx.ref('mods', m, `${at}.mods[${j}]`) ?? m }))
       if (e.custom) {
         const custom = meLegacy({ ...e.custom }, { collection: 'armor', note: () => undefined })
-        out.push({ uuid, id: String(e.id ?? 'custom-armor'), kind: 'armor', equipped: !!e.equipped, ...(mods.length ? { mods } : {}), custom: { ...custom, kind: 'armor', mechanics: custom.mechanics ?? [] } })
+        // A custom piece's id is its own name on old characters; the model needs an id form.
+        const customId = String(e.id ?? 'custom-armor')
+        const id = ID.test(customId) ? customId : idForm(customId, 'custom-armor')
+        if (id !== customId) ctx.report.renamed.push({ at: `${at}.id`, id: customId, collection: 'armor', message: `custom armor id "${customId}" → "${id}"` })
+        out.push({ uuid, id, kind: 'armor', equipped: !!e.equipped, ...(mods.length ? { mods } : {}), custom: { ...custom, kind: 'armor', mechanics: custom.mechanics ?? [] } })
         return
       }
       const id = ctx.ref('armor', e.id, `${at}.id`) ?? String(e.id)

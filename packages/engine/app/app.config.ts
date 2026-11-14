@@ -25,6 +25,16 @@ export default defineAppConfig({
       /** Collection whose records name the sheet's conditions (the conditions dialog). */
       conditions: 'conditions',
     },
+    /**
+     * The game's backend has `legacyMigration` (plan/28): a user's first sign-in brings
+     * their data across from the older backend.
+     */
+    legacyMigration: false,
+    /**
+     * The old site's browser storage on the same domain, for its units and color mode
+     * (`utils/legacy-preferences.ts`): `{ key, imperial, darkMode }`, or null.
+     */
+    legacyPreferences: null as { key: string, imperial?: string, darkMode?: string } | null,
     /** The production site's address, for canonical links (no trailing slash). */
     siteUrl: '',
     units: {

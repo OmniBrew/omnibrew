@@ -1,0 +1,40 @@
+# Build spec of the Amplify app `me5e-beta` (d3to06qmld5nq1), which builds `main` and becomes
+# n7.world at cutover (plan/28 §4). Moved here from the app's console settings (plan/04 B45,
+# B75) in 3d: the backend phase now needs the content repo too (the migration Lambda's
+# content, plan/28 §1.1). App-level environment variables (NUXT_PUBLIC_INDEXABLE, NITRO_PRESET,
+# AMPLIFY_MONOREPO_APP_ROOT) stay on the app.
+version: 1
+applications:
+  - appRoot: apps/me5e
+    backend:
+      phases:
+        build:
+          commands:
+            - nvm install 24 && nvm use 24
+            - corepack enable
+            - cd "$(git rev-parse --show-toplevel)" && corepack pnpm config set store-dir .pnpm-store --location project && corepack pnpm install --frozen-lockfile
+            # The content repo: the site reads it, and so does the backend (the migration Lambda's content).
+            - '[ -d /tmp/me5e-data ] || git clone --depth 1 --branch master https://github.com/OmniBrew/masseffect-5e-data.git /tmp/me5e-data'
+            # The Gen 2 backend (plan/20): deploys this branch's backend (prod user pool) and
+            # writes apps/me5e/amplify_outputs.json for the site.
+            - 'cd "$(git rev-parse --show-toplevel)/apps/me5e" && ME5E_CONTENT_DIR=/tmp/me5e-data/ corepack pnpm exec ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID'
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            # Dependencies and the content repo come from the backend phase.
+            - nvm install 24 && nvm use 24
+            - corepack enable
+            - '[ -d /tmp/me5e-data ] || git clone --depth 1 --branch master https://github.com/OmniBrew/masseffect-5e-data.git /tmp/me5e-data'
+        build:
+          commands:
+            # Without AWS_AMPLIFY_DEPLOYMENT_ID, Nuxt Content builds for a static host
+            # (its Amplify preset is for SSR and skips the content dumps the browser queries).
+            - cd "$(git rev-parse --show-toplevel)" && env -u AWS_AMPLIFY_DEPLOYMENT_ID ME5E_CONTENT_DIR=/tmp/me5e-data/ corepack pnpm --filter @omnibrew/me5e generate
+      artifacts:
+        baseDirectory: .output/public
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - ../../.pnpm-store/**/*

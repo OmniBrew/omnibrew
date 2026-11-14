@@ -3,6 +3,10 @@ import { recordRoutes } from '../routes'
 // ME5e site configuration. Labels are i18n keys from the content repo's messages/en.yml.
 export default defineAppConfig({
   game: {
+    // The live site's Gen 1 data comes across on a user's first sign-in (plan/28).
+    legacyMigration: true,
+    // The live site's vuex-persistedstate key on n7.world (plan/28 §2).
+    legacyPreferences: { key: 'v140', imperial: 'user.imperial', darkMode: 'user.darkMode' },
     brand: { title: 'title', shortTitle: 'short_title', tagline: 'homepage.subtitle', logo: '/icon.png' },
     // Sheet colors: Alliance plus one per class (palettes and `data-accent` rules in main.css).
     theme: {
@@ -53,6 +57,10 @@ export default defineAppConfig({
       ] },
       { label: 'tools_guides_title', heading: true, children: [
         { label: 'guide.title', icon: 'i-lucide-puzzle', to: '/guide', chapters: 'guide' },
+        { label: 'generators_title', icon: 'i-lucide-dices', children: [
+          { label: 'loot_generator_title', to: '/generators/loot' },
+          { label: 'npc_generator_title', to: '/generators/npc' },
+        ] },
         { label: 'bookmarks_title', icon: 'i-lucide-bookmark', to: '/bookmarks' },
         { label: 'homebrew.title', icon: 'i-lucide-flask-conical', to: '/homebrew' },
       ] },

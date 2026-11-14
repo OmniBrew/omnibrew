@@ -52,7 +52,8 @@ export function useCharacterSource() {
     /** The signed-in player's characters (newest first), then this browser's. */
     async list(): Promise<CharacterRecord[]> {
       const data = await remote()
-      const mine = data ? (await data.characters.list()).map((c): CharacterRecord => ({ id: c.id, character: c.character, local: false, mine: true, revision: c.revision, updatedAt: c.updatedAt })) : []
+      // A stored character that no longer validates is left out (and logged) instead of hiding the rest.
+      const mine = data ? (await data.characters.list(bad => console.warn(`character ${bad.id} could not be read`, bad.error))).map((c): CharacterRecord => ({ id: c.id, character: c.character, local: false, mine: true, revision: c.revision, updatedAt: c.updatedAt })) : []
       mine.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
       return [...mine, ...local.list().map(fromLocal)]
     },
@@ -62,11 +63,18 @@ export function useCharacterSource() {
         const c = local.get(id)
         return c ? fromLocal(c) : null
       }
-      // Shared links read signed out too (the data layer's guest access).
+      // Shared links read signed out too (the data layer's guest access); a signed-in owner
+      // must be known first, or the read goes out as a guest and is refused.
+      await session.settled()
       const data = await useUserData()
       if (!data) return null
       const c = await data.characters.get(id)
-      return c ? { id: c.id, character: c.character, local: false, mine: c.mine, revision: c.revision, updatedAt: c.updatedAt } : null
+      if (c) return { id: c.id, character: c.character, local: false, mine: c.mine, revision: c.revision, updatedAt: c.updatedAt }
+      // A shared link to a character still on the older backend (its owner hasn't signed in
+      // here yet): converted for viewing, never saved (plan/28 decision 5).
+      if (!useAppConfig().game.legacyMigration) return null
+      const old = await data.legacy.character(id).catch(() => null)
+      return old?.character ? { id: old.id, character: old.character, local: false, mine: false, revision: null } : null
     },
 
     /** Saves a new character: to the backend when signed in, else in this browser. */

@@ -93,5 +93,11 @@ export const useBookmarks = defineStore('bookmarks', () => {
   // Load when the session settles, and again when the user changes.
   watch(() => [session.status, session.user?.sub], () => load())
 
-  return { items, status, pending, load, has, toggle }
+  /** Reads the list again (after this browser's list changed outside the store, plan/28 §2). */
+  function reload() {
+    loadedFor = undefined
+    return load()
+  }
+
+  return { items, status, pending, load, reload, has, toggle }
 })

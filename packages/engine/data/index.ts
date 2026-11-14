@@ -91,6 +91,8 @@ export interface Profile {
   webhooks: unknown[]
   maxCharacters: number | null
   migratedAt: string | null
+  /** What the migration from the older backend brought over (owner only; plan/28). */
+  migration: Record<string, unknown> | null
 }
 
 export type ProfilePatch = Partial<Pick<Profile, 'username' | 'profileImg' | 'preferences' | 'contactMethod' | 'contactValue' | 'webhooks'>>
@@ -116,8 +118,30 @@ export interface Homebrew {
   voteCount: number
   /** The author's profile id; set on others' homebrew. */
   authorId?: string | null
+  /** Set on homebrew converted from an older backend (owner only): `status` when it had to become private, `issues` what blocks sharing. */
+  migration?: { status?: HomebrewStatus, issues?: Array<{ path?: string, message: string }> } | null
   createdAt?: string
   updatedAt?: string
+}
+
+/** One step of the migration from an older backend (plan/28): call again until `done`. */
+export interface MigrationStep {
+  done: boolean
+  report: Record<string, unknown> | null
+  /** A short-lived URL of the old profile picture, to copy into the new storage. */
+  pictureUrl: string | null
+}
+
+/** A character still on the older backend, converted but not saved (a shared link). */
+export interface LegacyCharacter {
+  id: string
+  /** Whether the signed-in user owns it. */
+  mine: boolean
+  /** Null when it can't be converted (its owner gets `original` and the error). */
+  character: Character | null
+  report: Record<string, unknown> | null
+  /** The old data, for its owner, when asked. */
+  original?: Record<string, unknown>
 }
 
 export interface HomebrewInput {
@@ -186,6 +210,14 @@ export function slugify(title: string) {
   return title.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
+const MIGRATE_MY_DATA = /* GraphQL */ `
+  mutation MigrateMyData { migrateMyData { done report pictureUrl } }
+`
+
+const GET_LEGACY_CHARACTER = /* GraphQL */ `
+  query GetLegacyCharacter($id: ID!, $original: Boolean) { getLegacyCharacter(id: $id, original: $original) }
+`
+
 const UPDATE_CHARACTER = /* GraphQL */ `
   mutation UpdateCharacter($input: UpdateCharacterInput!, $condition: ModelCharacterConditionInput) {
     updateCharacter(input: $input, condition: $condition) { id owner data revision createdAt updatedAt }
@@ -227,11 +259,23 @@ export function createUserData({ client, game, session, validateHomebrew }: User
   const characters = {
     validate: validateCharacter,
 
-    /** The signed-in user's characters. */
-    async list(): Promise<StoredCharacter[]> {
+    /**
+     * The signed-in user's characters. A stored one that no longer validates is left out
+     * and passed to `invalid` (one bad row must not hide the others; plan/24 §2.10).
+     */
+    async list(invalid?: (row: { id: string, name: string | null, error: Error }) => void): Promise<StoredCharacter[]> {
       const owner = ownerKey(requireSession('list characters'))
       const rows = await all(nextToken => client.models.Character.listCharacterByOwner({ owner }, { limit: 100, nextToken }) as Promise<Result<CharacterRow[]>>, 'list characters')
-      return rows.map(toStored)
+      const out: StoredCharacter[] = []
+      for (const row of rows) {
+        try {
+          out.push(toStored(row))
+        }
+        catch (error) {
+          invalid?.({ id: row.id, name: (row as { name?: string | null }).name ?? null, error: error as Error })
+        }
+      }
+      return out
     },
 
     /** Any character by id (shared links work signed out); null if there is none. */
@@ -295,6 +339,7 @@ export function createUserData({ client, game, session, validateHomebrew }: User
     webhooks?: unknown
     maxCharacters?: number | null
     migratedAt?: string | null
+    migration?: unknown
   }
 
   function toProfile(row: ProfileRow): Profile {
@@ -308,6 +353,7 @@ export function createUserData({ client, game, session, validateHomebrew }: User
       webhooks: readJson(row.webhooks, []),
       maxCharacters: row.maxCharacters ?? null,
       migratedAt: row.migratedAt ?? null,
+      migration: readJson<Record<string, unknown> | null>(row.migration, null),
     }
   }
 
@@ -375,6 +421,7 @@ export function createUserData({ client, game, session, validateHomebrew }: User
     usageCount?: number | null
     voteCount?: number | null
     authorId?: string | null
+    migration?: unknown
     createdAt?: string | null
     updatedAt?: string | null
   }
@@ -391,6 +438,7 @@ export function createUserData({ client, game, session, validateHomebrew }: User
       usageCount: row.usageCount ?? 0,
       voteCount: row.voteCount ?? 0,
       ...(row.authorId !== undefined ? { authorId: row.authorId } : {}),
+      ...(row.migration ? { migration: readJson<Homebrew['migration']>(row.migration, null) } : {}),
       ...(row.createdAt ? { createdAt: row.createdAt } : {}),
       ...(row.updatedAt ? { updatedAt: row.updatedAt } : {}),
     }
@@ -479,7 +527,29 @@ export function createUserData({ client, game, session, validateHomebrew }: User
     },
   }
 
-  return { characters, profile, bookmarks, homebrew }
+  /** Data still on an older backend (plan/28); only for a game whose backend has `legacyMigrationEntries`. */
+  const legacy = {
+    /** One step of moving the signed-in user's old data across; call until `done`. */
+    async migrate(): Promise<MigrationStep> {
+      requireSession('migrate data')
+      const result = await client.graphql({ query: MIGRATE_MY_DATA }) as Result<{ migrateMyData: { done: boolean, report?: unknown, pictureUrl?: string | null } | null } | null>
+      const step = unwrap(result, 'migrate data')?.migrateMyData
+      if (!step) throw new DataError('migrate data: no result')
+      return { done: step.done, report: readJson<Record<string, unknown> | null>(step.report, null), pictureUrl: step.pictureUrl ?? null }
+    },
+
+    /** A character still on the older backend (a shared link whose owner hasn't moved yet); null if there is none. */
+    async character(id: string, original = false): Promise<LegacyCharacter | null> {
+      const result = await client.graphql({ query: GET_LEGACY_CHARACTER, variables: { id, original }, authMode: authMode() }) as Result<{ getLegacyCharacter: unknown } | null>
+      const raw = readJson<{ id: string, mine: boolean, character: unknown, report?: Record<string, unknown> | null, original?: Record<string, unknown> } | null>(unwrap(result, 'get old character')?.getLegacyCharacter, null)
+      if (!raw) return null
+      let character: Character | null = null
+      if (raw.character) character = validateCharacter(upgradeCharacter(raw.character as Record<string, unknown>))
+      return { id: raw.id, mine: raw.mine, character, report: raw.report ?? null, ...(raw.original ? { original: raw.original } : {}) }
+    },
+  }
+
+  return { characters, profile, bookmarks, homebrew, legacy }
 }
 
 export type UserData = ReturnType<typeof createUserData>
