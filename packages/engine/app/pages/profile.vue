@@ -19,7 +19,7 @@ useSeoMeta({ title: t('auth.profile_title'), robots: 'noindex' })
 
 const profile = ref<Profile | null>(null)
 // A first sign-in on this page may still be bringing data over from the old site.
-watch(() => useLegacyMigration().finished, () => load())
+watch(() => useState<number>('legacy-migration:finished', () => 0).value, () => load())
 const loadFailed = ref(false)
 const username = ref('')
 const webhooks = ref<DiscordWebhook[]>([])

@@ -57,6 +57,10 @@ export default defineAppConfig({
       ] },
       { label: 'tools_guides_title', heading: true, children: [
         { label: 'guide.title', icon: 'i-lucide-puzzle', to: '/guide', chapters: 'guide' },
+        { label: 'generators_title', icon: 'i-lucide-dices', children: [
+          { label: 'loot_generator_title', to: '/generators/loot' },
+          { label: 'npc_generator_title', to: '/generators/npc' },
+        ] },
         { label: 'bookmarks_title', icon: 'i-lucide-bookmark', to: '/bookmarks' },
         { label: 'homebrew.title', icon: 'i-lucide-flask-conical', to: '/homebrew' },
       ] },

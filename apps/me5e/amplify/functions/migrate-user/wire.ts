@@ -2,7 +2,7 @@ import { RemovalPolicy, Stack } from 'aws-cdk-lib'
 import { AttributeType, BillingMode, Table, type ITable } from 'aws-cdk-lib/aws-dynamodb'
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam'
 import type { IFunction } from 'aws-cdk-lib/aws-lambda'
-import { Bucket } from 'aws-cdk-lib/aws-s3'
+import { Bucket, HttpMethods } from 'aws-cdk-lib/aws-s3'
 import type { Construct } from 'constructs'
 import { GEN1_MODELS } from '../../../migrate/gen1'
 
@@ -47,7 +47,8 @@ export function wireMigration({ fn, addEnvironment, tables, createStack }: Wirin
       if (m !== 'Profile') t.addGlobalSecondaryIndex({ indexName: 'byUser', partitionKey: { name: 'owner', type: AttributeType.STRING } })
       gen1Tables[m] = t.tableName
     }
-    gen1Bucket = new Bucket(scope, 'Gen1Pictures', { removalPolicy: RemovalPolicy.DESTROY, autoDeleteObjects: true }).bucketName
+    // CORS as on the live bucket (GET from any origin), so the browser can copy a picture.
+    gen1Bucket = new Bucket(scope, 'Gen1Pictures', { removalPolicy: RemovalPolicy.DESTROY, autoDeleteObjects: true, cors: [{ allowedMethods: [HttpMethods.GET, HttpMethods.HEAD], allowedOrigins: ['*'], allowedHeaders: ['*'] }] }).bucketName
   }
 
   addEnvironment('GEN1_TABLES', stack.toJsonString(gen1Tables))

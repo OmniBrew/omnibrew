@@ -7,15 +7,22 @@ import type { MigrationStep } from '@omnibrew/engine/data'
  * no request. The old profile picture is copied by the browser into the user's own
  * storage folder (resized as the profile page does).
  */
+/** `useState` key bumped when a migration finishes (`plugins/profile-preferences.client.ts`, `/profile` watch it). */
+export const LEGACY_MIGRATION_FINISHED = 'legacy-migration:finished'
+
 export const useLegacyMigration = defineStore('legacy-migration', () => {
   const session = useSession()
   const status = ref<'idle' | 'running' | 'done' | 'error'>('idle')
   const report = ref<Record<string, unknown> | null>(null)
-  /** Bumped when a migration finishes: the profile's preferences may have changed. */
-  const finished = ref(0)
+  /** Bumped when a migration finishes: the profile and its preferences may have changed. A `useState` key, so watchers needn't load this store. */
+  const finished = useState<number>(LEGACY_MIGRATION_FINISHED, () => 0)
   let running: Promise<void> | null = null
+  // Taken while the store is created (inside the Nuxt context); `run` continues after awaits, where it's gone.
+  const nuxtApp = useNuxtApp()
+  const appConfig = useAppConfig()
+  const toast = useToast()
 
-  const flagKey = (sub: string) => `omnibrew:${useNuxtApp().$characterGame.id}:migrated:${sub}`
+  const flagKey = (sub: string) => `omnibrew:${nuxtApp.$characterGame.id}:migrated:${sub}`
   function flag(sub: string, value?: string) {
     try {
       if (value) localStorage.setItem(flagKey(sub), value)
@@ -26,7 +33,7 @@ export const useLegacyMigration = defineStore('legacy-migration', () => {
     }
   }
 
-  async function copyPicture(url: string, data: NonNullable<Awaited<ReturnType<typeof useUserData>>>) {
+  async function copyPicture(url: string, data: { profile: { update: (patch: { profileImg: string }) => Promise<unknown> } }) {
     const { resizePicture, uploadPicture } = useProfilePicture()
     const response = await fetch(url)
     if (!response.ok) return
@@ -38,11 +45,10 @@ export const useLegacyMigration = defineStore('legacy-migration', () => {
   function run(): Promise<void> {
     running ??= (async () => {
       const sub = session.user?.sub
-      if (!useAppConfig().game.legacyMigration || !sub || flag(sub)) return
-      const data = await useUserData()
+      if (!appConfig.game.legacyMigration || !sub || flag(sub)) return
+      const data = await nuxtApp.runWithContext(() => useUserData())
       if (!data) return
-      const toast = useToast()
-      const t = useNuxtApp().$i18n.t
+      const t = nuxtApp.$i18n.t
       try {
         const profile = await data.profile.mine()
         if (profile.migratedAt) {
@@ -72,7 +78,8 @@ export const useLegacyMigration = defineStore('legacy-migration', () => {
           status.value = 'idle'
           return
         }
-        if (picture) await copyPicture(picture, data).catch(() => {})
+        // A picture that can't be copied isn't worth failing the rest for; the profile page can take a new one.
+        if (picture) await copyPicture(picture, data).catch(e => console.warn('The old profile picture could not be copied', e))
         report.value = step.report
         flag(sub, new Date().toISOString())
         status.value = 'done'

@@ -122,6 +122,22 @@ export const useSession = defineStore('session', () => {
     await auth.confirmResetPassword({ username: email, confirmationCode: code, newPassword: password })
   }
 
+  /**
+   * Resolves once the session has been read (status no longer `loading`). A request made
+   * before that would go out as a guest, even for a signed-in user (the sheet opening a
+   * character straight after load, plan/28).
+   */
+  function settled(): Promise<void> {
+    if (status.value !== 'loading') return Promise.resolve()
+    return new Promise((resolve) => {
+      const stop = watch(status, (s) => {
+        if (s === 'loading') return
+        stop()
+        resolve()
+      })
+    })
+  }
+
   async function logOut() {
     const { auth } = await amplify()
     await auth.signOut()
@@ -152,6 +168,7 @@ export const useSession = defineStore('session', () => {
   }
 
   return {
+    settled,
     signIns,
     status, user, enabled, signedIn, isAdmin,
     refresh, signInWithPassword, signInWithGoogle, register, confirmRegistration, resendCode,

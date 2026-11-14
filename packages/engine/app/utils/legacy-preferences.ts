@@ -1,7 +1,7 @@
 /**
  * The old site's units and color mode, read once from its browser storage on the same
- * domain (plan/28 §2), before this site's own saved choices are restored. Only when the
- * reader has no choice saved here yet. Which key and which fields: `game.legacyPreferences`.
+ * domain (plan/28 §2), before this site's own saved choices are restored, once per browser
+ * (units only when none is saved here). Which key and which fields: `game.legacyPreferences`.
  */
 export interface LegacyPreferencesConfig {
   /** The old site's localStorage key (a JSON object). */
@@ -32,7 +32,9 @@ export function importLegacyPreferences(config: LegacyPreferencesConfig | null |
       set.units = imperial ? 'imperial' : 'metric'
       storage.setItem(keys.preferences, JSON.stringify({ units: set.units }))
     }
-    if (typeof dark === 'boolean' && !storage.getItem(keys.colorMode)) {
+    // The color-mode module stores its default on the first visit, before this runs, so a
+    // stored value isn't a choice yet; this runs once (the flag), on that first visit.
+    if (typeof dark === 'boolean') {
       set.colorMode = dark ? 'dark' : 'light'
       storage.setItem(keys.colorMode, set.colorMode)
     }

@@ -17,7 +17,7 @@ import { contentRoot as root } from './paths'
  * from content (the Exalted Lineage edges) join their collection as a second source.
  */
 const game = createGame(me5e)
-const DATA = new Set(['attributions', 'character-progression', 'npc-stats'])
+const DATA = new Set(['attributions', 'character-progression', 'npc-stats', 'loot-tables', 'loot-rewards'])
 const derived = deriveRecords(root, me5e)
 
 const records = Object.fromEntries(Object.entries(me5e.sources).map(([name, source]) => [

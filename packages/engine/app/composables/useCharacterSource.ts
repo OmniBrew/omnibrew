@@ -63,7 +63,9 @@ export function useCharacterSource() {
         const c = local.get(id)
         return c ? fromLocal(c) : null
       }
-      // Shared links read signed out too (the data layer's guest access).
+      // Shared links read signed out too (the data layer's guest access); a signed-in owner
+      // must be known first, or the read goes out as a guest and is refused.
+      await session.settled()
       const data = await useUserData()
       if (!data) return null
       const c = await data.characters.get(id)

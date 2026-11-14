@@ -6,6 +6,7 @@ import { meMechanics } from './mechanics'
 import { mePlay } from './play'
 import { meRules } from './rules'
 import { meHomebrew } from './homebrew'
+import { lootRewardShape, lootTableShape } from '../generators/loot-schema'
 
 /**
  * Mass Effect 5e on the 5e-2014 ruleset.
@@ -131,6 +132,9 @@ export const me5eDefinition = defineGame({
       prerequisite: z.string(),
       system: z.string(),
     }),
+    // The loot generator's tables (generators/loot-schema.ts).
+    'loot-tables': lootTableShape,
+    'loot-rewards': lootRewardShape,
   },
 
   sources: {
@@ -163,6 +167,8 @@ export const me5eDefinition = defineGame({
     'guide': content('guide'),
     'manual': content('manual'),
     'ship-upgrades': content('ship-upgrades'),
+    'loot-tables': content('loot-tables'),
+    'loot-rewards': content('loot-rewards'),
   },
 
   derive: {

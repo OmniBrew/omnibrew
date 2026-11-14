@@ -20,7 +20,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   })
 
   // A sign-in, or a finished migration (it may have brought the old site's units and color mode).
-  watch(() => [session.signIns, useLegacyMigration().finished], async () => {
+  watch(() => [session.signIns, useState<number>('legacy-migration:finished', () => 0).value], async () => {
     try {
       const data = await useUserData()
       if (!data) return

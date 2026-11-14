@@ -18,9 +18,9 @@ describe('importLegacyPreferences (plan/28 §2)', () => {
     expect(importLegacyPreferences(config, s, keys)).toEqual({})
   })
 
-  it('never replaces a choice made on this site', () => {
+  it('never replaces units chosen on this site; color mode applies over the module default', () => {
     const s = store({ 'v140': JSON.stringify({ user: { imperial: true, darkMode: false } }), 'omnibrew:preferences': '{"units":"metric"}', 'nuxt-color-mode': 'dark' })
-    expect(importLegacyPreferences(config, s, keys)).toEqual({})
+    expect(importLegacyPreferences(config, s, keys)).toEqual({ colorMode: 'light' })
   })
 
   it('does nothing without a config, an old key, or readable data', () => {

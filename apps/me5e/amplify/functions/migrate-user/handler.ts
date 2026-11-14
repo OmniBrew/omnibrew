@@ -165,7 +165,7 @@ async function migrateMyData(caller: { sub: string, username: string }, shouldSt
     shouldStop,
   })
 
-  await write(result, caller, owner, now)
+  await write(result, caller, now, !profile?.migratedAt)
   // AWSJSON fields are returned as values; AppSync serializes them.
   return { done: result.done, report: result.report, pictureUrl: result.picture ? await signedPicture(result.picture) : null }
 }
@@ -195,7 +195,8 @@ async function putNew(table: string, item: Record<string, unknown>): Promise<boo
   }
 }
 
-async function write(m: UserMigration, caller: { sub: string, username: string }, owner: string, now: string) {
+async function write(m: UserMigration, caller: { sub: string, username: string }, now: string, first: boolean) {
+  const owner = `${caller.sub}::${caller.username}`
   for (const h of m.homebrew) await putNew(TABLES.Homebrew, { __typename: 'Homebrew', ...h })
   for (const id of m.claims) {
     // Only rows still under the Gen 1 username: never someone else's.
@@ -226,7 +227,8 @@ async function write(m: UserMigration, caller: { sub: string, username: string }
   }
   const { legacyId: _legacyId, ...patch } = m.profile
   for (const [k, v] of Object.entries(patch)) if (v !== undefined) set(k, v)
-  if (m.done) {
+  // The first finished run's report is the one the user sees; a later call (it only fills in what's missing) keeps it.
+  if (m.done && first) {
     set('migratedAt', now)
     set('migration', m.report)
   }

@@ -69,6 +69,8 @@ export default defineNuxtConfig({
     '/bookmarks': { ssr: false },
     '/homebrew': { ssr: false },
     '/homebrew/**': { ssr: false },
+    // The generators roll in the browser, from the rules bundle (prerendered shells, found by the crawler).
+    '/generators/**': { ssr: false },
   },
 
   nitro: {
@@ -77,6 +79,8 @@ export default defineNuxtConfig({
       // Content links to pages that never existed (the live site 404s too; plan/14).
       ignore: ['/guide/encounter-creation'],
     },
+    // The content repo's images, which content links as `/content-images/…` (plan/28, `04` Q9, B137).
+    publicAssets: [{ dir: join(contentRoot, 'images'), baseURL: '/content-images', maxAge: 60 * 60 * 24 * 7 }],
   },
 
   hooks: {
