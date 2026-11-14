@@ -6,6 +6,7 @@ import type { Game } from '@omnibrew/engine/schemas'
 import jsonpack from 'jsonpack/main'
 import { meLegacy } from './legacy'
 import { LEGACY_CURRENT, legacyMigrate } from './legacy-character'
+import { RENAMED_IDS } from './renamed'
 
 /**
  * Old character → engine character model (plan/18). Re-runnable and pure:
@@ -46,12 +47,7 @@ export interface CharacterMigrationReport {
   notes: MigrationIssue[]
 }
 
-/** Record ids renamed since the live data (collection → old → new). */
-export const RENAMED_IDS: Record<string, Record<string, string>> = {
-  vehicles: { 'destiny-acension': 'destiny-ascension' },
-  // An earlier spelling of the turian trait, still picked by saved characters (plan/18, prod sample).
-  traits: { 'thilium-skin': 'thulium-skin' },
-}
+export { RENAMED_IDS } from './renamed'
 
 const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 

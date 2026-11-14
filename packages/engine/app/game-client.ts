@@ -24,6 +24,19 @@ export const definition: GameDefinition | null = null
 /** The game's old-character migrator, for importing the old site's exports. */
 export const importLegacy: (() => Promise<LegacyImporter>) | null = null
 
+/**
+ * What the game's old site kept in this browser (plan/28 §2): characters never uploaded
+ * (read by `importLegacy`), signed-out bookmarks and roll logs (by old character id).
+ */
+export interface LegacyLocalData {
+  characters: Array<{ id: string, raw: Record<string, unknown> }>
+  bookmarks: Array<{ type: string, recordId: string, data?: Record<string, unknown> }>
+  logs: Record<string, Array<{ id: string, at: string, label: string, kind: string, notation: string, total: number, dice: Array<{ sides: number, value: number, dropped?: boolean }> }>>
+}
+
+/** Reads the old site's browser storage on the same domain; null when there is none. */
+export const legacyLocal: (() => Promise<(storage: Pick<Storage, 'getItem'>) => LegacyLocalData | null>) | null = null
+
 export interface SheetParts {
   /** Panels by slot: `side` (the right column), `gear` (the Gear tab), `settings` (Settings & Overrides). */
   slots: Record<string, Component[]>

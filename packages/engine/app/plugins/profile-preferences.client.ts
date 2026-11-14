@@ -19,7 +19,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     setTimeout(() => (ready = true), 0)
   })
 
-  watch(() => session.signIns, async () => {
+  // A sign-in, or a finished migration (it may have brought the old site's units and color mode).
+  watch(() => [session.signIns, useLegacyMigration().finished], async () => {
     try {
       const data = await useUserData()
       if (!data) return

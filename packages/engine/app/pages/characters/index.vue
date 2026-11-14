@@ -25,10 +25,19 @@ const deleting = ref<CharacterRecord | null>(null)
 
 useRules().then(r => (rules.value = r)).catch(() => {})
 
+const legacyImport = useLegacyLocalImport()
+
 async function load() {
   loading.value = true
   failed.value = null
   try {
+    // The old site's characters in this browser come across once (plan/28 §2).
+    const moved = await legacyImport.run().catch(() => null)
+    if (moved?.characters) toast.add({ title: t('migration.local_characters', { n: moved.characters }, moved.characters), color: 'success', icon: 'i-lucide-history' })
+    if (moved?.failed.length) {
+      const old = moved.failed
+      toast.add({ title: t('migration.local_failed', { n: old.length }, old.length), color: 'warning', duration: 0, actions: [{ label: t('migration.download'), onClick: () => downloadJson('old-characters.json', old.map(f => f.raw)) }] })
+    }
     let list = await source.list()
     if (session.signedIn && list.some(c => c.local)) {
       const { uploaded, kept } = await source.upload(list.filter(c => !c.local).length)

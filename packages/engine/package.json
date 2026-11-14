@@ -43,7 +43,8 @@
     "./rules": "./rules/index.ts",
     "./rules/load": "./rules/load.ts",
     "./data": "./data/index.ts",
-    "./app/game-client": "./app/game-client.ts"
+    "./app/game-client": "./app/game-client.ts",
+    "./app/utils/discord": "./app/utils/discord.ts"
   },
   "bin": {
     "omnibrew-validate": "./validator/cli.ts"

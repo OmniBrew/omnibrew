@@ -18,6 +18,8 @@ const { t } = useI18n()
 useSeoMeta({ title: t('auth.profile_title'), robots: 'noindex' })
 
 const profile = ref<Profile | null>(null)
+// A first sign-in on this page may still be bringing data over from the old site.
+watch(() => useLegacyMigration().finished, () => load())
 const loadFailed = ref(false)
 const username = ref('')
 const webhooks = ref<DiscordWebhook[]>([])
@@ -32,8 +34,10 @@ const dirty = computed(() => Boolean(profile.value) && (
   username.value.trim() !== (profile.value!.username ?? '')
   || JSON.stringify(webhooks.value) !== JSON.stringify(normalizeWebhooks(profile.value!.webhooks))))
 
-watch(() => session.signedIn, async (signedIn) => {
-  const userData = signedIn ? await useUserData() : null
+watch(() => session.signedIn, () => load(), { immediate: true })
+
+async function load() {
+  const userData = session.signedIn ? await useUserData() : null
   if (!userData) return
   try {
     profile.value = await userData.profile.mine()
@@ -44,7 +48,7 @@ watch(() => session.signedIn, async (signedIn) => {
   catch {
     loadFailed.value = !profile.value
   }
-}, { immediate: true })
+}
 
 function reset() {
   username.value = profile.value?.username ?? ''
@@ -252,6 +256,7 @@ const colorItems = computed(() => [{ label: t('profile.color.dark'), value: 'dar
             <UButton color="neutral" variant="ghost" :label="t('profile.discard')" :disabled="!dirty || busy" @click="reset" />
           </div>
         </form>
+        <AccountMigrationReport v-if="profile?.migration" :report="profile.migration" class="mt-10" />
       </AuthRequired>
     </UPageBody>
   </UPage>

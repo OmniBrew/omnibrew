@@ -29,6 +29,6 @@ const pools = {
  * Amplify Hosting builds (AWS_BRANCH set) use the prod pool; sandboxes use dev.
  * `ME5E_USER_POOL=prod|dev` overrides it.
  */
-const pool = (process.env.ME5E_USER_POOL ?? (process.env.AWS_BRANCH ? 'prod' : 'dev')) as keyof typeof pools
+export const pool = (process.env.ME5E_USER_POOL ?? (process.env.AWS_BRANCH ? 'prod' : 'dev')) as keyof typeof pools
 
 export const auth = referenceAuth(pools[pool])
