@@ -19,3 +19,9 @@ const gen1 = wireMigration({
 }, pool === 'prod' ? 'prod' : 'fake')
 // The sandbox test fills the stand-ins with generated rows; it finds them in amplify_outputs.json.
 if (pool !== 'prod') backend.addOutput({ custom: { gen1 } })
+
+// Point-in-time recovery on the real tables (plan/28 §4.1: ~$0.20 per GB-month, a few cents
+// here); sandboxes hold only test rows.
+if (pool === 'prod') {
+  for (const table of Object.values(backend.data.resources.cfnResources.amplifyDynamoDbTables)) table.pointInTimeRecoveryEnabled = true
+}

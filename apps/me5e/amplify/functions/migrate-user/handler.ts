@@ -41,9 +41,12 @@ const BUDGET_MS = 18_000
 type Args = { id?: string, original?: boolean | null }
 type Identity = AppSyncIdentityCognito | AppSyncIdentityIAM | null | undefined
 
-export const handler = async (event: AppSyncResolverEvent<Args>) => {
+/** Amplify Gen 2's function payload names the field at the top (`a.handler.function`); plain AppSync under `info`. */
+type Event = AppSyncResolverEvent<Args> & { fieldName?: string }
+
+export const handler = async (event: Event) => {
   const started = Date.now()
-  if (event.info.fieldName === 'getLegacyCharacter') return legacyCharacter(event.arguments, event.identity as Identity)
+  if ((event.fieldName ?? event.info?.fieldName) === 'getLegacyCharacter') return legacyCharacter(event.arguments, event.identity as Identity)
   const identity = event.identity as AppSyncIdentityCognito | null
   if (!identity?.sub || !identity.username) throw new Error('Unauthorized: sign in first')
   return migrateMyData({ sub: identity.sub, username: identity.username }, () => Date.now() - started > BUDGET_MS)
@@ -154,7 +157,8 @@ async function migrateMyData(caller: { sub: string, username: string }, shouldSt
   })
 
   await write(result, caller, owner, now)
-  return { done: result.done, report: JSON.stringify(result.report), pictureUrl: result.picture ? await signedPicture(result.picture) : null }
+  // AWSJSON fields are returned as values; AppSync serializes them.
+  return { done: result.done, report: result.report, pictureUrl: result.picture ? await signedPicture(result.picture) : null }
 }
 
 async function ensureProfile(caller: { sub: string, username: string }, now: string) {
@@ -259,5 +263,15 @@ async function legacyCharacter(args: Args, identity: Identity) {
     if (!mine) return null
     report = { error: (e as Error).message.slice(0, 300) }
   }
-  return JSON.stringify({ id: row.id, mine, character, report, ...(mine && args.original ? { original: unpackCharacter(row.data) } : {}) })
+  return { id: row.id, mine, character, report, ...(mine && args.original ? { original: original(row.data) } : {}) }
+}
+
+/** The old data as the importer reads it; data that won't even unpack comes back as it is stored. */
+function original(data: string): Record<string, unknown> {
+  try {
+    return unpackCharacter(data)
+  }
+  catch {
+    return { unreadable: data }
+  }
 }

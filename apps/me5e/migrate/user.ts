@@ -3,7 +3,7 @@ import type { RulesContent } from '@omnibrew/engine/rules'
 import type { Game } from '@omnibrew/engine/schemas'
 import { MAX_WEBHOOKS, normalizeWebhooks, type DiscordWebhook } from '@omnibrew/engine/app/utils/discord'
 import { mapBookmarks } from './bookmarks'
-import { migrateCharacter } from './character'
+import { migrateCharacter, unpackCharacter } from './character'
 import type { Gen1User } from './gen1'
 import { convertHomebrew, type NewHomebrewRow } from './homebrew'
 
@@ -242,7 +242,14 @@ export function migrateUser(input: MigrateUserInput): UserMigration {
     let name: string | null = null
     try {
       if (!row.data) throw new Error('the character has no data')
-      const { character, report: r } = migrateCharacter(row.data, { game: input.game, content: input.content, now: row.updatedOn ?? now })
+      let raw: Record<string, unknown>
+      try {
+        raw = unpackCharacter(row.data)
+      }
+      catch {
+        throw new Error('the saved data could not be read')
+      }
+      const { character, report: r } = migrateCharacter(raw, { game: input.game, content: input.content, now: row.updatedOn ?? now })
       name = character.name || null
       const copies: NonNullable<Character['homebrew']> = { ...character.homebrew }
       for (const ref of r.homebrew) {
