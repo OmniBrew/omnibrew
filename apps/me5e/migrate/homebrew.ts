@@ -76,6 +76,56 @@ function stringsToMarkdown(value: unknown, dropped: (tag: string) => void): unkn
   return value
 }
 
+const isObj = (v: unknown): v is Rec => !!v && typeof v === 'object' && !Array.isArray(v)
+
+/**
+ * The live homebrew editor's "none" values, which official content never had (so the
+ * content migration doesn't know them; measured on the dry run, plan/28 §5):
+ * - `bonus`, `resource`, `addTo: false` and a `limit` or `value` of null: nothing set; a
+ *   numeric bonus without a formula `type`: flat;
+ * - a DC's or attack's `mod: 'pc'` (or a DC's `false`): the power's casting ability, the default;
+ * - a weapon's `versatile: false`: not versatile;
+ * - the base casting entry without `concentration`: not concentration;
+ * - advancement ids that aren't slugs, and null advancement texts.
+ */
+export function normalizeLiveHomebrew(kind: string, rec: Rec, note: (message: string) => void): Rec {
+  const walk = (v: unknown, key = ''): unknown => {
+    if (Array.isArray(v)) return v.map(x => walk(x, key))
+    if (!isObj(v)) return v
+    const out: Rec = {}
+    for (const [k, x] of Object.entries(v)) {
+      if ((k === 'bonus' || k === 'resource' || k === 'addTo') && (x === false || x === null)) continue
+      if ((k === 'limit' || k === 'text') && x === null) continue
+      if (k === 'bonus' && isObj(x) && (x.value === null || x.value === undefined || x.value === '')) continue
+      // A number with no formula type is a flat bonus (the live editor's default).
+      if (k === 'bonus' && isObj(x) && x.type === undefined && typeof x.value === 'number') {
+        out[k] = walk({ ...x, type: 'flat' }, k)
+        continue
+      }
+      if (k === 'mod' && (key === 'dc' || key === 'attack') && (x === 'pc' || (key === 'dc' && x === false))) continue
+      out[k] = walk(x, k)
+    }
+    return out
+  }
+  let out = walk(rec) as Rec
+  if (kind === 'weapons' && 'versatile' in out && !isObj(out.versatile)) {
+    const { versatile: _v, ...rest } = out
+    out = rest
+  }
+  if (kind === 'powers' && Array.isArray(out.mechanics) && isObj(out.mechanics[0]) && out.mechanics[0].concentration === undefined) {
+    out.mechanics = [{ ...out.mechanics[0], concentration: false }, ...out.mechanics.slice(1)]
+  }
+  if (kind === 'powers' && Array.isArray(out.advancements)) {
+    out.advancements = out.advancements.map((a) => {
+      if (!isObj(a) || typeof a.id !== 'string' || /^[a-z\d][\w-]*$/i.test(a.id)) return a
+      const id = a.id.normalize('NFKD').replaceAll(/\p{M}/gu, '').toLowerCase().replaceAll(/[^a-z\d]+/g, '-').replaceAll(/^-+|-+$/g, '') || 'advancement'
+      note(`advancement-id: "${a.id}" is "${id}"`)
+      return { ...a, id }
+    })
+  }
+  return out
+}
+
 const liveStatus = (row: Gen1Homebrew): HomebrewStatus => (row.published ? 'published' : row.development ? 'development' : 'private')
 
 export function convertHomebrew(game: Game, records: Records, row: Gen1Homebrew): NewHomebrewRow {
@@ -89,7 +139,7 @@ export function convertHomebrew(game: Game, records: Records, row: Gen1Homebrew)
   if (!raw) issues.push({ message: 'the record could not be read; only its title came across' })
   else if (!KINDS.has(kind)) issues.push({ message: `no homebrew kind "${kind}"` })
   else {
-    const { id: _id, html, ...rest } = raw
+    const { id: _id, html, ...rest } = normalizeLiveHomebrew(kind, raw, message => notes.add(message))
     const dropped = (tag: string) => notes.add(`<${tag}> dropped (no markdown for it)`)
     const body = typeof html === 'string' ? htmlToMarkdown(html, dropped) : ''
     try {

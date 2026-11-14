@@ -5,9 +5,10 @@ import { describe, expect, it } from 'vitest'
 import { me5eDefinition } from '../game/definition'
 import { mapBookmark, mapBookmarks } from '../migrate/bookmarks'
 import type { Gen1Homebrew, Gen1User } from '../migrate/gen1'
-import { convertHomebrew } from '../migrate/homebrew'
+import { convertHomebrew, normalizeLiveHomebrew } from '../migrate/homebrew'
 import { htmlToMarkdown } from '../migrate/html'
 import { convertRoll, readLegacyLocal } from '../migrate/local'
+import { migrateCharacter } from '../migrate/character'
 import { migrateUser, pictureKey, type MigrateUserInput } from '../migrate/user'
 
 /**
@@ -311,5 +312,44 @@ describe('readLegacyLocal (v140)', () => {
   it('skips log entries it cannot read', () => {
     expect(convertRoll({ data: { total: 'x' } }, 0)).toBeNull()
     expect(convertRoll({ data: { total: 3, text: 'Custom', type: 'mystery' } }, 1)).toMatchObject({ label: 'Custom', kind: 'custom', total: 3 })
+  })
+})
+
+describe('the live editor none-values (found by the dry run)', () => {
+  const notes: string[] = []
+  const norm = (kind: string, rec: Rec) => normalizeLiveHomebrew(kind, rec, n => notes.push(n))
+
+  it('drops `false`/null markers and reads `pc` as the casting ability', () => {
+    expect(norm('weapons', {
+      damage: { dieCount: 1, dieType: 8, bonus: false, mod: false },
+      addDamages: [{ bonus: { value: null, limit: null }, addTo: false }],
+      versatile: false,
+      properties: ['light'],
+    })).toEqual({ damage: { dieCount: 1, dieType: 8, mod: false }, addDamages: [{}], properties: ['light'] })
+    expect(norm('powers', {
+      mechanics: [{ dc: { save: 'dex', mod: 'pc', bonus: false }, attack: { mod: 'pc' }, resource: false, damage: [{ bonus: { value: 2, limit: null } }] }, { duration: { length: 1, unit: 'hour' } }],
+      advancements: [{ id: 'Improved Raise', name: 'Improved Raise', text: null }],
+    })).toEqual({
+      mechanics: [{ dc: { save: 'dex' }, attack: {}, damage: [{ bonus: { value: 2, type: 'flat' } }], concentration: false }, { duration: { length: 1, unit: 'hour' } }],
+      advancements: [{ id: 'improved-raise', name: 'Improved Raise' }],
+    })
+    expect(notes).toEqual(['advancement-id: "Improved Raise" is "improved-raise"'])
+  })
+
+  it('keeps `false` where it means something (a damage `mod: false`, an attack turned off)', () => {
+    expect(norm('powers', { mechanics: [{ concentration: true, attack: false }, { attack: false }] })).toEqual({ mechanics: [{ concentration: true, attack: false }, { attack: false }] })
+  })
+})
+
+describe('old free-text ids (found by the dry run)', () => {
+  it('keeps a typed species or custom armor name in id form, reported, instead of failing the character', () => {
+    const { character, report } = migrateCharacter(liveCharacter('x', {
+      species: 'Human (Earth Born)',
+      equipment: [{ type: 'armor', id: '-Heavy Chest 1', uuid: 'a1', equipped: true, mods: [], custom: { name: 'Heavy Chest', type: 'heavy', placement: 'chest' } }],
+    }), { game, content: rules.content })
+    expect(character.species).toBe('Human-Earth-Born')
+    expect(character.equipment[0]!.id).toBe('Heavy-Chest-1')
+    expect(report.unknown).toContainEqual(expect.objectContaining({ id: 'Human (Earth Born)', message: expect.stringContaining('kept as "Human-Earth-Born"') }))
+    expect(report.renamed).toContainEqual(expect.objectContaining({ id: '-Heavy Chest 1' }))
   })
 })

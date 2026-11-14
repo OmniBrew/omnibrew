@@ -1,7 +1,7 @@
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb'
 import { GetCommand, PutCommand, ScanCommand } from '@aws-sdk/lib-dynamodb'
 import type { Game } from '@omnibrew/engine/schemas'
-import type { Gen1Homebrew } from './gen1'
+import { plainRow, type Gen1Homebrew } from './gen1'
 import { convertHomebrew, type NewHomebrewRow } from './homebrew'
 
 /**
@@ -29,7 +29,7 @@ export async function* scanAll<T>(db: DynamoDBDocumentClient, table: string): As
   let start: Record<string, unknown> | undefined
   do {
     const page = await db.send(new ScanCommand({ TableName: table, ExclusiveStartKey: start }))
-    for (const item of page.Items ?? []) yield item as T
+    for (const item of page.Items ?? []) yield plainRow(item) as T
     start = page.LastEvaluatedKey
   } while (start)
 }
@@ -44,7 +44,11 @@ export function summarize(rows: NewHomebrewRow[], summary: BulkSummary = { rows:
     const first = row.migration.issues?.[0]
     if (first) summary.invalid[issueKind(first.message)] = (summary.invalid[issueKind(first.message)] ?? 0) + 1
     if (row.migration.status) summary.lowered++
-    for (const n of row.migration.notes ?? []) summary.notes[n.split(':')[0]!] = (summary.notes[n.split(':')[0]!] ?? 0) + 1
+    // Counted by rule only (the part before `:` or the dropped tag), never the record's own text.
+    for (const n of row.migration.notes ?? []) {
+      const rule = n.startsWith('<') ? n.replace(/ .*/, '') : n.split(':')[0]!
+      summary.notes[rule] = (summary.notes[rule] ?? 0) + 1
+    }
   }
   return summary
 }

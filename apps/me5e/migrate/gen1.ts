@@ -86,3 +86,15 @@ export interface Gen1User {
 /** The six Gen 1 models, in the order the Lambda reads them. */
 export const GEN1_MODELS = ['Profile', 'Character', 'Bookmark', 'Homebrew', 'HomebrewUse', 'HomebrewVote'] as const
 export type Gen1Model = typeof GEN1_MODELS[number]
+
+/**
+ * A Gen 1 row as plain JSON: the DynamoDB client returns integers past 2^53 as BigInt (a
+ * homebrew record has one); they become ordinary (rounded) numbers, as the live site saw them.
+ */
+export function plainRow<T>(value: T): T {
+  if (typeof value === 'bigint') return Number(value) as T
+  if (Array.isArray(value)) return value.map(plainRow) as T
+  if (value instanceof Set) return [...value].map(plainRow) as T
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, plainRow(v)])) as T
+  return value
+}

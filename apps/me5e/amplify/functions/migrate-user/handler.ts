@@ -7,7 +7,7 @@ import { createRules, bundleRecords, type Rec } from '@omnibrew/engine/rules'
 import { createGame } from '@omnibrew/engine/schemas'
 import { me5eDefinition } from '../../../game/definition'
 import { migrateCharacter, unpackCharacter } from '../../../migrate/character'
-import type { Gen1Bookmark, Gen1Character, Gen1Homebrew, Gen1Profile, Gen1Tally, Gen1User } from '../../../migrate/gen1'
+import { plainRow, type Gen1Bookmark, type Gen1Character, type Gen1Homebrew, type Gen1Profile, type Gen1Tally, type Gen1User } from '../../../migrate/gen1'
 import { homebrewIdsIn, migrateUser, type ExistingHomebrew, type ExistingProfile, type UserMigration } from '../../../migrate/user'
 // Written by resource.ts at deploy from the content repo (git-ignored).
 import content from './content.json'
@@ -59,7 +59,7 @@ async function queryAll<T>(table: string, index: string, key: string, value: str
   let start: Record<string, unknown> | undefined
   do {
     const page = await db.send(new QueryCommand({ TableName: table, IndexName: index, KeyConditionExpression: '#k = :v', ExpressionAttributeNames: { '#k': key }, ExpressionAttributeValues: { ':v': value }, ExclusiveStartKey: start }))
-    out.push(...(page.Items ?? []) as T[])
+    out.push(...(page.Items ?? []).map(plainRow) as T[])
     start = page.LastEvaluatedKey
   } while (start)
   return out
@@ -72,7 +72,7 @@ async function batchGet<T>(table: string, ids: string[]): Promise<T[]> {
     let keys: Record<string, unknown>[] | undefined = unique.slice(i, i + 100).map(id => ({ id }))
     for (let tries = 0; keys?.length && tries < 5; tries++) {
       const res = await db.send(new BatchGetCommand({ RequestItems: { [table]: { Keys: keys } } }))
-      out.push(...(res.Responses?.[table] ?? []) as T[])
+      out.push(...(res.Responses?.[table] ?? []).map(plainRow) as T[])
       keys = res.UnprocessedKeys?.[table]?.Keys as Record<string, unknown>[] | undefined
     }
   }
@@ -81,7 +81,7 @@ async function batchGet<T>(table: string, ids: string[]): Promise<T[]> {
 
 async function readGen1(username: string): Promise<Gen1User> {
   const [profile, characters, bookmarks, homebrew, uses, votes] = await Promise.all([
-    db.send(new GetCommand({ TableName: GEN1.Profile, Key: { id: username } })).then(r => (r.Item ?? null) as Gen1Profile | null),
+    db.send(new GetCommand({ TableName: GEN1.Profile, Key: { id: username } })).then(r => (r.Item ? plainRow(r.Item) : null) as Gen1Profile | null),
     queryAll<Gen1Character>(GEN1.Character, 'byUser', 'owner', username),
     queryAll<Gen1Bookmark>(GEN1.Bookmark, 'byUser', 'owner', username),
     queryAll<Gen1Homebrew>(GEN1.Homebrew, 'byUser', 'owner', username),
@@ -243,7 +243,7 @@ async function signedPicture(key: string): Promise<string | null> {
  */
 async function legacyCharacter(args: Args, identity: Identity) {
   if (!args.id) return null
-  const row = (await db.send(new GetCommand({ TableName: GEN1.Character, Key: { id: args.id } }))).Item as Gen1Character | undefined
+  const row = plainRow((await db.send(new GetCommand({ TableName: GEN1.Character, Key: { id: args.id } }))).Item) as Gen1Character | undefined
   if (!row?.data) return null
   const username = identity && 'username' in identity ? identity.username : null
   const mine = !!username && row.owner === username
