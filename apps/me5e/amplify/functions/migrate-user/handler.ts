@@ -27,6 +27,13 @@ const env = (name: string) => {
 const GEN1 = JSON.parse(env('GEN1_TABLES')) as Record<'Profile' | 'Character' | 'Bookmark' | 'Homebrew' | 'HomebrewUse' | 'HomebrewVote', string>
 const TABLES = JSON.parse(env('TABLES')) as Record<'Profile' | 'Character' | 'Bookmark' | 'Homebrew' | 'HomebrewUse' | 'HomebrewVote', string>
 const GEN1_BUCKET = env('GEN1_BUCKET')
+/**
+ * Who may migrate yet (plan/28): `*` everyone, else Cognito subs or usernames separated by
+ * commas. Until cutover the beta lets only testers move their data, so nobody's copy is
+ * weeks older than what they keep changing on the live site (migration happens once).
+ */
+const ALLOW = (process.env.MIGRATION_ALLOW ?? '*').split(',').map(s => s.trim()).filter(Boolean)
+const allowed = (c: { sub: string, username: string }) => ALLOW.includes('*') || ALLOW.includes(c.sub) || ALLOW.includes(c.username)
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}), { marshallOptions: { removeUndefinedValues: true, convertClassInstanceToMap: false } })
 const s3 = new S3Client({})
@@ -106,6 +113,8 @@ async function authorNames(owners: string[]): Promise<Map<string, string | null>
 // --- migrateMyData -----------------------------------------------------------------------
 
 async function migrateMyData(caller: { sub: string, username: string }, shouldStop: () => boolean) {
+  // Not yet: nothing read or written, and the client asks again next time.
+  if (!allowed(caller)) return { done: true, report: null, pictureUrl: null }
   const owner = `${caller.sub}::${caller.username}`
   const now = new Date().toISOString()
   await ensureProfile(caller, now)

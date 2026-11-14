@@ -17,6 +17,8 @@ const gen1 = wireMigration({
   tables: backend.data.resources.tables,
   createStack: name => backend.createStack(name),
 }, pool === 'prod' ? 'prod' : 'fake')
+// Who may migrate yet (plan/28 B139): the app's ME5E_MIGRATION_ALLOW (subs or usernames, or `*`); everyone when unset.
+backend.migrateUser.addEnvironment('MIGRATION_ALLOW', process.env.ME5E_MIGRATION_ALLOW ?? '*')
 // The sandbox test fills the stand-ins with generated rows; it finds them in amplify_outputs.json.
 if (pool !== 'prod') backend.addOutput({ custom: { gen1 } })
 

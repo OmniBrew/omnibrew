@@ -50,16 +50,28 @@ export const useLegacyMigration = defineStore('legacy-migration', () => {
           return
         }
         status.value = 'running'
-        const notice = toast.add({ title: t('migration.running'), icon: 'i-lucide-loader-circle', duration: 0 })
+        // Shown only if the first step takes a moment (a skipped or empty account answers at once).
+        let notice: { id: string | number } | null = null
+        const slow = setTimeout(() => (notice = toast.add({ title: t('migration.running'), icon: 'i-lucide-loader-circle', duration: 0 })), 800)
         let step: MigrationStep | null = null
         let picture: string | null = null
-        // Each call handles what fits in AppSync's time limit; a large account takes a few.
-        for (let i = 0; i < 30 && !step?.done; i++) {
-          step = await data.legacy.migrate()
-          picture ??= step.pictureUrl
+        try {
+          // Each call handles what fits in AppSync's time limit; a large account takes a few.
+          for (let i = 0; i < 30 && !step?.done; i++) {
+            step = await data.legacy.migrate()
+            picture ??= step.pictureUrl
+          }
         }
-        toast.remove(notice.id)
+        finally {
+          clearTimeout(slow)
+          if (notice) toast.remove((notice as { id: string | number }).id)
+        }
         if (!step?.done) throw new Error('not finished')
+        // The backend isn't migrating this account yet (before cutover): ask again on a later visit.
+        if (!step.report) {
+          status.value = 'idle'
+          return
+        }
         if (picture) await copyPicture(picture, data).catch(() => {})
         report.value = step.report
         flag(sub, new Date().toISOString())
