@@ -3,7 +3,7 @@
  * definition the rules engine runs, the old-character migrator for imports, and ME's
  * sheet panels and resource displays. Only the character pages import this module.
  */
-import type { ImportReport, LegacyImporter, SheetParts } from '@omnibrew/engine/app/game-client'
+import type { ImportReport, LegacyImporter, LegacyLocalData, SheetParts } from '@omnibrew/engine/app/game-client'
 import Consumables from './components/me/sheet/Consumables.vue'
 import Reputation from './components/me/sheet/Reputation.vue'
 import ResourceBarrier from './components/me/sheet/ResourceBarrier.vue'
@@ -19,6 +19,9 @@ export const importLegacy = (): Promise<LegacyImporter> => import('../migrate/ch
   const { character, report } = m.migrateCharacter(raw, opts)
   return { character, report: report as unknown as ImportReport }
 })
+
+/** The live site's `v140` browser storage (plan/28 §2), loaded on demand. */
+export const legacyLocal = (): Promise<(storage: Pick<Storage, 'getItem'>) => LegacyLocalData | null> => import('../migrate/local').then(m => m.readLegacyLocal)
 
 export const sheet: SheetParts = {
   slots: {

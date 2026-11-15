@@ -20,6 +20,8 @@ useSeoMeta({ title: t('bookmarks_title'), description: t('meta.bookmarks'), robo
 const index = ref<Map<string, RecordDoc> | null>(null)
 const indexFailed = ref(false)
 onMounted(async () => {
+  // The old site's bookmarks in this browser come across once (plan/28 §2).
+  await useLegacyLocalImport().run().catch(() => null)
   bookmarks.load()
   try {
     const docs = await $fetch<RecordDoc[]>('/record-index.json')

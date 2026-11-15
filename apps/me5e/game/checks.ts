@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { GameCheckContext } from '@omnibrew/engine/schemas'
 import { walkMechanics } from '@omnibrew/engine/validator'
+import { npcTraitProblems, TRAIT_VALUES } from '../generators/npc-traits-schema'
 import { parse } from 'yaml'
 
 /** ME5e's content checks (Node only: they read the navigation files). */
@@ -16,6 +17,16 @@ export function meChecks({ root, records, report }: GameCheckContext) {
         }
       })
     }
+  }
+
+  // NPC generator traits (plan/28): one file per species, with every trait the generator applies.
+  const traits = records.get('npc-traits') ?? new Map()
+  for (const [id, rec] of traits) {
+    if (!records.get('species')?.has(id)) report({ severity: 'error', category: 'reference', collection: 'npc-traits', id, rule: 'ref-missing', message: `"${id}" is not a species id (the file name names the species)` })
+    for (const message of npcTraitProblems(id, (rec.traits ?? []) as { id: string, text?: string }[])) report({ severity: 'error', category: 'schema', collection: 'npc-traits', id, rule: 'npc-traits', message })
+  }
+  for (const species of Object.keys(TRAIT_VALUES)) {
+    if (!traits.has(species)) report({ severity: 'error', category: 'reference', collection: 'npc-traits', id: species, rule: 'npc-traits', message: `the NPC generator needs npc-traits/${species}.md` })
   }
 
   // Manual and guide chapters are listed in navigation files; every leaf needs a page and every page an entry.

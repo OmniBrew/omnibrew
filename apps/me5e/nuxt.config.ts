@@ -6,6 +6,7 @@ import { defineNuxtConfig } from 'nuxt/config'
 import { me5e } from './game'
 import { contentRoot } from './paths'
 import { recordRoutes } from './routes'
+import { rulesBundleOptions } from './rules-bundle'
 
 const messages = join(contentRoot, 'messages/en.yml')
 // The Gen 2 backend's client config, written by `ampx sandbox` or the Amplify build (plan/20).
@@ -57,8 +58,7 @@ export default defineNuxtConfig({
   rulesBundle: {
     game: me5e,
     contentRoot,
-    exclude: ['attributions', 'bestiary', 'changelog', 'guide', 'manual', 'navigation', 'npc-stats', 'ship-upgrades', 'vehicles'],
-    keepBody: ['weapon-properties'],
+    ...rulesBundleOptions,
   },
 
   // The character pages run in the browser only (they read the signed-in user's data); each
@@ -69,6 +69,8 @@ export default defineNuxtConfig({
     '/bookmarks': { ssr: false },
     '/homebrew': { ssr: false },
     '/homebrew/**': { ssr: false },
+    // The generators roll in the browser, from the rules bundle (prerendered shells, found by the crawler).
+    '/generators/**': { ssr: false },
   },
 
   nitro: {
@@ -77,6 +79,8 @@ export default defineNuxtConfig({
       // Content links to pages that never existed (the live site 404s too; plan/14).
       ignore: ['/guide/encounter-creation'],
     },
+    // The content repo's images, which content links as `/content-images/…` (plan/28, `04` Q9, B137).
+    publicAssets: [{ dir: join(contentRoot, 'images'), baseURL: '/content-images', maxAge: 60 * 60 * 24 * 7 }],
   },
 
   hooks: {

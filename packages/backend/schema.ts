@@ -66,6 +66,8 @@ export const schemaEntries = {
     /** The Gen 1 profile id (the Cognito username), set by the Phase 3d migration. */
     legacyId: a.string(),
     migratedAt: a.datetime(),
+    /** What the migration brought over and what it couldn't (plan/28 §1); written by it only. */
+    migration: a.json().authorization(allow => [allow.owner().to(['read', 'delete']), allow.group('admins').to(['read', 'delete'])]),
   })
     .authorization(allow => [
       allow.owner().to(['read', 'update', 'delete']),
@@ -97,6 +99,11 @@ export const schemaEntries = {
     // every field with field rules.)
     usageCount: a.integer().authorization(allow => [allow.owner().to(['read', 'delete']), allow.group('admins').to(['read', 'delete'])]),
     voteCount: a.integer().authorization(allow => [allow.owner().to(['read', 'delete']), allow.group('admins').to(['read', 'delete'])]),
+    /**
+     * Set on homebrew converted from an older backend (plan/28 §1.3): the old status when
+     * the record had to become private, and what blocks sharing it. Written by the migration only.
+     */
+    migration: a.json().authorization(allow => [allow.owner().to(['read', 'delete']), allow.group('admins').to(['read', 'delete'])]),
   })
     .secondaryIndexes(index => [
       index('owner').name('byOwner').queryField('listHomebrewByOwner'),
@@ -196,6 +203,39 @@ export const schemaEntries = {
       a.handler.custom({ dataSource: PROFILE_DATA_SOURCE, entry: './resolvers/load-profile.js' }),
       a.handler.custom({ dataSource: PROFILE_DATA_SOURCE, entry: './resolvers/ensure-profile.js' }),
     ]),
+}
+
+/** A Lambda handler (`defineFunction`) for `legacyMigrationEntries`. */
+type FunctionHandler = Parameters<typeof a.handler.function>[0]
+
+/**
+ * A game with users on an older backend adds these (plan/28 §1): `migrateMyData` brings the
+ * caller's old rows across (call it until `done`), and `getLegacyCharacter` reads one old
+ * character by id, converted but not saved (shared links to characters whose owner hasn't
+ * signed in yet; `original` returns the old data too, to its owner only). The game supplies
+ * the function; the engine's data layer calls both with plain GraphQL, so the client
+ * `Schema` type doesn't need them.
+ */
+export function legacyMigrationEntries(handler: FunctionHandler) {
+  return {
+    MigrationResult: a.customType({
+      /** False while characters are left for another call (AppSync stops a resolver at 30 s). */
+      done: a.boolean().required(),
+      /** What came across and what didn't (the profile's `migration`). */
+      report: a.json(),
+      /** A short-lived URL of the old profile picture, for the browser to copy into its own folder. */
+      pictureUrl: a.string(),
+    }),
+    migrateMyData: a.mutation()
+      .returns(a.ref('MigrationResult').required())
+      .authorization(allow => [allow.authenticated()])
+      .handler(a.handler.function(handler)),
+    getLegacyCharacter: a.query()
+      .arguments({ id: a.id().required(), original: a.boolean() })
+      .returns(a.json())
+      .authorization(allow => [allow.authenticated(), allow.guest()])
+      .handler(a.handler.function(handler)),
+  }
 }
 
 export const schema = a.schema(schemaEntries)

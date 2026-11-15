@@ -7,6 +7,8 @@
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
+    // content.d.json.ts types the migration Lambda's generated content.json (plan/28).
+    "allowArbitraryExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "strict": true,
