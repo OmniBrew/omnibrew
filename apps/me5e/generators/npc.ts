@@ -1,6 +1,7 @@
 import { combatPower, type CombatPowerEntry } from './npc-combat-powers'
 import { npcClassOptions, npcSpeciesOptions, powerDamage, progressionRows, progressionValue, propertyIds, type NpcClass, type NpcData, type NpcPower, type NpcSpecies, type NpcStat, type NpcWeapon } from './npc-data'
-import { speciesTraits } from './npc-traits'
+import { applySpeciesTraits } from './npc-traits'
+import { TRAIT_VALUES } from './npc-traits-schema'
 import { abilityMod, averageDice, pick, type Random } from './random'
 
 /**
@@ -323,7 +324,7 @@ export class NpcBuilder {
     this.setSpeed()
     this.setAbilityScores()
     const attack = { min: this.marginMin, max: this.marginMax }
-    if (traits) speciesTraits[this.speciesId]?.(this)
+    if (traits) applySpeciesTraits(this, TRAIT_VALUES)
     this.setFeatures()
     this.setDamageByFocus()
     this.setHp()

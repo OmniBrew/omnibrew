@@ -66,6 +66,9 @@ export interface NpcGear {
 
 export interface NpcSkill { id: string, name: string, link: string }
 
+/** A species trait's name and text (content `npc-traits`). */
+export interface NpcTrait { id: string, name: string, text?: string, kind?: 'feature' | 'action' }
+
 export interface NpcData {
   stats: NpcStat[]
   classes: NpcClass[]
@@ -74,6 +77,8 @@ export interface NpcData {
   weapons: NpcWeapon[]
   gear: NpcGear[]
   skills: NpcSkill[]
+  /** Species traits' names and texts, by species id (content `npc-traits`). */
+  traits: Map<string, NpcTrait[]>
 }
 
 /** The classes the generator builds (each has stat priorities and features below). */
@@ -90,6 +95,7 @@ export function npcData(records: Records): NpcData {
     weapons: list<NpcWeapon>(records, 'weapons'),
     gear: list<NpcGear>(records, 'gear'),
     skills: list<NpcSkill>(records, 'skills'),
+    traits: new Map(list<{ id: string, traits?: NpcTrait[] }>(records, 'npc-traits').map(r => [r.id, r.traits ?? []])),
   }
 }
 

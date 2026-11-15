@@ -7,6 +7,7 @@ import { mePlay } from './play'
 import { meRules } from './rules'
 import { meHomebrew } from './homebrew'
 import { lootRewardShape, lootTableShape } from '../generators/loot-schema'
+import { npcTraitsShape } from '../generators/npc-traits-schema'
 
 /**
  * Mass Effect 5e on the 5e-2014 ruleset.
@@ -135,6 +136,8 @@ export const me5eDefinition = defineGame({
     // The loot generator's tables (generators/loot-schema.ts).
     'loot-tables': lootTableShape,
     'loot-rewards': lootRewardShape,
+    // The NPC generator's species trait texts (generators/npc-traits-schema.ts).
+    'npc-traits': npcTraitsShape,
   },
 
   sources: {
@@ -169,6 +172,7 @@ export const me5eDefinition = defineGame({
     'ship-upgrades': content('ship-upgrades'),
     'loot-tables': content('loot-tables'),
     'loot-rewards': content('loot-rewards'),
+    'npc-traits': content('npc-traits'),
   },
 
   derive: {

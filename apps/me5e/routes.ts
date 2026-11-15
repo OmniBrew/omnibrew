@@ -24,5 +24,6 @@ export const recordRoutes: Record<string, string | false> = {
   // Loot tables (plan/28): data the loot generator reads; shown in its raw tables, no pages.
   'loot-tables': false,
   'loot-rewards': false,
+  'npc-traits': false,
   'ship-upgrades': false,
 }

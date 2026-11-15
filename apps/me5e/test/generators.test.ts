@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs'
+import { TRAIT_VALUES, npcTraitProblems } from '../generators/npc-traits-schema'
 import { join } from 'node:path'
 import { loadRecords } from '@omnibrew/engine/rules/load'
 import { createGame } from '@omnibrew/engine/schemas'
@@ -10,7 +11,7 @@ import { abilityTitle, averageDamage, generateNpc, hitPointAverage, NpcBuilder, 
 import { npcClassOptions, npcData, npcSpeciesOptions, powerDamage, type Rec, type Records } from '../generators/npc-data'
 import { fromLiveNpc, liveTagsToMdc } from '../generators/npc-live'
 import { isLeveledPowercasting, npcSheetRefs, powerLevelLines } from '../generators/npc-sheet'
-import { speciesTraits } from '../generators/npc-traits'
+import { fillTrait, speciesTraits } from '../generators/npc-traits'
 import { abilityMod, averageDice, cryptoRandom, rollDice, seededRandom } from '../generators/random'
 
 /**
@@ -121,7 +122,13 @@ const SKILLS: [string, Ability][] = [['acrobatics', 'dex'], ['athletics', 'str']
 const skills = SKILLS.map(([id, link]) => ({ id, name: id, link }))
 const conditions = ['blinded', 'poisoned', 'prone', 'exhaustion'].map(id => ({ id, name: id }))
 
-const data = npcData(records({ 'npc-stats': npcStats, classes, species, powers, weapons, gear, skills, conditions }))
+// Species trait texts (content `npc-traits` on the site): one per trait the generator applies, with placeholders.
+const traitName = (id: string) => (id === 'esprit-de-corps' ? 'Esprit de Corps' : id.split('-').map(w => w[0]!.toUpperCase() + w.slice(1)).join(' '))
+const npcTraits = Object.entries(TRAIT_VALUES).map(([sp, known]) => ({
+  id: sp,
+  traits: Object.entries(known).map(([id, values]) => ({ id, name: traitName(id), text: `The {{ name }}: ${id}, DC {{ dc }}${values.map(v => ` ({{ ${v} }})`).join('')}.` })),
+}))
+const data = npcData(records({ 'npc-stats': npcStats, classes, species, powers, weapons, gear, skills, conditions, 'npc-traits': npcTraits }))
 const valid = (npc: GeneratedNpc) => {
   const r = game.schemas.bestiary!.safeParse(npc)
   return r.success ? true : r.error.issues.map(i => `${i.path.join('.')}: ${i.message}`)
@@ -315,6 +322,35 @@ describe('NPC generator', () => {
     expect(names(withTraits('salarian'))).toContain('Amphibious')
     expect(names(withTraits('drell'))).toContain('Raw Agility')
     expect(Object.keys(speciesTraits).sort()).toEqual([...TRAIT_SPECIES].sort())
+  })
+
+  it('takes trait names and texts from content, fills placeholders, and adds the traits content adds', () => {
+    const krogan = run({ cr: '05000', klass: 'soldier', species: 'krogan', traits: true, offensiveScale: 0 }, 3).npc
+    const rage = krogan.entries.features!.find(f => f.id === 'blood-rage')!
+    expect(rage.name).toBe('Blood Rage')
+    expect(rage.text).toMatch(/^The krogan soldier: blood-rage, DC \d+ \(\d+ temporary hit points?\)\.$/)
+    const extra = npcData(records({ 'npc-stats': npcStats, classes, species, powers, weapons, gear, skills, conditions, 'npc-traits': [
+      ...npcTraits.filter(t => t.id !== 'turian'),
+      { id: 'turian', traits: [{ id: 'esprit-de-corps', name: 'Esprit de Corps', text: 'x' }, { id: 'markings', name: 'Colony Markings', text: "The {{ name }} wears its colony's markings." }, { id: 'salute', name: 'Salute', kind: 'action', text: 'Salutes.' }] },
+    ] }))
+    const turian = generateNpc(extra, { cr: '05000', klass: 'soldier', species: 'turian', traits: true, offensiveScale: 0 }, seededRandom(4)).npc
+    expect(turian.entries.features!.find(f => f.id === 'markings')).toMatchObject({ name: 'Colony Markings', text: "The turian soldier wears its colony's markings." })
+    expect(turian.entries.actions!.find(f => f.id === 'salute')?.name).toBe('Salute')
+    // A trait missing from content is left out; what it does still applies.
+    const bare = generateNpc(npcData(records({ 'npc-stats': npcStats, classes, species, powers, weapons, gear, skills, conditions })), { cr: '05000', klass: 'soldier', species: 'turian', traits: true, offensiveScale: 0 }, seededRandom(4)).npc
+    expect(bare.entries.features!.some(f => f.id === 'esprit-de-corps')).toBe(false)
+    expect(bare.irv?.res).toContain('radiant')
+    expect(fillTrait('The {{ name }} ({{dc}}) {{ unknown }}', { name: 'n', dc: 12 })).toBe('The n (12) {{ unknown }}')
+  })
+
+  it('checks a species traits file: every trait the generator needs, known placeholders, no duplicates', () => {
+    expect(npcTraitProblems('krogan', [{ id: 'blood-rage', text: 'The {{ name }} gains {{ temporaryHitPoints }}.' }])).toEqual([])
+    expect(npcTraitProblems('krogan', [])).toEqual(['the generator needs a trait "blood-rage"'])
+    expect(npcTraitProblems('turian', [{ id: 'esprit-de-corps', text: '{{ hp }}' }, { id: 'esprit-de-corps' }])).toEqual([
+      'trait "esprit-de-corps": no placeholder {{ hp }} (it can use name, dc)',
+      'trait "esprit-de-corps" is listed twice',
+    ])
+    expect(npcTraitProblems('human', [{ id: 'anything', text: 'The {{ name }}.' }])).toEqual([])
   })
 
   it('repeats an NPC from the same seed and picks what is left out', () => {
