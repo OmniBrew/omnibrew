@@ -86,6 +86,8 @@ export const me5eDefinition = defineGame({
     }),
     castingFields: k => ({
       primes: orOff(k.e('damageTypes')).optional(),
+      /** How long a target stays primed, as written ("until the end of your next turn"). */
+      primesLength: z.string().optional(),
       detonates: z.boolean().optional(),
     }),
   },

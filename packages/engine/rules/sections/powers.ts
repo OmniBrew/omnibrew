@@ -266,7 +266,7 @@ export function computePowers(sheet: Sheet): PowerCard[] {
     const augments = matchingAugments(sheet, { attackType: power.attack?.type, model: power.attack?.wp ?? 'power', modelType: power.type, abilityMod: power.mod || undefined })
     Object.assign(power, augmentCard(sheet, power, augments, dieSteps.power))
   }
-  return out
+  return rules.card ? out.map(c => rules.card!(c, sheet) as PowerCard) : out
 }
 
 /** Die steps for "increase the die type": powers skip d2, weapons don't (the live site's two tables). */

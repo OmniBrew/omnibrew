@@ -188,8 +188,8 @@ function imported(records: CharacterRecord[]) {
       <UAlert v-else-if="failed" color="error" variant="subtle" icon="i-lucide-triangle-alert" :title="t('characters.load_failed')" :description="failed" :actions="[{ label: t('characters.retry'), onClick: load }]" />
       <UEmpty v-else-if="!items.length" icon="i-lucide-user-round-plus" :title="t('characters.empty_title')" :description="t('characters.empty_text')" :actions="[{ label: t('characters.new'), icon: 'i-lucide-plus', onClick: () => create() }]" />
 
-      <ul v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <li v-for="c in items" :key="c.id" class="flex items-center gap-3 rounded-md border border-default bg-muted p-3" data-character>
+      <ul v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <li v-for="c in items" :key="c.id" class="flex min-w-0 items-center gap-3 rounded-md border border-default bg-muted p-3" data-character>
           <NuxtLink :to="{ path: '/characters/sheet', query: { id: c.id } }" class="flex min-w-0 flex-1 items-center gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             <img v-if="c.character.image" :src="c.character.image" alt="" class="size-13 shrink-0 rounded-sm bg-default object-cover">
             <img v-else-if="icon(c)" :src="icon(c)" alt="" class="size-13 shrink-0">

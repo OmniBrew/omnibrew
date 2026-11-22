@@ -130,8 +130,32 @@ export const KNOWN: Known[] = [
   },
   {
     id: 'engi-knight-source',
-    reason: 'Live hack: powers granted by the Engi Knight subclass showed "soldier" as their source (a hard-coded id in the old store). The engine shows the name of the granting record.',
-    fix: (text, ctx, next) => (uses(ctx, 'engi-knight') && next.includes(' src Engi Knight ') ? text.replace(' src soldier ', ' src Engi Knight ') : text),
+    reason: 'Live hack: powers granted by the Engi Knight subclass showed "soldier" as their source (a hard-coded id in the old store). The engine shows the name of the granting record (Tech Avenger names itself in all four of its focus options since plan/31).',
+    fix: (text, ctx, next) => {
+      const src = next.match(/ src (Engi Knight|Tech Avenger) /)?.[1]
+      return uses(ctx, 'engi-knight') && src ? text.replace(' src soldier ', ` src ${src} `) : text
+    },
+  },
+  {
+    id: 'power-primer-notes',
+    reason: 'Issue #555 (plan/31): power cards show whether the power detonates and what it primes (with how long, where its text says), as weapon cards with ammo mods always did. The live sheet showed them only inside the expanded power.',
+    fix: (text, _, next) => {
+      if (!text.startsWith('power ')) return text
+      const notesOf = (s: string) => s.match(/ notes (.*)$/)?.[1]!.split('; ') ?? []
+      const isPrimer = (n: string) => n === 'Detonates' || /^P: [a-z]+$/.test(n)
+      const nextNotes = notesOf(next)
+      if (!nextNotes.some(isPrimer)) return text
+      // The primer notes where the engine shows them, among the live notes in their order.
+      const live = notesOf(text).filter(n => !isPrimer(n))
+      const merged: string[] = []
+      let i = 0
+      for (const n of nextNotes) {
+        if (isPrimer(n)) merged.push(n)
+        else if (i < live.length) merged.push(live[i++]!)
+      }
+      merged.push(...live.slice(i))
+      return `${text.replace(/ notes .*$/, '')} notes ${merged.join('; ')}`
+    },
   },
   {
     id: 'weapon-mods-all-apply',
@@ -240,6 +264,43 @@ export const KNOWN: Known[] = [
       || (uses(ctx, 'TA_plains') && /^\.speeds\.walk: \d+ → \d+$/.test(line))
       || (line.startsWith('.initiative:') && ((ctx.character.classes ?? []) as Array<{ subclass?: string, levels?: number }>).some(k => k.subclass === 'armorer' && (k.levels ?? 0) >= 14))
       || (uses(ctx, 'toxic-resistance') && line === '.defenses.resistance + "poison"'),
+  },
+  // --- Phase 4 cleanup (plan/31): content where the mechanic disagreed with its own text, and typos ---
+  {
+    id: 'content-fixes-phase-4',
+    reason: 'Plan/31 (decision 2: where a mechanic and its text disagree, the text wins): typos in card texts ("can chose to", "Spent 1 tech point", "imposed", "makes and attack", "you a wielding", "while note wearing"); the escape note of Submission Net (an Athletics check, damage on every attempt); the Cryo Shield detonates; Fury of the Small works on creatures larger than you; the Sticky Grenade Launcher knocks prone on a hit; the Armor Piercing Arrow of Bowshot reaches 200 ft, not 250.',
+    fix: (text, ctx) => {
+      let out = text
+        .replaceAll(/\b(can|must|may|also|instead|could|might|will) chose to\b/g, '$1 choose to')
+        .replaceAll('When you chose to do so', 'When you choose to do so')
+        .replaceAll('Spent 1 tech point', 'Spend 1 tech point')
+        .replaceAll('attacks you, imposed disadvantage', 'attacks you, impose disadvantage')
+        .replaceAll('makes and attack roll', 'makes an attack roll')
+        .replaceAll('within the short ranged of the weapon you a wielding', 'within the short range of the weapon you are wielding')
+        .replaceAll('Spend 1 Fuel double', 'Spend 1 Fuel to double')
+        .replaceAll('while note wearing', 'while not wearing')
+        .replaceAll('Whenever another creature make an attack roll against you and misses, you may use you reaction to for the attacking creature', 'Whenever another creature makes an attack roll against you and misses, you may use your reaction to force the attacking creature')
+        .replaceAll('1d6 lightning dmg on failed STR save to escape', 'Escape: STR (Athletics) check against your power save DC; 1d6 lightning damage on each attempt')
+        .replace(/^(attack Cryo-Shield Attack .* notes Hit: )DC/, '$1detonates; DC')
+        .replace('if it is Medium or larger.', 'if it is larger than you.')
+      if (uses(ctx, 'sticky-grenade-launcher')) out = out.replace('; Miss: explosion', '; Hit: the target is knocked :condition{id="prone"}; Miss: explosion')
+      if (out.startsWith('power bowshot@') && out.includes('2+ hits to single target')) out = out.replace(' range 250 ', ' range 200 ')
+      return out
+    },
+    test: (line, ctx) => (uses(ctx, 'mobile-platform-hopper') && line === '.speeds.climb: 20 → 40')
+      // Renamed cards: Prayer was "Payer"; the Sentry Interface's card was named after the Capacitor Helmet it was copied from.
+      || /^\.actions [-+] "bonus-action Pr?ayer \((?:Amonkira|Arashu|Kalahira)\) \|/.test(line)
+      || (uses(ctx, 'sentry-interface') && /^\.actions [-+] "reaction (?:Capacitor Helmet|Sentry Interface) \| res resource sentry-interface/.test(line)),
+  },
+  {
+    id: 'exploit-die-experiment-level',
+    reason: 'Plan/31: the Exploit die grows "as you gain levels in the Experiment class" (Exploits), so it follows Experiment levels, not character levels (a multiclassed experiment rolls a smaller die). The Experiment-level bonus of Magnetic Shield was inside the die size, so the live card showed a bare die; it now adds to the roll.',
+    test: (line, ctx) => uses(ctx, 'experiment') && /^\.actions ~ (?:other|reaction|action|bonus-action) (?:Exploit: |Magnetic Shield )/.test(line),
+  },
+  {
+    id: 'phasic-ammo-damage',
+    reason: 'Plan/31: the text of Phasic Ammo says -2 on damage rolls; the live mechanic took 2 from the attack roll instead.',
+    test: (line, ctx) => uses(ctx, 'phasic-ammo') && /^\.attacks\.[a-z]+ ~ .*bypasses shields/.test(line),
   },
 ]
 

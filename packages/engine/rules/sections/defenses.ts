@@ -1,6 +1,6 @@
 import { ABILITY_KEYS } from '../../character/schema'
 import type { Sheet } from '../sheet'
-import type { Mech } from '../types'
+import type { Formula, Mech, Rec } from '../types'
 import { withLookup } from './skills'
 
 export interface SaveScore {
@@ -41,6 +41,10 @@ export interface SpeedValue {
  * Speeds (the live `speeds` getter): a typed speed wins; otherwise the highest
  * `speed` of each kind plus every `speed-bonus` for it, minus the armor
  * strength penalty. Walking speed is 0 without any; other speeds are absent.
+ * A conditional `speed-bonus` adds its `ifExists` bonus when the speed exists and
+ * otherwise grants the speed at its `else` value, where `{ type: 'speed', value: 'walk' }`
+ * is another speed computed before it ("a climbing speed equal to your walking speed").
+ * The live sheet ignored both, so those speeds never appeared.
  */
 export function computeSpeeds(sheet: Sheet): Record<string, SpeedValue | null> {
   const armor = sheet.rules.armor
@@ -59,11 +63,16 @@ export function computeSpeeds(sheet: Sheet): Record<string, SpeedValue | null> {
       continue
     }
     const candidates = sheet.ofType('speed').filter(m => m.speed === speed).sort((a, b) => b.distance - a.distance)
+    const bonuses = sheet.ofType('speed-bonus').filter(m => m.value.includes(speed))
+    const value = (f: Rec | undefined) => (f?.type === 'speed' ? (out[f.value]?.distance ?? 0) : f ? sheet.formula(f as Formula) : 0)
+    const flat = bonuses.reduce((a, m) => a + value(m.bonus), 0)
     if (!candidates.length) {
-      out[speed] = null
+      // Granted by a conditional bonus: its fallback is the whole speed (already past the armor penalty when it copies one).
+      const granted = bonuses.filter(m => m.else).map(m => value(m.else.bonus))
+      out[speed] = granted.length && Math.max(...granted) > 0 ? { distance: Math.max(...granted) + flat } : null
       continue
     }
-    const bonus = sheet.ofType('speed-bonus').filter(m => m.value.includes(speed)).reduce((a, m) => a + sheet.formula(m.bonus), 0)
+    const bonus = flat + bonuses.filter(m => m.ifExists).reduce((a, m) => a + value(m.ifExists.bonus), 0)
     out[speed] = { distance: candidates[0]!.distance + bonus + penalty, ...(candidates[0]!.note ? { note: candidates[0]!.note } : {}) }
   }
   return out

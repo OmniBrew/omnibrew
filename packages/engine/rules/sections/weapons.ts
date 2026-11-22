@@ -155,7 +155,7 @@ export function computeWeaponAttacks(sheet: Sheet): WeaponAttacks {
       dieCount: dieCount * (mode?.damageMultiplier || 1),
       type: mode?.damageType || data.damage.type,
       mod: damageMod,
-      bonus: { type: 'flat', value: (weapon.entry.bonusDamage || 0) + globalDamage(attackType) + a.damage + overflow },
+      bonus: { type: 'flat', value: (weapon.entry.bonusDamage || 0) + globalDamage(attackType) + a.damage + overflow + (mode?.damageBonus || 0) },
       reroll: a.reroll || false,
       addCritDie: a.addCritDie || false,
     }]

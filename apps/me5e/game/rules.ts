@@ -50,6 +50,20 @@ export interface Barrier {
   uses: { max: number, used: number }
 }
 
+/**
+ * The notes a primer or detonator shows on its card: "Detonates", then "P: <type>" with how long the target
+ * stays primed. Ammo mods default to the live wording; a power shows a length only when its casting states one.
+ */
+function primerNotes(t: Rec, defaultLength?: string): Rec[] {
+  const out: Rec[] = []
+  if (t.detonates) out.push({ type: 'icon', text: 'Detonates', icon: 'mdi-alert-octagram', color: 'red darken-4' })
+  if (t.primes) {
+    const length = t.primesLength || defaultLength
+    out.push({ type: 'tooltip', tooltipText: length ? `Primes ${t.primes} ${length}` : `Primes ${t.primes}`, text: `P: ${t.primes}` })
+  }
+  return out
+}
+
 /** Barrier (the live `barrier` getter). Multiclassed: ticks by Σ levels × conversion, uses by total barrier class levels. */
 export function barrier(sheet: Sheet): Barrier {
   const used = (sheet.character.state.game.barrier ?? {}) as { used?: number, ticksUsed?: number }
@@ -246,10 +260,7 @@ function weaponAttack(card: SheetCard, weapon: WeaponContext, sheet: Sheet): She
       if (t.onlyShortRange) range.long = null
       notes.splice(notes.length - augmentNotes, 0, ...t.notes ?? [])
     }
-    for (const t of active) {
-      if (t.primes) notes.unshift({ type: 'tooltip', tooltipText: `Primes ${t.primes} ${t.primesLength || 'until the start of your next turn'}`, text: `P: ${t.primes}` })
-      if (t.detonates) notes.unshift({ type: 'icon', text: 'Detonates', icon: 'mdi-alert-octagram', color: 'red darken-4' })
-    }
+    for (const t of active) notes.unshift(...primerNotes(t, 'until the start of your next turn'))
     out.range = range
     out.notes = notes
   }
@@ -354,6 +365,11 @@ export const meRules: GameRules = {
   powers: {
     classAbility: { adept: 'wis', vanguard: 'wis', engineer: 'int', sentinel: 'wis', infiltrator: 'int', explorer: 'int', tracker: 'wis', musician: 'cha', soldier: false, experiment: false },
     typeAbility: { tech: 'int', biotic: 'wis', combat: 'dex' },
+    // Primers and detonators on power cards (#555): the live sheet showed them only in the expanded power.
+    card: (card) => {
+      const extra = primerNotes(card)
+      return extra.length ? { ...card, notes: [...extra, ...(Array.isArray(card.notes) ? card.notes : [])] } : card
+    },
     multiclass: {
       slots: [
         [2, 4, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
@@ -445,6 +461,7 @@ export const meRules: GameRules = {
       return {
         dc: active.find(t => t.dc)?.dc,
         hitBonus: active.reduce((a, t) => a + (t.hitBonus || 0), 0),
+        damageBonus: active.reduce((a, t) => a + (t.damageBonus || 0), 0),
         damageType: active.find(t => t.damageType)?.damageType,
         damageMultiplier: active.reduce((a, t) => a * (t.damageMultiplier || 1), 1),
         addDamage: active.flatMap(t => t.addDamage ?? []),
