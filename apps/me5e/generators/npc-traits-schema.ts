@@ -31,17 +31,20 @@ export const npcTraitsShape = () => ({
 export const TRAIT_VALUES: Record<string, Record<string, string[]>> = {
   'angara': { 'innate-powercasting': ['powercasting'], 'bio-electric-ward': [], 'solar-dependency': [] },
   'asari': { 'innate-powercasting': ['powercasting'], 'mind-meld': [] },
+  'awakened-collector': { 'wings': [], 'seeker-swarm': [] },
   'batarian': { 'four-eyes': [], 'saving-face': [] },
   'drell': { 'raw-agility': [] },
   'elcor': { careful: [] },
   'geth': { 'hunter-mode': [], 'repair-matrix': [] },
   'hanar': { 'amphibious': [], 'bioluminescence': [], 'contra-gravitic-levitation': [], 'tentacles': [], 'secrete-toxin': [] },
+  'kett': { exoskeleton: [] },
   'krogan': { 'blood-rage': ['temporaryHitPoints'] },
   'quarian': { 'hermetic-suit': [], 'mind-shielding-unit': [], 'overclock-unit': [], 'clarity-unit': [], 'keen-eyesight': [], 'revival-unit': [] },
   'salarian': { amphibious: [] },
   'turian': { 'esprit-de-corps': [] },
   'volus': { 'fury-of-the-small': ['extraDamage'], 'lucky': [], 'hermetic-suit': [] },
   'vorcha': { 'non-differentiated-cells': [], 'bite': [], 'amphibious': [], 'zero-g-aptitude': [] },
+  'yahg': { 'hulking-build': [], 'tackler': [] },
 }
 
 /** Placeholders a trait's text uses (`{{ name }}`). */
