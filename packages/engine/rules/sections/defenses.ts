@@ -6,6 +6,8 @@ import { withLookup } from './skills'
 export interface SaveScore {
   proficient: boolean
   mod: number
+  /** `saving-throw` mechanics giving this save advantage or disadvantage (the sheet rolls with it and shows their notes). */
+  notes: Mech[]
 }
 
 /** Saving throws (the live MeCsSavingThrows component): proficiency from `saving-throw` mechanics or typed saves, plus bonuses. */
@@ -15,19 +17,28 @@ export function computeSaves(sheet: Sheet): Record<string, SaveScore> {
   for (const ability of ABILITY_KEYS) {
     const proficient = mechanics.some(m => m.value?.includes(ability) && !m.effect) || sheet.profs.savingThrow.includes(ability)
     const bonus = mechanics.filter(m => m.value?.includes(ability) && m.effect?.type === 'bonus').reduce((a, m) => a + sheet.formula(m.effect.bonus), 0)
-    out[ability] = { proficient, mod: (sheet.abilities[ability]?.mod ?? 0) + (proficient ? sheet.profBonus : 0) + bonus }
+    const notes = mechanics.filter(m => m.value?.includes(ability) && ['advantage', 'disadvantage'].includes(m.effect?.type))
+    out[ability] = { proficient, mod: (sheet.abilities[ability]?.mod ?? 0) + (proficient ? sheet.profBonus : 0) + bonus, notes }
   }
   return out
 }
 
-/** Advantage and disadvantage on saves "against" conditions and other noted effects. */
-export function saveNotes(sheet: Sheet) {
-  const mechanics = sheet.ofType('saving-throw')
-  const against = (type: string) => [...new Set(mechanics.filter(m => m.effect?.type === type && !m.ability && m.against?.length).flatMap(m => [m.against].flat()))]
+export interface SaveNotes {
+  /** Ids saves have advantage (or disadvantage) against: "against being poisoned or frightened". */
+  advantageAgainst: string[]
+  disadvantageAgainst: string[]
+  /** Advantage or disadvantage on saves of no one ability, in words ("on death saving throws"). */
+  notes: Array<{ type: 'advantage' | 'disadvantage', note: string }>
+}
+
+/** Advantage and disadvantage on saves "against" conditions and other noted effects (the live sheet's list under its saves). */
+export function saveNotes(sheet: Sheet): SaveNotes {
+  const mechanics = sheet.ofType('saving-throw').filter(m => !m.value && !m.valueLookup)
+  const against = (type: string) => [...new Set(mechanics.filter(m => m.effect?.type === type && m.against?.length).flatMap(m => [m.against].flat() as string[]))]
   return {
     advantageAgainst: against('advantage'),
     disadvantageAgainst: against('disadvantage'),
-    notes: mechanics.filter(m => m.effect && !m.effect.type && !m.ability && !m.against).map(m => m.note),
+    notes: mechanics.filter(m => ['advantage', 'disadvantage'].includes(m.effect?.type) && !m.against?.length && (m.effect.note || m.note)).map(m => ({ type: m.effect.type, note: m.effect.note ?? m.note })),
   }
 }
 
@@ -64,7 +75,12 @@ export function computeSpeeds(sheet: Sheet): Record<string, SpeedValue | null> {
     }
     const candidates = sheet.ofType('speed').filter(m => m.speed === speed).sort((a, b) => b.distance - a.distance)
     const bonuses = sheet.ofType('speed-bonus').filter(m => m.value.includes(speed))
-    const value = (f: Rec | undefined) => (f?.type === 'speed' ? (out[f.value]?.distance ?? 0) : f ? sheet.formula(f as Formula) : 0)
+    // `{ type: 'speed', value, multiplier }`: another speed computed before this one, or this speed's own base ("increases by half").
+    const value = (f: Rec | undefined) => {
+      if (f?.type !== 'speed') return f ? sheet.formula(f as Formula) : 0
+      const base = f.value === speed ? (candidates[0]?.distance ?? 0) : (out[f.value]?.distance ?? 0)
+      return Math.floor(base * (f.multiplier ?? 1))
+    }
     const flat = bonuses.reduce((a, m) => a + value(m.bonus), 0)
     if (!candidates.length) {
       // Granted by a conditional bonus: its fallback is the whole speed (already past the armor penalty when it copies one).

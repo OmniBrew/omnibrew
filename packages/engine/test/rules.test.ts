@@ -246,8 +246,8 @@ describe('sheet', () => {
 
   it('computes proficiency, saves and skills', () => {
     expect(sheet.profBonus).toBe(3)
-    expect(sheet.saves.int).toEqual({ proficient: true, mod: 7 })
-    expect(sheet.saves.str).toEqual({ proficient: false, mod: -1 })
+    expect(sheet.saves.int).toEqual({ proficient: true, mod: 7, notes: [] })
+    expect(sheet.saves.str).toEqual({ proficient: false, mod: -1, notes: [] })
     expect(sheet.skills.arcana).toMatchObject({ proficient: true, mod: 7 })
     expect(sheet.skills.perception).toMatchObject({ proficient: true, mod: 4, passive: 14 })
     expect(sheet.skills.athletics.proficient).toBe(true)
@@ -289,6 +289,27 @@ describe('sheet', () => {
     expect(r.sheet(character({ species: 'otter', choices: [] })).speeds.swim).toEqual({ distance: 30 })
     expect(r.sheet(character({ species: 'seal', choices: [] })).speeds.swim?.distance).toBe(30)
     expect(r.sheet(character({ species: 'dragonkin', choices: [] })).speeds.swim).toBeNull()
+  })
+
+  it('adds a share of the speed itself ("your speed increases by half")', () => {
+    const more = new Map(content)
+    more.set('species', new Map([...content.get('species')!, ['hare', { id: 'hare', name: 'Hare', mechanics: [{ type: 'speed', speed: 'walk', distance: 35 }, { type: 'speed-bonus', value: ['walk'], bonus: { type: 'speed', value: 'walk', multiplier: 0.5 } }] }]]))
+    expect(createRules(testGame, more).sheet(character({ species: 'hare', choices: [] })).speeds.walk?.distance).toBe(35 + 17)
+  })
+
+  it('lists save advantages: per ability (rolled with), against conditions, and in words', () => {
+    const more = new Map(content)
+    more.set('species', new Map([...content.get('species')!, ['owl', { id: 'owl', name: 'Owl', mechanics: [
+      { type: 'speed', speed: 'walk', distance: 30 },
+      { type: 'saving-throw', value: ['dex'], effect: { type: 'advantage', note: 'when you can see the effect' } },
+      { type: 'saving-throw', against: ['poisoned', 'charmed'], effect: { type: 'advantage' } },
+      { type: 'saving-throw', effect: { type: 'advantage', note: 'on death saving throws' } },
+      { type: 'saving-throw', value: ['wis'], effect: { type: 'bonus', bonus: { type: 'flat', value: 1 } } },
+    ] }]]))
+    const s = createRules(testGame, more).sheet(character({ species: 'owl', choices: [] }))
+    expect(s.saves.dex!.notes.map(n => n.effect.note)).toEqual(['when you can see the effect'])
+    expect(s.saves.wis!.notes).toEqual([])
+    expect(s.saveNotes).toEqual({ advantageAgainst: ['poisoned', 'charmed'], disadvantageAgainst: [], notes: [{ type: 'advantage', note: 'on death saving throws' }] })
   })
 
   it('computes powercasting: prepared count, slots, cantrips', () => {

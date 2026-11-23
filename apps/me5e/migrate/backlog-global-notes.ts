@@ -97,6 +97,131 @@ export const CONVERSIONS: Record<string, Edit> = {
   'class-features/killshot': () => [{ type: 'augment', value: { model: 'infiltrator', id: 'sneak-attack', limit: ['other'] }, merge: { notes: ['+3d6 with a sniper rifle'] } }],
 }
 
+/** The Exploit die: d4 at 2nd Experiment level up to d12 at 17th (Exploits; plan/04 B148). */
+const EXPLOIT_DIE = { type: 'progressive', limit: 'experiment', value: { 1: 4, 5: 6, 9: 8, 13: 10, 17: 12 } }
+
+/** Removes a mechanic matching `test` and puts `next` in its place (none: just removes it). Re-runnable: no match, no change. */
+const replaceWhere = (test: (m: Rec) => boolean, ...next: Rec[]): Edit => (mechanics) => {
+  const i = mechanics.findIndex(test)
+  if (i < 0) return mechanics
+  return [...mechanics.slice(0, i), ...next, ...mechanics.slice(i + 1)]
+}
+/** A card with its own name (when the record already has a card named after it). */
+const named = (name: string, card: Rec): Rec => ({ name, ...card })
+const all = (...edits: Edit[]): Edit => (mechanics, record) => edits.reduce((m, e) => e(m, record), mechanics)
+
+/**
+ * Phase 4 (plan/31 §1.2, piece 4): notes an existing mechanic type covers. A card
+ * without dice or uses still beats a note: it sits in its action type on the
+ * Actions tab, where the player looks at the table. Re-runnable.
+ */
+export const PHASE4_CONVERSIONS: Record<string, Edit> = {
+  // Notes that repeat a card in the same record.
+  'class-features/biotic-split': replaceNote('Biotic Split'),
+  'class-features/overwatch': replaceNote('Overwatch'),
+  'class-features/remote-detonation': all(
+    replaceNote('Remote Detonation'),
+    mechanics => mechanics.map(m => (m.type === 'bonus-action' && !m.notes ? { ...m, notes: ['No heat cost; your weapon\'s heat must be above 0'] } : m)),
+  ),
+
+  // Immunities and save effects as structured defenses.
+  'class-features/blast-zone': replaceNote('Blast Zone',
+    { type: 'immunity', id: 'detonations', label: 'Detonations you trigger' },
+    { type: 'reaction', name: 'Blast Zone', shortDesc: 'Add your Wisdom modifier to a detonation you triggered with a power you Furycast.' },
+  ),
+  'class-features/riot-strike': replaceNote('Riot Strike', { type: 'immunity', id: 'detonations', label: 'Detonations from your Havoc Strike' }),
+  'class-features/divine-health': replaceNote('Divine Health', { type: 'saving-throw', effect: { type: 'advantage', note: 'on death saving throws and against the effects of detonations' } }),
+  'class-features/master-in-the-saddle': replaceNote('Mount/Dismount',
+    { type: 'saving-throw', effect: { type: 'advantage', note: 'on saving throws to avoid falling off your mount' } },
+    { type: 'speed-note', note: 'Mount or dismount with :distance{length="5"} of movement; after a fall of :distance{length="10"} or less from your mount, land on your feet unless incapacitated.' },
+  ),
+  'gear/trace-signal-jammer-exe': replaceNote('Signal Jammer', { type: 'saving-throw', effect: { type: 'advantage', note: 'on saving throws against heavy weapons that need Targeting' } }),
+
+  // Lasting states as toggles (B58; plan/31 decision 3e).
+  'class-features/acceleration': all(
+    replaceNote('Acceleration', toggle('acceleration', 'Moved at least half your speed this turn: +1 AC.', [{ type: 'ac', bonus: { type: 'flat', value: 1 } }])),
+    // "Your movement speed increases by half" (the text wins, plan/31 decision 2): half your walking speed, not a flat 15 ft.
+    replaceWhere(m => m.type === 'speed-bonus' && (m.bonus as Rec | undefined)?.type === 'flat', { type: 'speed-bonus', value: ['walk'], bonus: { type: 'speed', value: 'walk', multiplier: 0.5 } }),
+  ),
+  'class-features/momentum': replaceNote('Momentum', toggle('momentum', 'Moved at least half your speed this turn: attack twice when you take the Attack action.', [{ type: 'extra-attack', value: 2 }])),
+  'class-features/peak-performance': replaceNote('Peak Performance', toggle('peak-performance', 'Attacking with Intelligence: attack twice when you take the Attack action.', [{ type: 'extra-attack', value: 2 }])),
+  'class-features/event-horizon': all(
+    replaceNote('Event Horizon'),
+    replaceWhere(m => m.type === 'saving-throw' && (m.effect as Rec | undefined)?.type === 'bonus', toggle('event-horizon', 'Wearing no armor: add your Charisma modifier to all your saving throws.', [
+      { type: 'saving-throw', value: ['str', 'dex', 'con', 'int', 'wis', 'cha'], effect: { type: 'bonus', bonus: { type: 'mod', value: 'cha' } } },
+    ])),
+  ),
+  'class-features/ride-on': all(
+    replaceNote('Ride On (1d8)', {
+      type: 'other',
+      name: 'Ride On!',
+      damage: [{ dieCount: { type: 'progressive', limit: 'tracker', value: { 3: 1, 7: 2, 14: 3 } }, dieType: 8 }],
+      shortDesc: 'While mounted: once per turn, a hit by you or by your beast deals {{ roll }} extra damage.',
+    }),
+    replaceWhere(m => m.type === 'initiative', named('Ride On! (mounted)', toggle('ride-on-mounted', 'Mounted: add your Charisma modifier to initiative.', [
+      { type: 'initiative', effect: { type: 'bonus', bonus: { type: 'mod', value: 'cha' } } },
+    ]))),
+  ),
+  'class-features/strike-first': replaceNote('Strike First', toggle('strike-first', 'Your first turn of combat (and any surprise round): your power attack rolls have advantage.', [
+    { type: 'attack-augment', attackLimit: { model: 'power' }, augmentTypes: ['notes'], notes: ['Advantage (first turn)'] },
+  ])),
+
+  // Bonuses that always apply to matching attacks.
+  'class-features/dark-biotics': replaceNote('Dark Biotics', { type: 'attack-augment', attackLimit: { model: 'power', modelTypes: ['biotic'] }, augmentTypes: ['dc'], bonus: { type: 'proficiency' } }),
+  'class-features/ballista': replaceNote('Ballista', { type: 'augment', value: { model: 'engineer', id: 'omni-bow', limit: ['powers'] }, merge: { merge: { damage: [{}, { bonus: { type: 'proficiency' }, label: 'Engineer\'s Efficiency element' }] } } }),
+  'edges/FS_close-quarters-shooter': replaceNote('Close-Quarters Shooter', { type: 'attack-augment', attackLimit: { type: 'ranged' }, augmentTypes: ['notes'], notes: ['No disadvantage within :distance{length="5"} of a hostile creature; ignore half cover within :distance{length="30"}'] }),
+  'class-features/biotic-furor': replaceNote('Biotic Furor', { type: 'power-attack', powerTypes: ['biotic'], levels: [0] }),
+
+  // A condition of one attack, asked when it's rolled (B62).
+  'class-features/unlimited-power': replaceNote('Unlimited Power', { type: 'attack-augment', ask: 'Spend a barrier tick (target within :distance{length="5"})?', augmentTypes: ['damage'], addDamage: [{ dieCount: 2, dieType: 8, type: 'force' }] }),
+
+  // Cards with their dice, DC or uses.
+  'class-features/exploits': (mechanics) => {
+    const note = mechanics.find(isNote('Exploits'))
+    if (!note) return mechanics
+    return replaceNote('Exploits', {
+      type: 'other',
+      name: 'Exploit Die',
+      damage: [{ dieCount: 1, dieType: EXPLOIT_DIE, label: 'Exploit Die' }],
+      dc: { base: 8, proficient: true, mod: 'con' },
+      shortDesc: 'Your class features roll this die when they call for an Exploit Die; their saving throws use this DC.',
+      progressionColumn: note.progressionColumn,
+    })(mechanics, {})
+  },
+  'edges/PA_processor': replaceNote('Primal Processor', { type: 'other', name: 'Primal Processor', damage: [{ dieCount: 1, dieType: EXPLOIT_DIE, type: 'psychic' }], shortDesc: 'A creature that deals you psychic damage takes {{ roll }}.' }),
+  'edges/SA_plating': replaceNote('Supercharge Plating', { type: 'other', name: 'Supercharged Plating', damage: [{ dieCount: 1, dieType: EXPLOIT_DIE, type: 'lightning', bonus: { type: 'level', value: 'experiment' } }], shortDesc: 'An enemy that hits you in melee takes {{ roll }}.' }),
+  'edges/AA_processor': replaceNote('Apex Processor', { type: 'other', name: 'Apex Processor', damage: [{ type: 'hp', mod: 'con', bonus: { type: 'flat', value: 5 } }], shortDesc: 'At the start of each of your turns, while you have at least 1 hit point and are below half your maximum: regain {{ roll }}.' }),
+  // Improved and Expert Commander grew the note's die (d10 at 10th, d12 at 14th); the card's die grows with Tracker levels.
+  'class-features/improved-commander': replaceWhere(m => m.type === 'augment' && ((m.value as Rec).id === 'give-command')),
+  'class-features/expert-commander': replaceWhere(m => m.type === 'augment' && ((m.value as Rec).id === 'give-command')),
+  // Ride On! 2 and 3 renamed the note (2d8, 3d8); the card's dice already grow with Tracker levels.
+  'class-features/ride-on-2': replaceWhere(m => m.type === 'augment' && ((m.value as Rec).id === 'ride-on')),
+  'class-features/ride-on-3': replaceWhere(m => m.type === 'augment' && ((m.value as Rec).id === 'ride-on')),
+  'class-features/give-command': replaceNote('Command Dice (1d8)', { type: 'other', name: 'Command Dice', damage: [{ dieCount: 1, dieType: { type: 'progressive', limit: 'tracker', value: { 3: 8, 10: 10, 14: 12 } }, label: 'Command Die' }], resource: { id: 'command-dice', reset: 'short', max: { type: 'flat', value: 4 } }, shortDesc: 'Spend one on a Command you know.' }),
+  'class-features/death-strike': replaceNote('Death Strike', { type: 'other', name: 'Death Strike', dc: { base: 8, proficient: true, mod: 'dex', save: 'con' }, shortDesc: 'When you hit a surprised creature, it makes a {{ dc }} Constitution saving throw: on a failure, double the damage of your attack.' }),
+  'class-features/shock-cavalry': replaceNote('Shock Cavalry', { type: 'other', name: 'Shock Cavalry', dc: { base: 8, proficient: true, mod: 'wis', save: 'wis' }, shortDesc: 'You or your beast hit a creature after moving at least :distance{length="20"}, from within :distance{length="15"} of it: it makes a {{ dc }} Wisdom saving throw or is :condition{id="frightened"} for 1 minute (it retries at the end of each of its turns).' }),
+  'class-features/intangible': replaceNote('Intangible', { type: 'reaction', name: 'Intangible', damage: [{ dieCount: 1, dieType: 6, label: 'd6' }], shortDesc: 'When you are the target of an attack and moved at least half your speed on your last turn: roll a d6, and on 3 or lower the attack misses you (after the attack roll).' }),
+  'class-features/death-blossom': replaceNote('Death Blossom', { type: 'bonus-action', name: 'Death Blossom', shortDesc: 'When you take the Attack action: one extra attack with your off-hand weapon per attack you make.' }),
+  'class-features/five-round-rapid': replaceNote('Five Round Rapid', { type: 'action', name: 'Five Round Rapid', shortDesc: 'Attack action with a heavy pistol: fire {{ profBonus }} shots at one or several targets (Sneak Attack once on each). The pistol then jams until you reload it with an action on your next turn.' }),
+  'class-features/start-blastin': replaceNote('Start Blastin\'', { type: 'action', name: 'Start Blastin\'', shortDesc: 'Attack action: fire your heavy pistol twice at two different targets (Sneak Attack on each that qualifies).' }),
+  'class-features/total-combat': replaceNote('Total Combat', { type: 'bonus-action', name: 'Total Combat', shortDesc: 'When you use Hold Your Ground or attack with an SMG: use a grenade.' }),
+  'class-features/true-explorer': replaceNote('True Explorer', { type: 'reaction', name: 'True Explorer', shortDesc: 'When you detonate a primed target: prime it again with the same type.' }),
+  // Kalahira's devotion is one of True Devotion's toggle options.
+  'class-features/true-devotion': mechanics => mechanics.map((m) => {
+    const options = (m.toggle as Rec | undefined)?.options as Rec[] | undefined
+    if (!options) return m
+    return {
+      ...m,
+      toggle: {
+        ...(m.toggle as Rec),
+        options: options.map(o => (o.id === 'devotee-true-devotion-kalahira'
+          ? { ...o, whenOn: replaceNote('Kalahira Devotion', { type: 'other', name: 'Kalahira Devotion', damage: [{ dieCount: 1, dieType: 4, mod: 'wis', type: 'shields' }], shortDesc: 'An enemy within :distance{length="50"} dies: regain {{ roll }} points (temporary hit points until your next short rest if your shields are full).' })((o.whenOn ?? []) as Rec[], {}) }
+          : o)),
+      },
+    }
+  }),
+}
+
 /** Set bonuses keep mechanics per threshold. */
 const SET_BONUSES: Record<string, (bonuses: Rec[]) => Rec[]> = {
   'set-bonuses/pathfinder': bonuses => bonuses.map(b => ({ ...b, mechanics: replaceNote('Null Critical', { type: 'critical-immunity' })((b.mechanics ?? []) as Rec[], b) })),
@@ -124,6 +249,7 @@ export function convert(root: string) {
     })
   }
   for (const [rel, edit] of Object.entries(SET_BONUSES)) write(rel, a => ({ ...a, bonuses: edit((a.bonuses ?? []) as Rec[]) }))
+  for (const [rel, edit] of Object.entries(PHASE4_CONVERSIONS)) write(rel, a => ({ ...a, mechanics: edit((a.mechanics ?? []) as Rec[], a) }))
   return changed
 }
 

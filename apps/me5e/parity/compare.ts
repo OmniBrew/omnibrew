@@ -58,6 +58,12 @@ const d12Bonuses =(s: string) => [...s.matchAll(/d12 \+ (-?\d+)/g)].map(x => Num
 const segment = (s: string, prefix: string) => s.split(' | ').find(x => x.startsWith(prefix))
 const withSegment = (s: string, prefix: string, value: string | undefined) => s.split(' | ').map(x => (x.startsWith(prefix) && value ? value : x)).join(' | ')
 
+/** Phase 4 conversions (plan/31 piece 4): replaced notes, new toggles and new cards. */
+const PHASE4_NOTES = ['Biotic Split', 'Overwatch', 'Remote Detonation', 'Blast Zone', 'Riot Strike', 'Divine Health', 'Mount/Dismount', 'Signal Jammer', 'Acceleration', 'Momentum', 'Peak Performance', 'Event Horizon', 'Ride On', 'Strike First', 'Dark Biotics', 'Ballista', 'Close-Quarters Shooter', 'Biotic Furor', 'Unlimited Power', 'Exploits', 'Primal Processor', 'Supercharge Plating', 'Apex Processor', 'Command Dice', 'Death Strike', 'Shock Cavalry', 'Intangible', 'Death Blossom', 'Five Round Rapid', 'Start Blastin\'', 'Total Combat', 'True Explorer', 'Kalahira Devotion']
+const PHASE4_TOGGLES = ['acceleration', 'momentum', 'peak-performance', 'event-horizon', 'ride-on-mounted', 'strike-first']
+const PHASE4_CARDS = ['Exploit Die', 'Primal Processor', 'Supercharged Plating', 'Apex Processor', 'Command Dice', 'Death Strike', 'Shock Cavalry', 'Intangible', 'Death Blossom', 'Five Round Rapid', 'Start Blastin\'', 'Total Combat', 'True Explorer', 'Kalahira Devotion', 'Blast Zone', 'Ride On!', 'Ride On! (mounted)', 'Acceleration', 'Momentum', 'Peak Performance', 'Event Horizon', 'Strike First']
+const CQS_NOTE = 'No disadvantage within :distance{length="5"} of a hostile creature; ignore half cover within :distance{length="30"}'
+
 export const KNOWN: Known[] = [
   // --- live-site bugs the engine fixes ---
   {
@@ -264,6 +270,30 @@ export const KNOWN: Known[] = [
       || (uses(ctx, 'TA_plains') && /^\.speeds\.walk: \d+ → \d+$/.test(line))
       || (line.startsWith('.initiative:') && ((ctx.character.classes ?? []) as Array<{ subclass?: string, levels?: number }>).some(k => k.subclass === 'armorer' && (k.levels ?? 0) >= 14))
       || (uses(ctx, 'toxic-resistance') && line === '.defenses.resistance + "poison"'),
+  },
+  // --- the mechanics backlog, Phase 4 (plan/31 piece 4; apps/me5e/migrate/backlog-global-notes.ts PHASE4_CONVERSIONS) ---
+  {
+    id: 'backlog-phase-4',
+    reason: 'Plan/04 R8, plan/31: global notes converted with existing mechanics. The note leaves the sheet; its rule shows as a card with its dice or DC (Exploit Die, Command Dice, Ride On!, Death Strike...), a toggle for a lasting state (Acceleration, Momentum, Peak Performance, Event Horizon without armor, Ride On! mounted, Strike First), an immunity (detonations), a save note, or a bonus on matching attacks (Dark Biotics +PB to biotic power DCs, Ballista +PB to Bowshot, Close-Quarters Shooter notes on ranged attacks, Biotic Furor cantrips as attacks).',
+    fix: (text, ctx, next) => {
+      let out = text
+      if (uses(ctx, 'disruptor') && out.startsWith('power ')) out = withSegment(out, 'DC ', segment(next, 'DC '))
+      if (uses(ctx, 'bowman') && out.startsWith('power bowshot@')) out = withSegment(out, 'dmg ', segment(next, 'dmg '))
+      if (uses(ctx, 'FS_close-quarters-shooter') && next.endsWith(CQS_NOTE) && !out.endsWith(CQS_NOTE)) out = / \| notes [^|]*$/.test(out) ? `${out}; ${CQS_NOTE}` : `${out} | notes ${CQS_NOTE}`
+      if (out.startsWith('bonus-action Remote Detonation') && !out.includes(' | notes ') && segment(next, 'notes ')) out = `${out} | ${segment(next, 'notes ')}`
+      return out
+    },
+    test: (line, ctx) => {
+      const note = line.match(/^\.globalNotes - "\w*: (.*)"$/)?.[1]
+      if (note) return PHASE4_NOTES.some(n => note === n || note.startsWith(`${n}:`) || note.startsWith(`${n} (`))
+      if (new RegExp(`^\\.resources \\+ "toggle (?:${PHASE4_TOGGLES.join('|')})"$`).test(line)) return true
+      if (/^\.actions \+ "(?:other|reaction|action|bonus-action) /.test(line)) return PHASE4_CARDS.some(n => line.includes(` ${n} |`) || line.endsWith(` ${n}"`))
+      if (/^\.defenses\.immunity \+ "Detonations /.test(line)) return true
+      // Lasting states now toggled off by default: Event Horizon's saves, Ride On!'s initiative, Acceleration's half speed.
+      return (uses(ctx, 'void-fist') && /^\.saves\.\w+: /.test(line))
+        || (uses(ctx, 'outrider') && /^\.initiative: /.test(line))
+        || (uses(ctx, 'path-of-the-voidhopper') && /^\.speeds\.walk: /.test(line))
+    },
   },
   // --- Phase 4 cleanup (plan/31): content where the mechanic disagreed with its own text, and typos ---
   {
