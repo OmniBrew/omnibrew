@@ -7,7 +7,7 @@ import { HandlerRegistry } from './handlers'
 import { computeAbilities, type AbilityScore } from './sections/abilities'
 import { computeAc, computeArmorBreakdown, type ArmorBreakdown } from './sections/armor'
 import { computeActions, computeCard, type ResolvedCard } from './sections/cards'
-import { computeDefenses, computeInitiative, computeSaves, computeSenses, computeSpeeds, type Defenses, type SaveScore } from './sections/defenses'
+import { computeDefenses, computeInitiative, computeSaves, computeSenses, computeSpeeds, saveNotes, type Defenses, type SaveNotes, type SaveScore } from './sections/defenses'
 import { computeEquipment, type EquipmentView } from './sections/equipment'
 import { computePowercasting, computePowers, type Powercasting, type PowerCard } from './sections/powers'
 import { computeProfs, computeSkills, type Profs, type SkillScore } from './sections/skills'
@@ -191,6 +191,11 @@ export class Sheet {
 
   get saves(): Record<string, SaveScore> {
     return this.cached('saves', () => computeSaves(this))
+  }
+
+  /** Advantage and disadvantage on saves against conditions and other effects. */
+  get saveNotes(): SaveNotes {
+    return this.cached('saveNotes', () => saveNotes(this))
   }
 
   get armorBreakdown(): ArmorBreakdown {
