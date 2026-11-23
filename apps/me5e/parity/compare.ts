@@ -66,6 +66,19 @@ const PHASE4_TOGGLES = ['acceleration', 'momentum', 'peak-performance', 'event-h
 const PHASE4_CARDS = ['Exploit Die', 'Primal Processor', 'Supercharged Plating', 'Apex Processor', 'Command Dice', 'Death Strike', 'Shock Cavalry', 'Intangible', 'Death Blossom', 'Five Round Rapid', 'Start Blastin\'', 'Total Combat', 'True Explorer', 'Kalahira Devotion', 'Blast Zone', 'Ride On!', 'Ride On! (mounted)', 'Acceleration', 'Momentum', 'Peak Performance', 'Event Horizon', 'Strike First']
 const CQS_NOTE = 'No disadvantage within :distance{length="5"} of a hostile creature; ignore half cover within :distance{length="30"}'
 
+/** Phase 4 piece 6 (plan/31): cards and resources that gained dice, DCs, uses or costs. */
+const PHASE6_CARDS = [
+  'Convince', "Fake It 'til You Make It", 'Psychometry', 'Quickened Power', 'Heightened Power', 'Soothing Music', 'Blood Rage', 'Body and Soul', 'Smoke Grenade',
+  'Maverick Armor Set Bonus (2 of 4)', 'Maverick Armor Set Bonus (4 of 4)', 'Diagnostic Drone', 'Leadership', 'Feedback', 'Afterburner', 'Saving Face', 'Protection', 'Quick Burn',
+  'Teleporting Dodge', 'Sacrifice', 'Judgement', 'Fury of the Small', 'Aspiration', 'Archon Visor', 'Cabal Cloak', 'Heavy Weapon Hack', 'Biotic Ghost', 'Not by my Hand',
+  'Inspire the Revolution', 'Barbed Strikes', 'Nanite Apotheosis (regen)', 'Poison Skin', 'Supply Pylon', 'Injection', 'Grab and Toss', 'Hologram', 'Hologram Opportunity Attack',
+  'Delumcore Overlay', 'Create epoxy', 'Synthetic Healer', 'Rally Point',
+  'Ambush', 'Bait and Switch', 'Brace', 'Commanding Presence', 'Disarming Strike', 'Distracting Strike', 'Evasive Maneuvers', 'Feinting Attack', 'Grappling Strike', 'Lunging Attack',
+  'Maneuvering Attack', 'Menacing Attack', 'Pushing Attack', 'Rally', 'Trip Attack',
+  'Death Toxin', 'Hallucinating Toxin', 'Hindering Toxin', 'Mind-Addling Toxin', 'Neural Toxin', 'Paralyzing Toxin', 'Polonium Toxin', 'Vulnerability Toxin',
+]
+const PHASE6_RESOURCES = ['NMB_quickened-power', 'NMB_heightened-power', 'diagnostic-drone', 'FS_protection', 'teleporting-dodge', 'heavy-weapon-hack', 'cardinal-focus-points', 'armiger-fuel', 'REP_not-by-my-hand', 'cabal-cloak', 'command-dice', 'musicians-inspiration', 'supply-pylon', 'blood-rage', 'body-and-soul', 'psychometry']
+
 export const KNOWN: Known[] = [
   // --- live-site bugs the engine fixes ---
   {
@@ -310,6 +323,16 @@ export const KNOWN: Known[] = [
     test: (line) => {
       const note = line.match(/^\.globalNotes - "\w*: (.*)"$/)?.[1]
       return !!note && ['Exploit: Pound', '2x Cantrip Charges', 'Deep Biotics', 'Atomic Powers', 'Reaper Scar', 'Biotic Control', 'Primed: Radiant', 'Tech Cannon', 'Assault Mastery'].includes(note)
+    },
+  },
+  {
+    id: 'backlog-cards-phase-4',
+    reason: 'Plan/31 piece 6: cards get what their text states: dice (Command die, Inspiration die, d4/d6 rolls, damage reduction), DCs (Judgement, Poison Skin, Supply Pylon, the Poisoner\'s toxins), ranges, uses and costs per use (2 or 3 barrier ticks, Fuel, Focus Points, omni-gel), shared pools (Not by my Hand), descriptions; crit rules as attack augments (Delumcore Overlay, Maverick set, Savage Attacks); the Plasma Charge System\'s splash no longer adds to the target\'s damage.',
+    test: (line, ctx) => {
+      if (/^\.(?:actions|resources) [~+-] /.test(line)) return PHASE6_CARDS.some(n => line.includes(` ${n} |`) || line.includes(` ${n}"`) || line.includes(` ${n} =>`)) || PHASE6_RESOURCES.some(id => line.includes(`resource ${id} `)) || line.includes('toggle rally-point')
+      // Advanced Weapon Holsters: two more weapon slots.
+      if (line.startsWith('.capacities:') && hasSubclass(ctx, 'havoc')) return true
+      return /^\.attacks\.\w+ ~ /.test(line) && uses(ctx, 'delumcore-overlay', 'maverick-boots', 'maverick-vest', 'maverick-visor', 'maverick-wraps', 'behemoth', 'plasma-charge-system', 'exaltation-anointed')
     },
   },
   // --- Phase 4 cleanup (plan/31): content where the mechanic disagreed with its own text, and typos ---
