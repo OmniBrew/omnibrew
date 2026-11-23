@@ -312,6 +312,42 @@ describe('sheet', () => {
     expect(s.saveNotes).toEqual({ advantageAgainst: ['poisoned', 'charmed'], disadvantageAgainst: [], notes: [{ type: 'advantage', note: 'on death saving throws' }] })
   })
 
+  it('applies power-augments to the powers they match', () => {
+    const withAugments = (mechanics: Rec[]) => {
+      const more = new Map(content)
+      more.set('species', new Map([...content.get('species')!, ['mage', { id: 'mage', name: 'Mage', mechanics: [{ type: 'speed', speed: 'walk', distance: 30 }, ...mechanics] }]]))
+      return createRules(testGame, more).sheet(character({ species: 'mage', choices: [] }))
+    }
+    const plain = withAugments([])
+    const s = withAugments([
+      { type: 'power-augment', castLevelBonus: 1 },
+      { type: 'power-augment', levels: [0], dieCount: 1, dieIncrease: 1, merge: { resource: { max: { type: 'flat', value: 2 } } }, usesMultiplier: 2 },
+      { type: 'power-augment', damageTypes: ['force'], damageBonus: { type: 'flat', value: 3 } },
+      { type: 'power-augment', powers: ['shield-wall'], notes: ['Rider'] },
+      { type: 'power-augment', powerTypes: ['other'], dieCount: 5 },
+    ])
+    const bolt = (sheet: typeof s) => sheet.powers.find(p => p.id === 'firebolt')!
+    const wall = (sheet: typeof s) => sheet.powers.find(p => p.id === 'shield-wall' && p.level === 1)!
+    // Cantrips: one more die, one size up; uses from the merge, doubled.
+    expect(bolt(s).damage[0].dieCount).toBe(bolt(plain).damage[0].dieCount + 1)
+    expect(bolt(s).damage[0].dieType).toBe(12)
+    expect(s.formula(bolt(s).resource.max)).toBe(4)
+    // A 1st-level slot casts the 2nd-level tier; force damage +3; a note on this power only.
+    expect(wall(s).damage[0].dieCount).toBe(3)
+    expect(s.formula(wall(s).damage[0].bonus)).toBe(s.formula(wall(plain).damage[0].bonus) + 3)
+    expect(wall(s).notes).toContain('Rider')
+    expect(bolt(s).notes ?? []).not.toContain('Rider')
+  })
+
+  it('adds a die past the largest as overflowPerDie per die', () => {
+    const more = new Map(content)
+    more.set('species', new Map([...content.get('species')!, ['seer', { id: 'seer', name: 'Seer', mechanics: [{ type: 'speed', speed: 'walk', distance: 30 }, { type: 'power-augment', levels: [0], dieIncrease: 2, overflowPerDie: 2 }] }]]))
+    const bolt = createRules(testGame, more).sheet(character({ species: 'seer', choices: [] })).powers.find(p => p.id === 'firebolt')!
+    // d10 → d12, one step past: +2 per die.
+    expect(bolt.damage[0].dieType).toBe(12)
+    expect(bolt.damage[0].bonus).toMatchObject({ type: 'flat', value: 2 * bolt.damage[0].dieCount })
+  })
+
   it('computes powercasting: prepared count, slots, cantrips', () => {
     expect(sheet.powercasting.abilities).toEqual({ wizard: 'int' })
     expect(sheet.powercasting.byClass.wizard).toEqual({ numPowers: 9, maxPowerLevel: 2, numCantrips: 4, learned: false, powercastingType: 'slots' })

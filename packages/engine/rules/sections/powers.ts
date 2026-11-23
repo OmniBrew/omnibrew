@@ -1,7 +1,7 @@
 import { mergeDeep } from '../../schemas/primitives'
 import type { Sheet } from '../sheet'
 import type { Mech, Rec } from '../types'
-import { augmentCard, matchingAugments } from './cards'
+import { augmentCard, dieIncrease, matchingAugments } from './cards'
 
 export interface ClassPowercasting {
   numPowers: number
@@ -193,11 +193,17 @@ export function computePowers(sheet: Sheet): PowerCard[] {
   const out: PowerCard[] = []
   const rules = sheet.rules.powers
   const overrides = sheet.character.overrides
+  const powerAugments = sheet.ofType('power-augment')
+  const augmentsById = new Map<string, Mech[]>()
   for (const p of selectedPowers(sheet)) {
     const power = sheet.content.get('powers', p.id)
     if (!power) continue
     const casting: Rec[] = power.casting ?? []
-    const base = p.merge ? mergeDeep(structuredClone(casting[0]), structuredClone(p.merge)) as Rec : casting[0]!
+    let base = p.merge ? mergeDeep(structuredClone(casting[0]), structuredClone(p.merge)) as Rec : casting[0]!
+    // `power-augment`s matching this power: their merges join the casting before anything reads it.
+    const augmenting = powerAugments.filter(m => matchesPower(m, power, base))
+    for (const m of augmenting) if (m.merge) base = mergeDeep(structuredClone(base), structuredClone(m.merge)) as Rec
+    if (augmenting.length) augmentsById.set(power.id, augmenting)
     const mod = p.mod || (p.klass ? sheet.powercastingAbilities[p.klass] : undefined) || rules.typeAbility[power.powerType] || false
     const attackMod = base.attack?.mod === 'pc' ? false : base.attack?.mod
     const dcMod = base.dc?.mod === 'pc' ? false : base.dc?.mod
@@ -232,10 +238,15 @@ export function computePowers(sheet: Sheet): PowerCard[] {
       out.push(merge(basePower, tier > 0 ? casting[tier] : null, advCasting(tier)) as PowerCard)
     }
     else {
+      // "Counts as N levels higher": a slot of level L casts the power's tier for L + N, at most its highest listed tier.
+      // Without a shift, a slot above the listed tiers casts the base power, as live.
+      const shift = augmenting.reduce((a, m) => a + (m.castLevelBonus || 0), 0)
+      const tierOf = (i: number) => (shift && i < casting.length ? Math.min(i + shift, casting.length - 1) : i)
       for (let i = 0; i <= rules.maxLevel - basePower.level; i++) {
         const level = i + basePower.level
         if (p.castAt && level !== p.castAt) continue
-        out.push(merge({ ...basePower, level, upcast: i !== 0 }, i === 0 ? {} : casting[i], advCasting(i)) as PowerCard)
+        const tier = tierOf(i)
+        out.push(merge({ ...basePower, level, upcast: i !== 0 }, tier === 0 ? {} : casting[tier], advCasting(tier)) as PowerCard)
       }
     }
   }
@@ -263,10 +274,52 @@ export function computePowers(sheet: Sheet): PowerCard[] {
       power.resource = { ...res.resource, id: `${res.resource.id}-${power.id}` }
       power.isCastableWithoutResource = true
     }
+    applyPowerAugments(sheet, power, augmentsById.get(power.id) ?? [])
     const augments = matchingAugments(sheet, { attackType: power.attack?.type, model: power.attack?.wp ?? 'power', modelType: power.type, abilityMod: power.mod || undefined })
+    for (const m of augmentsById.get(power.id) ?? []) {
+      if (m.damageBonus) augments.damage += sheet.formula(m.damageBonus)
+      if (m.addDamage) augments.addDamage.push(...m.addDamage)
+    }
     Object.assign(power, augmentCard(sheet, power, augments, dieSteps.power))
   }
   return rules.card ? out.map(c => rules.card!(c, sheet) as PowerCard) : out
+}
+
+/** A `power-augment` matches a power by id, power type, the power's own level and the damage types its casting deals. */
+function matchesPower(m: Mech, power: Rec, casting: Rec): boolean {
+  return (!m.powers || m.powers.includes(power.id))
+    && (!m.powerTypes || m.powerTypes.includes(power.powerType))
+    && (!m.levels || m.levels.includes(power.level))
+    && (!m.damageTypes || ((casting.damage || []) as Rec[]).some(d => m.damageTypes.includes(d.type)))
+}
+
+/**
+ * What `power-augment`s change on a built power card besides its tier and casting merge:
+ * dice on the main damage roll, bigger dice (past the largest, `overflowPerDie` per die, else +1),
+ * uses, and notes. Damage bonuses and extra damage go through the card's attack augments.
+ */
+function applyPowerAugments(sheet: Sheet, card: Rec, augmenting: Mech[]) {
+  if (!augmenting.length) return
+  const healing = sheet.enums.values.healingTypes ?? []
+  const main = Array.isArray(card.damage) ? (card.damage as Rec[]).findIndex(d => !d.addTo && !healing.includes(d.type)) : -1
+  for (const m of augmenting) {
+    if (main >= 0 && (m.dieCount || m.dieIncrease)) {
+      card.damage = (card.damage as Rec[]).map((d, i) => {
+        if (d.addTo || healing.includes(d.type)) return d
+        let next = { ...d }
+        if (m.dieCount && i === main) next.dieCount = typeof d.dieCount === 'number' ? d.dieCount + m.dieCount : { type: 'multi', value: [d.dieCount ?? { type: 'flat', value: 0 }, { type: 'flat', value: m.dieCount }] }
+        if (m.dieIncrease) {
+          const { dieType, overflow } = dieIncrease(d.dieType, dieSteps.power, m.dieIncrease)
+          const dice = typeof next.dieCount === 'number' ? next.dieCount : sheet.formula(next.dieCount)
+          const extra = overflow * (m.overflowPerDie ? m.overflowPerDie * dice : 1)
+          next = { ...next, dieType, ...(extra ? { bonus: addBonus(d.bonus, extra) } : {}) }
+        }
+        return next
+      })
+    }
+    if (m.usesMultiplier && card.resource?.max) card.resource = { ...card.resource, max: { ...card.resource.max, multiplier: (card.resource.max.multiplier ?? 1) * m.usesMultiplier } }
+    if (m.notes?.length) card.notes = [...(Array.isArray(card.notes) ? card.notes : []), ...m.notes]
+  }
 }
 
 /** Die steps for "increase the die type": powers skip d2, weapons don't (the live site's two tables). */

@@ -133,6 +133,13 @@ describe('ME rules', () => {
     expect(notes('barrier')).toEqual([])
   })
 
+  it('reads the tracked Indoctrinated level, at least a feature minimum (me:indoctrination, Reaper Scar)', () => {
+    const at = (level: number) => rules.sheet(character({ currentStats: { ...character().state, indoctrination: level, resources: {}, barrier: {} } }))
+    const f = { type: 'me:indoctrination', min: 2 } as never
+    expect(at(0).formula(f)).toBe(2)
+    expect(at(3).formula(f)).toBe(3)
+  })
+
   it('offers the live custom armor pieces as built-in records', () => {
     expect(rules.content.get('armor', 'ca-arms-heavy-1')).toMatchObject({ slot: 'arms', armorType: 'heavy', coverage: 'piece' })
     expect(rules.content.list('armor').filter(a => a.id.startsWith('ca-'))).toHaveLength(33)
