@@ -56,7 +56,7 @@ const classes = [
 ]
 
 const asi = (ability: string, amount = 1) => ({ type: 'asi', ability, amount })
-const TRAIT_SPECIES = ['angara', 'asari', 'batarian', 'drell', 'elcor', 'geth', 'hanar', 'krogan', 'prothean', 'quarian', 'salarian', 'turian', 'volus', 'vorcha']
+const TRAIT_SPECIES = ['angara', 'asari', 'awakened-collector', 'batarian', 'drell', 'elcor', 'geth', 'hanar', 'kett', 'krogan', 'prothean', 'quarian', 'salarian', 'turian', 'unshackled-ai', 'volus', 'vorcha', 'yahg']
 const species = [
   ...TRAIT_SPECIES.map(id => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1), mechanics: [asi('dex'), { type: 'speed', speed: 'walk', distance: 30 }] })),
   { id: 'asari', name: 'Asari', subspecies: 'lifestage', mechanics: [asi('wis')] },
@@ -313,6 +313,15 @@ describe('NPC generator', () => {
     expect(withTraits('volus').hp.dieType).toBe(6)
     expect(withTraits('elcor').speed.walk).toBe(20)
     expect(names(withTraits('turian'))).toContain('Esprit de Corps')
+    // Species the live generator never knew (#529).
+    expect(withTraits('unshackled-ai').irv?.damImm).toEqual(['poison', 'psychic'])
+    expect(withTraits('unshackled-ai').irv?.conImm).toContain('poisoned')
+    expect(withTraits('unshackled-ai').type).toBe('synthetic')
+    expect(withTraits('yahg').senses?.darkvision).toBe(60)
+    expect(names(withTraits('yahg'))).toEqual(expect.arrayContaining(['Hulking Build', 'Tackler']))
+    expect(withTraits('awakened-collector').speed.fly).toBe(30)
+    expect(names(withTraits('awakened-collector'))).toContain('Wings')
+    expect(names(withTraits('kett'))).toContain('Exoskeleton')
     expect(names(withTraits('vorcha'))).toContain('Bite')
     expect(names(withTraits('krogan'))).toContain('Blood Rage')
     expect(withTraits('angara').irv?.res).toContain('lightning')

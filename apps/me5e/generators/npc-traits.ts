@@ -36,6 +36,15 @@ function action(b: NpcBuilder, id: string, rest: Omit<NpcEntry, 'id' | 'name' | 
 
 const hitText = (b: NpcBuilder, ability: 'cha') => `power save DC ${b.dc(ability)}, +${b.npc.profBonus + b.mod(ability)} to hit with power attacks`
 
+/** Synthetic creatures (geth, unshackled AI): immune to poison and psychic damage and to being poisoned. */
+function syntheticImmunities(b: NpcBuilder) {
+  const irv = b.npc.irv!
+  irv.damImm = ['poison', 'psychic']
+  irv.res = irv.res?.filter(d => !irv.damImm!.includes(d))
+  irv.vul = irv.vul?.filter(d => !irv.damImm!.includes(d))
+  irv.conImm = [...new Set([...(irv.conImm ?? []), 'poisoned'])]
+}
+
 export const speciesTraits: Record<string, Traits> = {
   angara(b) {
     const dmg = { type: 'power' as const, damage: 3, uses: 5 }
@@ -95,14 +104,22 @@ export const speciesTraits: Record<string, Traits> = {
     b.npc.ac += 2
   },
 
+  'awakened-collector'(b) {
+    // Wings: a short flight (the trait text says it falls at the end of its turn).
+    b.npc.speed.fly = 30
+    feature(b, 'wings')
+    // Seeker Swarm: three swarms of 1d4 + 1 necrotic each, counted like an innate power.
+    const dmg = { type: 'power' as const, damage: 3.5, uses: 3 }
+    if (b.isDamageAddable(dmg)) {
+      action(b, 'seeker-swarm')
+      b.addDamage(dmg)
+    }
+  },
+
   geth(b) {
     action(b, 'hunter-mode', { recharge: 'long' })
     b.npc.ac += b.pick([1, 2, 3])!
-    const irv = b.npc.irv!
-    irv.damImm = ['poison', 'psychic']
-    irv.res = irv.res?.filter(d => !irv.damImm!.includes(d))
-    irv.vul = irv.vul?.filter(d => !irv.damImm!.includes(d))
-    irv.conImm = [...new Set([...(irv.conImm ?? []), 'poisoned'])]
+    syntheticImmunities(b)
     const uses = Math.ceil(b.npc.profBonus / 2)
     const bonus = (uses / 2) * 4.5
     if (b.isHpBonusAddable(bonus)) {
@@ -133,6 +150,10 @@ export const speciesTraits: Record<string, Traits> = {
       })
     }
     action(b, 'secrete-toxin')
+  },
+
+  kett(b) {
+    feature(b, 'exoskeleton')
   },
 
   krogan(b) {
@@ -200,6 +221,11 @@ export const speciesTraits: Record<string, Traits> = {
     b.addSkill('persuasion')
   },
 
+  'unshackled-ai'(b) {
+    // Synthetic Construct: immune to psychic and poison damage and to being poisoned, as the geth.
+    syntheticImmunities(b)
+  },
+
   vorcha(b) {
     feature(b, 'non-differentiated-cells')
     b.addResistances('poison')
@@ -229,6 +255,13 @@ export const speciesTraits: Record<string, Traits> = {
         feature(b, 'zero-g-aptitude')
         break
     }
+  },
+
+  yahg(b) {
+    b.npc.senses = { ...b.npc.senses, darkvision: 60 }
+    b.addSkill('insight')
+    feature(b, 'hulking-build')
+    feature(b, 'tackler')
   },
 }
 

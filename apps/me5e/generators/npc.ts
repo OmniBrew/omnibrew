@@ -4,6 +4,9 @@ import { applySpeciesTraits } from './npc-traits'
 import { TRAIT_VALUES } from './npc-traits-schema'
 import { abilityMod, averageDice, pick, type Random } from './random'
 
+/** Species whose NPCs are synthetic (creature type, and the synthetic immunities in npc-traits.ts). */
+export const SYNTHETIC_SPECIES = ['geth', 'unshackled-ai']
+
 /**
  * The NPC generator (the live /generators/npc, `mixins/npc_generator`), ported to the new
  * record shapes. It builds a disposable NPC for a challenge rating, class and species from
@@ -61,7 +64,7 @@ export interface GeneratedNpc {
   alignment: string
   ac: number
   hp: { dieCount: number, dieType: 6 | 8 }
-  speed: { walk: number, swim?: number }
+  speed: { walk: number, swim?: number, fly?: number }
   abilityScores: Record<Ability, number>
   savingThrows?: Ability[]
   skills?: string[]
@@ -313,7 +316,7 @@ export class NpcBuilder {
 
   build(traits: boolean): NpcBudget {
     this.setDamageBudget()
-    this.npc.type = this.speciesId === 'geth' ? 'synthetic' : 'organic'
+    this.npc.type = SYNTHETIC_SPECIES.includes(this.speciesId) ? 'synthetic' : 'organic'
     this.npc.alignment = `${this.pick(['l', 'n', 'c'])}${this.pick(['g', 'n', 'e'])}`
     this.npc.ac = this.cr.ac + (this.pick(AC_MODS[this.scale] ?? [0]) ?? 0)
     this.setIrvs()
