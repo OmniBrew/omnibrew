@@ -35,7 +35,11 @@ const groups = computed<Group[]>(() => {
       picked.set(key, [...picked.get(key) ?? [], { key: `${key}-${v}-${c.path}`, collection, record }])
     }
   }
-  for (const [key, items] of picked) out.push({ id: key, title: te(`sheet.features.groups.${key}`) ? t(`sheet.features.groups.${key}`) : key, items })
+  for (const [key, items] of picked) {
+    // String keys use `_` for `-` (B115); a family without a string reads as its words ("fighting-styles" → "Fighting Styles").
+    const i18nKey = `sheet.features.groups.${key.replace(/-/g, '_')}`
+    out.push({ id: key, title: te(i18nKey) ? t(i18nKey) : key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '), items })
+  }
   return out
 })
 

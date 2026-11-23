@@ -97,6 +97,8 @@ export interface PowerRules {
   cantripLevels: { normal: number[], early: number[] }
   /** Highest level a leveled power upcasts to. */
   maxLevel: number
+  /** Game additions to each power card once it is built (ME primer and detonation notes). Returns the card to show. */
+  card?: (card: SheetCard, sheet: Sheet) => SheetCard
 }
 
 /** A card the sheet shows: an action, attack, power or feature with rolls. */
@@ -238,6 +240,8 @@ export interface WeaponRules {
 export interface WeaponMode {
   dc?: Rec
   hitBonus?: number
+  /** Flat bonus (or penalty) to the weapon's damage roll. */
+  damageBonus?: number
   damageType?: string
   damageMultiplier?: number
   addDamage?: Rec[]

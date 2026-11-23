@@ -28,10 +28,11 @@ const { data: records } = await useAsyncData(`chapter:${props.collection}:${prop
 
 // Sections in the navigation file's order, with their badges.
 const flat = (nodes: Chapter[]): Chapter[] => nodes.flatMap(n => (n.sections?.length ? flat(n.sections) : [n]))
-const sections = computed(() => flat(chapter.value?.sections ?? []).map(s => ({
+// Heading anchors that repeat a section's are renamed, so `#<section id>` lands on its section.
+const sections = computed(() => uniqueAnchors(flat(chapter.value?.sections ?? []).map(s => ({
   ...s,
   record: records.value.find(r => recordId(r) === s.id),
-})).filter(s => s.record))
+})).filter(s => s.record)))
 
 const title = computed(() => t(chapter.value?.title ?? props.id))
 </script>

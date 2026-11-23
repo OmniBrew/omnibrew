@@ -5,7 +5,7 @@
  * game adds its own (ME shields) through the `settings` slot and its options' labels.
  */
 import { sheet as gameSheet } from '#game-client'
-import { ABILITY_KEYS, type Character } from '@omnibrew/engine/character'
+import { ABILITY_KEYS, newCharacter, type Character } from '@omnibrew/engine/character'
 import { actions } from '@omnibrew/engine/rules'
 
 const { t, te } = useI18n()
@@ -60,6 +60,19 @@ const rollKinds = ['all', 'melee', 'ranged', 'power'] as const
 const coreOptions = ['armorSpeedPenalty', 'armorProficiencyPenalty', 'abilityScoreOnTop'] as const
 const gameOptions = computed(() => Object.keys(character.value.options.game))
 const settingsSlots = gameSheet.slots.settings ?? []
+
+// "Reset overrides" (live #553): every value on the Overrides tab back to a new character's; preferences and custom features stay.
+const { $characterGame } = useNuxtApp()
+const resetting = ref(false)
+function resetOverrides() {
+  const blank = newCharacter($characterGame)
+  change((c) => {
+    c.overrides = blank.overrides
+    c.abilityScores.bonus = blank.abilityScores.bonus
+    c.abilityScores.override = blank.abilityScores.override
+  })
+  resetting.value = false
+}
 
 // Custom features ("brews").
 const TYPES = ['action', 'bonus-action', 'reaction', 'other', 'feature']
@@ -166,6 +179,13 @@ function addFeature() {
             {{ t('sheet.settings.feet') }}
           </p>
         </section>
+
+        <section class="flex flex-col items-start gap-2 border-t border-default pt-4">
+          <UButton :label="t('sheet.settings.reset')" icon="i-lucide-rotate-ccw" color="error" variant="outline" @click="resetting = true" />
+          <p class="text-xs text-muted">
+            {{ t('sheet.settings.reset_text') }}
+          </p>
+        </section>
       </div>
 
       <div v-else-if="tab === 'preferences'" class="flex flex-col gap-4">
@@ -242,4 +262,13 @@ function addFeature() {
       </div>
     </template>
   </USlideover>
+
+  <UModal :open="resetting" :title="t('sheet.settings.reset_title')" :description="t('sheet.settings.reset_text')" @update:open="v => (resetting = v)">
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton :label="t('characters.cancel')" color="neutral" variant="ghost" @click="resetting = false" />
+        <UButton :label="t('sheet.settings.reset_confirm')" color="error" @click="resetOverrides" />
+      </div>
+    </template>
+  </UModal>
 </template>

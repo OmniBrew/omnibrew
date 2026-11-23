@@ -73,6 +73,7 @@ export const meMechanics: MechanicDefinition[] = [
       primesLength: z.string().optional(),
       heatConsumption: z.number().optional(),
       hitBonus: z.number().optional(),
+      damageBonus: z.number().optional(),
       longRangeMax: z.number().optional(),
       longRangeMultiplier: z.number().optional(),
       shortRangeMax: z.number().optional(),

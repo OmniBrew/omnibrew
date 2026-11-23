@@ -276,6 +276,21 @@ describe('sheet', () => {
     expect(sheet.defenses.resistance.map(d => d.id)).toEqual(['fall', 'fire'])
   })
 
+  it('grants or raises a speed with a conditional speed-bonus', () => {
+    // "A swimming speed equal to your walking speed; +10 if you already have one" (ME's Swamps).
+    const bonus = { type: 'speed-bonus', value: ['swim'], ifExists: { bonus: { type: 'flat', value: 10 } }, else: { bonus: { type: 'speed', value: 'walk' } } }
+    const more = new Map(content)
+    more.set('species', new Map([
+      ...content.get('species')!,
+      ['otter', { id: 'otter', name: 'Otter', mechanics: [{ type: 'speed', speed: 'walk', distance: 30 }, bonus] }],
+      ['seal', { id: 'seal', name: 'Seal', mechanics: [{ type: 'speed', speed: 'walk', distance: 30 }, { type: 'speed', speed: 'swim', distance: 20 }, bonus] }],
+    ]))
+    const r = createRules(testGame, more)
+    expect(r.sheet(character({ species: 'otter', choices: [] })).speeds.swim).toEqual({ distance: 30 })
+    expect(r.sheet(character({ species: 'seal', choices: [] })).speeds.swim?.distance).toBe(30)
+    expect(r.sheet(character({ species: 'dragonkin', choices: [] })).speeds.swim).toBeNull()
+  })
+
   it('computes powercasting: prepared count, slots, cantrips', () => {
     expect(sheet.powercasting.abilities).toEqual({ wizard: 'int' })
     expect(sheet.powercasting.byClass.wizard).toEqual({ numPowers: 9, maxPowerLevel: 2, numCantrips: 4, learned: false, powercastingType: 'slots' })

@@ -110,6 +110,29 @@ describe('ME rules', () => {
     expect(s.card(card).hit?.bonus).toBe(1 + 2)
   })
 
+  it('applies a mod flat damage bonus while it is on (Phasic Ammo: -2 damage)', () => {
+    const r = createRules(game, new Map([...content, ['weapons', new Map([['rifle', { id: 'rifle', name: 'Rifle', weaponType: 'sniper_rifle', damage: { dieCount: 1, dieType: 10, type: 'piercing' }, properties: [], range: { short: 100, long: 300 } }]])], ['mods', new Map([
+      ['phasic', { id: 'phasic', name: 'Phasic Ammo', modType: 'weapon', placement: 'ammo', mechanics: [{ type: 'me:weapon-augment', toggle: true, name: 'Phasic Ammo', damageBonus: -2 }] }],
+    ])]]))
+    const c = character({ equipment: [{ type: 'weapon', id: 'rifle', uuid: 'w', equipped: true, mods: { ammo: 'phasic' } }] })
+    const bonus = (on: boolean) => r.sheet({ ...c, state: { ...c.state, toggles: { w: on } } }).weaponAttacks.attacks.find(a => a.name === 'Rifle')!.damage[0].bonus.value
+    expect(bonus(true)).toBe(bonus(false) - 2)
+  })
+
+  it('shows primers and detonators on power cards, with the stated length (#555)', () => {
+    const r = createRules(game, new Map([...content, ['powers', new Map([
+      ['warp', { id: 'warp', name: 'Warp', level: 1, powerType: 'biotic', casting: [{ primes: 'necrotic', primesLength: 'until the end of your next turn' }] }],
+      ['throw', { id: 'throw', name: 'Throw', level: 0, powerType: 'biotic', casting: [{ detonates: true, primes: 'force' }] }],
+      ['barrier', { id: 'barrier', name: 'Barrier', level: 0, powerType: 'biotic', casting: [{}] }],
+    ])]]))
+    const c = character({ powers: [{ id: 'warp', klass: 'vanguard', advancement: null }, { id: 'throw', klass: 'vanguard', advancement: null }, { id: 'barrier', klass: 'vanguard', advancement: null }] })
+    const s = r.sheet(c)
+    const notes = (id: string) => s.powers.find(p => p.id === id)!.notes ?? []
+    expect(notes('warp')).toContainEqual({ type: 'tooltip', tooltipText: 'Primes necrotic until the end of your next turn', text: 'P: necrotic' })
+    expect(notes('throw').slice(0, 2)).toEqual([{ type: 'icon', text: 'Detonates', icon: 'mdi-alert-octagram', color: 'red darken-4' }, { type: 'tooltip', tooltipText: 'Primes force', text: 'P: force' }])
+    expect(notes('barrier')).toEqual([])
+  })
+
   it('offers the live custom armor pieces as built-in records', () => {
     expect(rules.content.get('armor', 'ca-arms-heavy-1')).toMatchObject({ slot: 'arms', armorType: 'heavy', coverage: 'piece' })
     expect(rules.content.list('armor').filter(a => a.id.startsWith('ca-'))).toHaveLength(33)
