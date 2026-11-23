@@ -59,7 +59,7 @@ export const me5eDefinition = defineGame({
       bestiaryUnits: ['alien', 'archetype', 'blood_pack', 'blue_suns', 'cerberus', 'collector', 'eclipse', 'geth', 'kett', 'mech', 'n_7', 'rachni', 'reaper', 'thorian', 'tracker'],
       galaxies: ['milky_way', 'andromeda'],
       speciesGroups: ['primary', 'expanded', 'lesser_known', 'villainous', 'andromeda'],
-      formulaKinds: ['me:barrier-ticks', 'me:barrier-die-count', 'me:barrier-die-type'],
+      formulaKinds: ['me:barrier-ticks', 'me:barrier-die-count', 'me:barrier-die-type', 'me:indoctrination'],
     },
     aliases: {
       formulaKinds: { barrierTicks: 'me:barrier-ticks', barrierDieCount: 'me:barrier-die-count', barrierDieType: 'me:barrier-die-type' },

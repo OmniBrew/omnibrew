@@ -58,6 +58,8 @@ const d12Bonuses =(s: string) => [...s.matchAll(/d12 \+ (-?\d+)/g)].map(x => Num
 const segment = (s: string, prefix: string) => s.split(' | ').find(x => x.startsWith(prefix))
 const withSegment = (s: string, prefix: string, value: string | undefined) => s.split(' | ').map(x => (x.startsWith(prefix) && value ? value : x)).join(' | ')
 
+/** The character has a subclass (its id), in any of its classes. */
+const hasSubclass = (ctx: KnownContext, id: string) => ((ctx.character.classes ?? []) as Array<{ subclass?: string | null }>).some(k => k.subclass === id)
 /** Phase 4 conversions (plan/31 piece 4): replaced notes, new toggles and new cards. */
 const PHASE4_NOTES = ['Biotic Split', 'Overwatch', 'Remote Detonation', 'Blast Zone', 'Riot Strike', 'Divine Health', 'Mount/Dismount', 'Signal Jammer', 'Acceleration', 'Momentum', 'Peak Performance', 'Event Horizon', 'Ride On', 'Strike First', 'Dark Biotics', 'Ballista', 'Close-Quarters Shooter', 'Biotic Furor', 'Unlimited Power', 'Exploits', 'Primal Processor', 'Supercharge Plating', 'Apex Processor', 'Command Dice', 'Death Strike', 'Shock Cavalry', 'Intangible', 'Death Blossom', 'Five Round Rapid', 'Start Blastin\'', 'Total Combat', 'True Explorer', 'Kalahira Devotion']
 const PHASE4_TOGGLES = ['acceleration', 'momentum', 'peak-performance', 'event-horizon', 'ride-on-mounted', 'strike-first']
@@ -293,6 +295,21 @@ export const KNOWN: Known[] = [
       return (uses(ctx, 'void-fist') && /^\.saves\.\w+: /.test(line))
         || (uses(ctx, 'outrider') && /^\.initiative: /.test(line))
         || (uses(ctx, 'path-of-the-voidhopper') && /^\.speeds\.walk: /.test(line))
+    },
+  },
+  {
+    id: 'power-augments-phase-4',
+    reason: 'Plan/31 piece 5: power modifiers written as notes are `power-augment`s: Deep Biotics (biotic cantrips one die size up; +2 per d12), Exploit: Pound (cantrips add the Exploit die), Tools of Destruction (combat cantrips have twice their uses), Atomic Powers (+PB to radiant powers), Radiation Poisoning (radiant powers prime), Biotic Control (riders), Tech Cannon and Assault Mastery (cast higher while the cannon is on). Reaper Scar adds the tracked Indoctrinated level, at least the level its features name.',
+    fix: (text, ctx, next) => {
+      if (!text.startsWith('power ')) return text
+      let out = text
+      if (hasSubclass(ctx, 'path-of-eezo') || hasSubclass(ctx, 'biotic') || hasSubclass(ctx, 'nuclear')) out = withSegment(out, 'dmg ', segment(next, 'dmg '))
+      if (hasSubclass(ctx, 'path-of-war')) out = withSegment(out, 'res ', segment(next, 'res '))
+      return out
+    },
+    test: (line) => {
+      const note = line.match(/^\.globalNotes - "\w*: (.*)"$/)?.[1]
+      return !!note && ['Exploit: Pound', '2x Cantrip Charges', 'Deep Biotics', 'Atomic Powers', 'Reaper Scar', 'Biotic Control', 'Primed: Radiant', 'Tech Cannon', 'Assault Mastery'].includes(note)
     },
   },
   // --- Phase 4 cleanup (plan/31): content where the mechanic disagreed with its own text, and typos ---

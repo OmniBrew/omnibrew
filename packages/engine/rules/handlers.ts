@@ -74,6 +74,7 @@ export const coreHandlers: MechanicHandler[] = [
 
   h('powers', 'powers: grants a power'),
   h('power-attack', 'powers: castable in place of an attack (the power, or powers of the listed types and levels)'),
+  h('power-augment', 'powers: cast higher, dice, damage, uses, notes or a casting merge for the powers it matches'),
   h('power-at-will', 'powers: castable at will at the listed levels (a model-choice `append` type)'),
   h('power-resource', 'powers: castable from its own resource at the listed levels (a model-choice `append` type)'),
   h('cantrips', 'powers: cantrips known per level'),

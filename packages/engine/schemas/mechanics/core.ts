@@ -245,6 +245,31 @@ export const coreMechanics: MechanicDefinition[] = [
       levels: z.array(z.number().int().nonnegative()).optional(),
     }),
   }),
+  defineMechanic({
+    type: 'power-augment',
+    description: 'Changes the powers it matches (by id, power type, level and damage type): cast higher, more or bigger dice, a damage bonus, extra damage, more uses, notes, or a merge into the casting',
+    fields: k => ({
+      /** Which powers (all filters must match; none = every power). `levels` are the powers' own levels (0 = cantrips). */
+      powers: z.array(Id).optional(),
+      powerTypes: z.array(z.string()).optional(),
+      levels: z.array(z.number().int().nonnegative()).optional(),
+      damageTypes: z.array(k.e('damageTypes')).optional(),
+      /** A leveled power cast with a slot counts as this many levels higher (its upcast tier). */
+      castLevelBonus: z.number().int().optional(),
+      /** Dice added to the power's main damage roll. */
+      dieCount: z.number().int().optional(),
+      /** Steps up the damage dice; past the largest die each step adds `overflowPerDie` per die (default: +1 to the roll). */
+      dieIncrease: z.number().int().optional(),
+      overflowPerDie: z.number().int().optional(),
+      damageBonus: k.Formula.optional(),
+      addDamage: z.array(k.Damage).optional(),
+      /** Multiplies the uses of a power that has its own uses (combat cantrips' charges). */
+      usesMultiplier: z.number().positive().optional(),
+      notes: z.array(k.Note).optional(),
+      /** Deep-merged into the power's casting, like a `powers` mechanic's merge (game fields such as ME `primes`). */
+      merge: z.looseObject({}).optional(),
+    }),
+  }),
   defineMechanic({ type: 'cantrips', fields: () => ({ known: z.array(z.number().int()).length(20), columnName: z.string().optional() }) }),
   defineMechanic({ type: 'additional-cantrips', fields: k => ({ bonus: k.Formula }) }),
   defineMechanic({ type: 'use-class-for-power-list', fields: () => ({ klass: Id }) }),

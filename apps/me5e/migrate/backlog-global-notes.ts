@@ -222,6 +222,72 @@ export const PHASE4_CONVERSIONS: Record<string, Edit> = {
   }),
 }
 
+/** Replaces the note inside the second option of the Tech Armor toggle an augment merges (Tech Cannon, Assault Mastery), keeping its index. */
+const inTechCannonOption = (note: string, ...next: Rec[]): Edit => mechanics => mechanics.map((m) => {
+  const toggle = (m.merge as Rec | undefined)?.toggle as Rec | undefined
+  const options = toggle?.options as Rec[] | undefined
+  if (!options?.[1]) return m
+  const whenOn = (options[1].whenOn ?? []) as Rec[]
+  const i = whenOn.findIndex(isNote(note))
+  if (i < 0) return m
+  const nextOptions = [...options]
+  nextOptions[1] = { ...options[1], whenOn: [...whenOn.slice(0, i), ...next, ...whenOn.slice(i + 1)] }
+  return { ...m, merge: { ...(m.merge as Rec), toggle: { ...toggle, options: nextOptions } } }
+})
+
+/** Drops augments aimed at another record's note (the note is gone, so they would change nothing). */
+const dropNoteAugments = (id: string): Edit => mechanics => mechanics.filter(m => !(m.type === 'augment' && (m.value as Rec).id === id && ((m.value as Rec).limit as string[] | undefined)?.includes('global-note')))
+
+/** A Reaper feature's "You become Indoctrinated N": its augment sets Reaper Scar's minimum instead of a flat bonus, and its note augments go. */
+const indoctrinatedAtLeast: Edit = (mechanics, record) => all(
+  dropNoteAugments('reaper-scar'),
+  ms => ms.map((m) => {
+    const level = ((m.merge as Rec | undefined)?.bonus as Rec | undefined)?.value
+    return m.type === 'augment' && (m.value as Rec).id === 'reaper-scar' && typeof level === 'number' ? { ...m, merge: { bonus: { min: level } } } : m
+  }),
+)(mechanics, record)
+
+/**
+ * Phase 4 piece 5 (plan/31 §1.6): power modifiers as `power-augment`, and Reaper Scar's bonus as
+ * the tracked Indoctrinated level (`me:indoctrination`, at least the level its features name). Re-runnable.
+ */
+export const POWER_AUGMENT_CONVERSIONS: Record<string, Edit> = {
+  // Tech Cannon: slots count one level higher; cantrips roll one more damage die. Only while the cannon is on (its toggle option).
+  'class-features/tech-cannon': mechanics => inTechCannonOption('Tech Cannon',
+    { type: 'power-augment', castLevelBonus: 1 },
+    { type: 'power-augment', levels: [0], dieCount: 1 },
+  )(mechanics, {}),
+  // Assault Mastery: two levels higher in all (Tech Cannon's one, plus one). Its once-per-rest double cast stays text.
+  'class-features/assault-mastery': inTechCannonOption('Assault Mastery', { type: 'power-augment', castLevelBonus: 1 }),
+  // Atomic Powers: + proficiency to powers that deal radiant damage (choosing Atomic versions stays text).
+  'class-features/atomic-powers': replaceNote('Atomic Powers', { type: 'power-augment', damageTypes: ['radiant'], damageBonus: { type: 'proficiency' } }),
+  // Radiation Poisoning: powers that deal radiant damage prime (radiant).
+  'class-features/radiation-poisoning': replaceNote('Primed: Radiant', { type: 'power-augment', damageTypes: ['radiant'], merge: { primes: 'radiant' } }),
+  // Deep Biotics: biotic cantrips roll one die size up; a d12 instead adds +2 per die.
+  'class-features/deep-biotics': replaceNote('Deep Biotics', { type: 'power-augment', powerTypes: ['biotic'], levels: [0], dieIncrease: 1, overflowPerDie: 2 }),
+  // Exploit: Pound: cantrips add the Exploit die to their damage, in their own damage type.
+  'class-features/exploit-pound': replaceNote('Exploit: Pound', { type: 'power-augment', levels: [0], addDamage: [{ dieCount: 1, dieType: EXPLOIT_DIE }] }),
+  // Tools of Destruction: combat cantrips have twice their uses.
+  'class-features/tools-of-destruction': replaceNote('2x Cantrip Charges', { type: 'power-augment', powerTypes: ['combat'], levels: [0], usesMultiplier: 2 }),
+  // Biotic Control: a rider on each of four powers.
+  'class-features/biotic-control': replaceNote('Biotic Control',
+    { type: 'power-augment', powers: ['lift'], notes: ['Biotic Control: both advancement options'] },
+    { type: 'power-augment', powers: ['pull'], notes: ['Biotic Control: two targets, an attack roll for each'] },
+    { type: 'power-augment', powers: ['singularity'], notes: ['Biotic Control: affects Large or smaller creatures and objects'] },
+    { type: 'power-augment', powers: ['stasis'], notes: ['Biotic Control: targets have disadvantage on the save'] },
+  ),
+  // Reaper Scar: + your Indoctrinated level to attack and damage rolls; you are at least Indoctrinated 1, then 2 (Aura of Dominance) and 4 (Feeblemind).
+  'class-features/reaper-scar': all(
+    replaceNote('Reaper Scar'),
+    mechanics => mechanics.map(m => (m.type === 'attack-augment' && (m.bonus as Rec | undefined)?.type === 'flat' ? { ...m, bonus: { type: 'me:indoctrination', min: 1 } } : m)),
+  ),
+  // Aura of Dominance, Exploit: Torture, Feeblemind and Apex Augments: "You become Indoctrinated 2/3/4/5" is the bonus's minimum.
+  'class-features/aura-of-dominance': indoctrinatedAtLeast,
+  'class-features/exploit-torture': indoctrinatedAtLeast,
+  'class-features/feeblemind': indoctrinatedAtLeast,
+  'class-features/apex-augments': indoctrinatedAtLeast,
+}
+
 /** Set bonuses keep mechanics per threshold. */
 const SET_BONUSES: Record<string, (bonuses: Rec[]) => Rec[]> = {
   'set-bonuses/pathfinder': bonuses => bonuses.map(b => ({ ...b, mechanics: replaceNote('Null Critical', { type: 'critical-immunity' })((b.mechanics ?? []) as Rec[], b) })),
@@ -250,6 +316,7 @@ export function convert(root: string) {
   }
   for (const [rel, edit] of Object.entries(SET_BONUSES)) write(rel, a => ({ ...a, bonuses: edit((a.bonuses ?? []) as Rec[]) }))
   for (const [rel, edit] of Object.entries(PHASE4_CONVERSIONS)) write(rel, a => ({ ...a, mechanics: edit((a.mechanics ?? []) as Rec[], a) }))
+  for (const [rel, edit] of Object.entries(POWER_AUGMENT_CONVERSIONS)) write(rel, a => ({ ...a, mechanics: edit((a.mechanics ?? []) as Rec[], a) }))
   return changed
 }
 

@@ -341,6 +341,8 @@ export const meRules: GameRules = {
       const b = barrier(s)
       return f.value === 'current' ? b.ticks.max - b.ticks.used : b.ticks.max
     },
+    // The character's Indoctrinated level as tracked on the sheet; a feature's own level is the formula's `min` (Reaper Scar, plan/31 decision 3f).
+    'me:indoctrination': (_, s) => Number((s.character.state.game as { indoctrination?: number }).indoctrination) || 0,
   },
   armor: {
     base: 10,
