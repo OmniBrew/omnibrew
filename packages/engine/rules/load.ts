@@ -10,14 +10,17 @@ import type { Rec } from './types'
 export function loadRecords(root: string, def: GameDefinition) {
   const { records, issues } = loadContent(root, def)
   const grouped = groupRecords(records) as Map<string, Map<string, Rec>>
+  /** Ids of the derived records per collection (no file: the content editor can't open them). */
+  const derivedIds: Record<string, string[]> = {}
   if (def.derive) {
     const input = groupRecords(records.filter(r => def.derive!.from.includes(r.collection)))
     for (const [collection, derived] of Object.entries(def.derive.records(input))) {
       if (!grouped.has(collection)) grouped.set(collection, new Map())
       for (const record of derived) grouped.get(collection)!.set(record.id, record)
+      derivedIds[collection] = derived.map(r => r.id)
     }
   }
-  return { records: grouped, issues }
+  return { records: grouped, issues, derivedIds }
 }
 
 /**
