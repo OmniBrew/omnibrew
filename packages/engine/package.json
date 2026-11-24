@@ -44,6 +44,7 @@
     "./rules/load": "./rules/load.ts",
     "./data": "./data/index.ts",
     "./editor": "./editor/index.ts",
+    "./editor/server": "./editor/server/index.ts",
     "./app/game-client": "./app/game-client.ts",
     "./app/utils/discord": "./app/utils/discord.ts"
   },

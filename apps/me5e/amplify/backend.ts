@@ -1,12 +1,14 @@
 import { defineBackend } from '@aws-amplify/backend'
 import { configureData } from '@omnibrew/backend'
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam'
 import { auth, pool } from './auth/resource'
 import { data } from './data/resource'
+import { contentEditor } from './functions/content-editor/resource'
 import { migrateUser } from './functions/migrate-user/resource'
 import { wireMigration } from './functions/migrate-user/wire'
 import { storage } from './storage/resource'
 
-const backend = defineBackend({ auth, data, storage, migrateUser })
+const backend = defineBackend({ auth, data, storage, migrateUser, contentEditor })
 
 configureData(backend.data)
 
@@ -27,3 +29,8 @@ if (pool !== 'prod') backend.addOutput({ custom: { gen1 } })
 if (pool === 'prod') {
   for (const table of Object.values(backend.data.resources.cfnResources.amplifyDynamoDbTables)) table.pointInTimeRecoveryEnabled = true
 }
+
+// The content editor (plan/33): it reads the caller's display name from Profile, and nothing else in AWS.
+const profileTable = backend.data.resources.tables.Profile!
+backend.contentEditor.addEnvironment('PROFILE_TABLE', profileTable.tableName)
+backend.contentEditor.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['dynamodb:GetItem'], resources: [profileTable.tableArn] }))

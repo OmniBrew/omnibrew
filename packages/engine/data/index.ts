@@ -1,6 +1,7 @@
 import type { Schema } from '@omnibrew/backend'
 import type { Client } from 'aws-amplify/data'
 import { type Character, type CharacterExtension, characterSchema, upgradeCharacter } from '../character'
+import type { EditSummary, FileResult, SubmitInput, SubmitResult } from '../editor/server/service'
 
 /**
  * The user-data layer (plan/20): characters, profile, bookmarks and homebrew. The only
@@ -216,6 +217,19 @@ const MIGRATE_MY_DATA = /* GraphQL */ `
 
 const GET_LEGACY_CHARACTER = /* GraphQL */ `
   query GetLegacyCharacter($id: ID!, $original: Boolean) { getLegacyCharacter(id: $id, original: $original) }
+`
+
+const EDITOR_FILE = /* GraphQL */ `
+  query EditorFile($path: String!, $pr: Int) { editorFile(path: $path, pr: $pr) }
+`
+const EDITOR_SUBMIT = /* GraphQL */ `
+  mutation EditorSubmit($input: AWSJSON!) { editorSubmit(input: $input) }
+`
+const EDITOR_MY_EDITS = /* GraphQL */ `
+  query EditorMyEdits { editorMyEdits }
+`
+const EDITOR_COMMENT = /* GraphQL */ `
+  mutation EditorComment($pr: Int!, $text: String!) { editorComment(pr: $pr, text: $text) }
 `
 
 const UPDATE_CHARACTER = /* GraphQL */ `
@@ -549,7 +563,40 @@ export function createUserData({ client, game, session, validateHomebrew }: User
     },
   }
 
-  return { characters, profile, bookmarks, homebrew, legacy }
+  /**
+   * The content editor (plan/33); only for a game whose backend has `contentEditorEntries`,
+   * and only `editors` and `admins` may call it. Errors keep the server's code first
+   * (`forbidden: …`, `invalid: …`, `not-found: …`, `limit: …`).
+   */
+  async function editorCall<T>(query: string, variables: Record<string, unknown>, field: string, what: string): Promise<T> {
+    requireSession(what)
+    let result: Result<Record<string, unknown> | null>
+    try {
+      result = await client.graphql({ query, variables }) as Result<Record<string, unknown> | null>
+    }
+    catch (e) {
+      // Amplify rejects with the GraphQL result when the resolver throws.
+      const errors = (e as { errors?: { message: string }[] }).errors
+      if (errors?.length) throw new DataError(`${what}: ${errors.map(x => x.message).join('; ')}`, errors)
+      throw e
+    }
+    const value = readJson<T | null>(unwrap(result, what)?.[field], null)
+    if (value === null) throw new DataError(`${what}: no result`)
+    return value
+  }
+
+  const editor = {
+    /** A content file at the base branch, or at an editor PR's branch. */
+    file: (path: string, pr?: number) => editorCall<FileResult>(EDITOR_FILE, { path, pr: pr ?? null }, 'editorFile', 'read content file'),
+    /** Opens an editor PR or adds a commit to one; `conflict` when a file changed since it was read. */
+    submit: (input: SubmitInput) => editorCall<SubmitResult>(EDITOR_SUBMIT, { input: JSON.stringify(input) }, 'editorSubmit', 'submit edit'),
+    /** The signed-in editor's PRs, with their check, reviews and comments. */
+    myEdits: () => editorCall<EditSummary[]>(EDITOR_MY_EDITS, {}, 'editorMyEdits', 'list my edits'),
+    /** A reply on an editor PR, in the signed-in editor's name. */
+    comment: (pr: number, text: string) => editorCall<{ url: string }>(EDITOR_COMMENT, { pr, text }, 'editorComment', 'reply'),
+  }
+
+  return { characters, profile, bookmarks, homebrew, legacy, editor }
 }
 
 export type UserData = ReturnType<typeof createUserData>
