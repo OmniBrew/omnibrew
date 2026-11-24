@@ -16,8 +16,16 @@ const RAW_HTML = /<\/?[a-z][a-z\d]*(?:\s[^<>]*)?\/?>/gi
  * holds content and any other homebrew it may name), and its prose (MDC components only,
  * and no raw HTML: live compiled homebrew HTML as a template). Errors only matter; warnings
  * are kept for the editor to show.
+ *
+ * `content: true` is the content editor's mode (plan/33 §1.6): official content follows
+ * `validate:me5e`'s prose rules, which allow the few HTML tags tables use (`<br>`), so only
+ * homebrew refuses raw HTML.
  */
-export function validateRecord(game: Game, collection: string, record: Rec, records: Records): Issue[] {
+export interface ValidateRecordOptions {
+  content?: boolean
+}
+
+export function validateRecord(game: Game, collection: string, record: Rec, records: Records, options: ValidateRecordOptions = {}): Issue[] {
   const id = typeof record.id === 'string' ? record.id : ''
   const kind = game.def.sources[collection]?.itemKind
   const rec = kind ? { ...record, kind } : record
@@ -41,6 +49,6 @@ export function validateRecord(game: Game, collection: string, record: Rec, reco
     else if (Array.isArray(value)) value.forEach((v, i) => html(v, `${path}[${i}]`))
     else if (value && typeof value === 'object') Object.entries(value).forEach(([k, v]) => html(v, path ? `${path}.${k}` : k))
   }
-  html(rec, '')
+  if (!options.content) html(rec, '')
   return issues
 }

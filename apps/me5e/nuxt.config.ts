@@ -59,6 +59,7 @@ export default defineNuxtConfig({
     game: me5e,
     contentRoot,
     ...rulesBundleOptions,
+    editor: true,
   },
 
   // The character pages run in the browser only (they read the signed-in user's data); each
