@@ -30,6 +30,12 @@ const filters: RecordFilter<Power>[] = [
     <RecordHeader :title="t('power_title', 2)" :headline="t('manual.title')" :links="[{ label: t('buttons.view_rules'), icon: 'i-lucide-book-open', to: '/manual/powercasting' }]" />
     <UPageBody>
       <RecordList :items="powers" :columns="columns" :filters="filters" :row-key="p => p.path" default-sort="name">
+        <template #meta>
+          <p class="flex items-center gap-1.5" data-concentration-legend>
+            <span class="inline-flex size-4 items-center justify-center rounded-full bg-inverted text-[0.625rem] font-bold text-inverted" aria-hidden="true">{{ t('concentration_abbr') }}</span>
+            {{ t('concentration_title') }}
+          </p>
+        </template>
         <template #cell-level="{ item }">
           <span class="flex items-center gap-2.5 whitespace-nowrap">
             <img :src="`/images/powers/${item.powerType}.svg`" :alt="t(`power_types.${item.powerType}`)" class="size-6.5">

@@ -35,6 +35,18 @@ const sections = computed(() => uniqueAnchors(flat(chapter.value?.sections ?? []
 })).filter(s => s.record)))
 
 const title = computed(() => t(chapter.value?.title ?? props.id))
+
+// Previous and next chapter (the navigation file's order), and back to the top of a long chapter.
+const surround = computed(() => {
+  const i = chapters.value.findIndex(c => c.id === props.id)
+  const link = (c?: Chapter) => (c ? { title: t(c.title ?? c.id), path: `/${props.navigation}/${c.id}` } : null)
+  // A missing side is null, as Nuxt Content's surroundings give it (the component leaves its place empty).
+  return [link(chapters.value[i - 1]), link(chapters.value[i + 1])] as Array<{ title: string, path: string }>
+})
+function toTop() {
+  const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
+}
 </script>
 
 <template>
@@ -51,6 +63,12 @@ const title = computed(() => t(chapter.value?.title ?? props.id))
         </h2>
         <ContentRenderer :value="s.record!" class="mt-4" />
       </section>
+      <div class="mt-10 max-w-[45rem]" data-chapter-surround>
+        <UContentSurround :surround="surround" />
+        <div class="mt-6 flex justify-end">
+          <UButton :label="t('shell.back_to_top')" icon="i-lucide-arrow-up" color="neutral" variant="ghost" @click="toTop" />
+        </div>
+      </div>
     </UPageBody>
     <template #right>
       <UPageAside>

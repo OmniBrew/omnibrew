@@ -73,6 +73,9 @@ function toggle(key: string) {
   open.value = next
 }
 
+// Phones have no column headers: the sortable columns as a menu, and the direction as a button.
+const sortOptions = computed(() => props.columns.filter(c => c.sort).map(c => ({ value: c.key, label: c.label })))
+
 const sortIcon = (column: RecordColumn<T>) => sortKey.value !== column.key
   ? 'i-lucide-chevrons-up-down'
   : desc.value ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up'
@@ -113,6 +116,18 @@ const align = (c: RecordColumn<T>) => (c.numeric ? 'text-right' : 'text-left')
     <div class="mt-3 mb-2 flex flex-wrap items-center justify-between gap-2 text-[0.8125rem] text-muted">
       <p>{{ t('shell.count_of', { n: rows.length, total: items.length }) }}</p>
       <slot name="meta" />
+      <div v-if="sortOptions.length" class="flex w-full items-center gap-1.5 sm:hidden" data-phone-sort>
+        <span id="record-list-sort" class="eyebrow">{{ t('shell.sort_by') }}</span>
+        <USelect v-model="sortKey" :items="sortOptions" aria-labelledby="record-list-sort" class="min-w-0 flex-1" />
+        <UButton
+          :icon="desc ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up'"
+          color="neutral"
+          variant="outline"
+          class="size-10 justify-center"
+          :aria-label="t(desc ? 'shell.sort_descending' : 'shell.sort_ascending')"
+          @click="desc = !desc"
+        />
+      </div>
     </div>
 
     <!-- Phones: list rows -->

@@ -5,11 +5,13 @@
  */
 interface Advancement { id: string, name: string, text: string }
 const props = defineProps<{
-  power: { level?: number, tags?: string[], casting?: unknown[], classes?: string[], advancements?: Advancement[], body?: unknown }
+  power: { name?: string, level?: number, tags?: string[], casting?: unknown[], classes?: string[], advancements?: Advancement[], body?: unknown }
   hideAdvancements?: boolean
 }>()
 const { t } = useI18n()
 const advancements = computed(() => (props.hideAdvancements ? [] : props.power.advancements ?? []))
+/** The damage type a casting primes (`primes: false` turns it off). */
+const primes = (casting: unknown) => ((casting as { primes?: string | false }).primes || undefined)
 </script>
 
 <template>
@@ -25,6 +27,42 @@ const advancements = computed(() => (props.hideAdvancements ? [] : props.power.a
           </NuxtLink>
         </span>
       </StatItem>
+    </template>
+
+    <template #aside="{ casting }">
+      <div v-if="primes(casting) || (casting as { detonates?: boolean }).detonates" class="flex flex-col gap-4">
+        <aside v-if="primes(casting)" class="rounded-md border border-info/35 bg-info/7 px-4 pt-3 pb-3.5 text-sm" data-power-primer>
+          <p class="mb-1.5 flex items-center gap-2 eyebrow text-info">
+            <UIcon name="i-lucide-info" class="size-4 shrink-0" />
+            {{ t('power_primer_title') }}
+          </p>
+          <i18n-t keypath="power_primer_text" tag="p" scope="global">
+            <template #name>
+              {{ power.name }}
+            </template>
+            <template #type>
+              {{ t(`damage_types.${primes(casting)}`) }}
+            </template>
+            <template #link>
+              <NuxtLink to="/manual/powercasting#primers-and-detonators" class="text-primary underline-offset-2 hover:underline">{{ t('power_primers_link') }}</NuxtLink>
+            </template>
+          </i18n-t>
+        </aside>
+        <aside v-if="(casting as { detonates?: boolean }).detonates" class="rounded-md border border-info/35 bg-info/7 px-4 pt-3 pb-3.5 text-sm" data-power-detonator>
+          <p class="mb-1.5 flex items-center gap-2 eyebrow text-info">
+            <UIcon name="i-lucide-info" class="size-4 shrink-0" />
+            {{ t('power_detonator_title') }}
+          </p>
+          <i18n-t keypath="power_detonator_text" tag="p" scope="global">
+            <template #name>
+              {{ power.name }}
+            </template>
+            <template #link>
+              <NuxtLink to="/manual/powercasting#primers-and-detonators" class="text-primary underline-offset-2 hover:underline">{{ t('power_primers_link') }}</NuxtLink>
+            </template>
+          </i18n-t>
+        </aside>
+      </div>
     </template>
 
     <section v-if="advancements.length" class="mt-10">
