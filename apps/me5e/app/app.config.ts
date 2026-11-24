@@ -122,12 +122,13 @@ export default defineAppConfig({
       slots: { trigger: 'font-label font-semibold tracking-[0.02em]' },
       variants: { variant: { link: { indicator: 'rounded-none' } } },
     },
-    // Placeholders move from dimmed to muted for 4.5:1.
-    input: { slots: { base: 'placeholder:text-muted' } },
+    // Placeholders move from dimmed to muted for 4.5:1. Under 640 px, controls are at least 40 px tall (design: tap targets).
+    input: { slots: { base: 'placeholder:text-muted max-sm:min-h-10' } },
+    inputNumber: { slots: { base: 'max-sm:min-h-10' } },
     textarea: { slots: { base: 'placeholder:text-muted' } },
-    select: { slots: { placeholder: 'text-muted' } },
-    selectMenu: { slots: { placeholder: 'text-muted' } },
-    inputMenu: { slots: { base: 'placeholder:text-muted' } },
+    select: { slots: { base: 'max-sm:min-h-10', placeholder: 'text-muted' } },
+    selectMenu: { slots: { base: 'max-sm:min-h-10', placeholder: 'text-muted' } },
+    inputMenu: { slots: { base: 'placeholder:text-muted max-sm:min-h-10' } },
     table: {
       slots: {
         th: 'bg-muted font-label text-[11.5px]/4 uppercase tracking-[0.1em] text-muted py-2.5 px-3',

@@ -66,3 +66,39 @@ export function effectText(t: Translate, tags: string[] = [], abbr = false): str
 
 /** The reaction trigger note ("* - which you take when…") of the first timing that has one. */
 export const reactionNote = (c: Casting) => [c.castingTime, ...(c.altCasting ?? [])].find(x => x?.reaction)?.reaction
+
+interface DamageEntry { type?: string, dieCount?: unknown, dieType?: unknown, bonus?: unknown }
+/** One row of a power's damage by slot level: a damage type and its roll at each level. */
+export interface SlotDamageRow { type: string, rolls: string[] }
+
+/** A roll as the table prints it: dice, plus a flat bonus ("3d10", "2d6 + 5"); formulas it can't print read "—". */
+export function rollText(d: DamageEntry): string {
+  const dice = typeof d.dieCount === 'number' && typeof d.dieType === 'number' && d.dieCount > 0 ? `${d.dieCount}d${d.dieType}` : ''
+  const b = d.bonus as { type?: string, value?: unknown } | undefined
+  const flat = b && (!b.type || b.type === 'flat') && typeof b.value === 'number' && b.value ? b.value : 0
+  if (typeof d.dieCount === 'object' && d.dieCount) return '—'
+  return [dice, flat ? String(flat) : ''].filter(Boolean).join(' + ') || '—'
+}
+
+/**
+ * A leveled power's damage at each slot level it lists: entry 0 is the power at its own level,
+ * each later entry the change at one level higher, merged by damage index (as the sheet merges
+ * upcast tiers). Null when there is nothing to tabulate (a cantrip, no damage, no upcast, or the
+ * same roll at every level).
+ */
+export function damageBySlot(power: { level?: number, casting?: unknown[] }, maxLevel = 9): { levels: number[], rows: SlotDamageRow[] } | null {
+  const level = power.level ?? 0
+  const casting = (power.casting ?? []) as Array<{ damage?: DamageEntry[] }>
+  const base = casting[0]?.damage ?? []
+  if (level < 1 || casting.length < 2 || !base.length) return null
+  const levels: number[] = []
+  const perLevel: DamageEntry[][] = []
+  for (let i = 0; i < casting.length && level + i <= maxLevel; i++) {
+    const tier = i === 0 ? [] : casting[i]?.damage ?? []
+    levels.push(level + i)
+    perLevel.push(base.map((d, j) => ({ ...d, ...(tier[j] ?? {}) })))
+  }
+  const rows = base.map((d, j) => ({ type: d.type ?? 'damage', rolls: perLevel.map(entries => rollText(entries[j]!)) }))
+    .filter(r => r.rolls.some(x => x !== r.rolls[0]))
+  return rows.length && levels.length > 1 ? { levels, rows } : null
+}
