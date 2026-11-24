@@ -288,6 +288,179 @@ export const POWER_AUGMENT_CONVERSIONS: Record<string, Edit> = {
   'class-features/apex-augments': indoctrinatedAtLeast,
 }
 
+/** The musician's Inspiration die: d6, d8 at 5th, d10 at 10th, d12 at 15th (Musician's Inspiration 1–4). */
+const INSPIRATION_DIE = { type: 'progressive', limit: 'musician', value: { 1: 6, 5: 8, 10: 10, 15: 12 } }
+/** The Beast Master's Command die: d8, d10 at 10th, d12 at 14th (Give Command, Improved and Expert Commander). */
+const COMMAND_DIE = { type: 'progressive', limit: 'tracker', value: { 3: 8, 10: 10, 14: 12 } }
+/** A Command's save: 8 + proficiency + Int for a synthetic beast, Cha for an organic one (plan/31 decision 3b: both, no computed DC). */
+const COMMAND_DC_NOTE = 'Save DC {{ 8 + profBonus + intMod }} (synthetic beast) or {{ 8 + profBonus + chaMod }} (organic beast)'
+/** A Sneak Toxin's save: the Poisoner's power save DC (plan/31 decision 3a). */
+const TOXIN_DC = { base: 8, proficient: true, mod: 'int' }
+
+/** Merges `fields` into the mechanics matching `test` (all of them, or the `nth` match). Re-runnable: fields already there change nothing. */
+const patch = (test: (m: Rec) => boolean, fields: Rec, nth?: number): Edit => (mechanics) => {
+  let n = -1
+  return mechanics.map((m) => {
+    if (!test(m)) return m
+    n++
+    return nth === undefined || n === nth ? { ...m, ...fields } : m
+  })
+}
+const ofType = (...types: string[]) => (m: Rec) => types.includes(m.type as string)
+/** A resource's cost per use (`increment`), keeping the rest of it. */
+const costs = (test: (m: Rec) => boolean, increment: number, nth?: number): Edit => (mechanics) => {
+  let n = -1
+  return mechanics.map((m) => {
+    if (!test(m)) return m
+    n++
+    return nth === undefined || n === nth ? { ...m, resource: { ...(m.resource as Rec), increment } } : m
+  })
+}
+const commandCard = (fields: Rec = {}): Edit => patch(ofType('other', 'bonus-action', 'reaction'), { damage: [{ dieCount: 1, dieType: COMMAND_DIE, label: 'Command die' }], ...fields })
+const toxin = (shortDesc: string): Edit => patch(ofType('other'), { dc: TOXIN_DC, shortDesc })
+
+/**
+ * Phase 4 piece 6 (plan/31 §1.2, `text-action` and the small `speed`/`rider`/`prose` conversions):
+ * cards get the dice, DC, range, uses or cost their text states. Re-runnable.
+ */
+export const CARD_CONVERSIONS: Record<string, Edit> = {
+  // Costs per use (barrier ticks, Fuel, Focus Points, omni-gel).
+  'class-features/afterburner': costs(ofType('reaction'), 2),
+  'class-features/biotic-ghost': costs(ofType('bonus-action'), 3),
+  'class-features/cabal-cloak': costs(ofType('action'), 2),
+  'class-features/heavy-weapon-hack': costs(ofType('action'), 2),
+  'class-features/teleporting-dodge': costs(ofType('reaction'), 2),
+  'edges/NMB_heightened-power': costs(ofType('other'), 3),
+  'edges/NMB_quickened-power': costs(ofType('other'), 2),
+  'class-features/quick-burn': patch(ofType('bonus-action'), { resource: { reset: 'short', id: 'armiger-fuel', max: { type: 'resource', value: 'armiger-fuel', useMax: true } } }),
+  'feats/synthetic-healer': patch(m => m.type === 'action' && m.name === 'Create epoxy', { resource: { displayType: 'omni-gel', reset: 'off', label: 'omni-gel' } }),
+  // Not by my Hand: one pool for both uses ("a number of times equal to your Charisma modifier, minimum once").
+  'edges/REP_not-by-my-hand': patch(ofType('other', 'action'), { resource: { id: 'REP_not-by-my-hand', max: { type: 'mod', value: 'cha', min: 1 } } }),
+  'edges/FS_protection': patch(ofType('reaction'), {
+    resource: { reset: 'off', displayType: 'barrier-ticks', label: 'Barrier Ticks' },
+    damage: [{ dieCount: { type: 'me:barrier-die-count' }, dieType: { type: 'me:barrier-die-type' }, label: 'Damage reduced' }],
+  }),
+
+  // Dice the text rolls.
+  'armor/archon-visor': patch(ofType('action'), { damage: [{ dieCount: 1, dieType: 4, label: 'Power slot levels or tech points' }] }),
+  'class-features/feedback': patch(ofType('reaction'), { damage: [{ dieCount: 1, dieType: INSPIRATION_DIE, label: 'Subtracted from the roll' }] }),
+  'class-features/inspire-the-revolution': patch(ofType('action'), { damage: [{ dieCount: 1, dieType: INSPIRATION_DIE, label: 'AC reduction' }], shortDesc: 'Every creature you consider an enemy in a :distance{length="25"} radius has its AC reduced by {{ roll }}. This effect lasts {{ chaMod }} rounds. Using Inspiration this way consumes 2 uses of Inspiration per use.' }),
+  'class-features/soothing-music': patch(ofType('other'), { damage: [{ dieCount: 1, dieType: INSPIRATION_DIE, type: 'hp' }] }),
+  'edges/REP_convince': patch(ofType('other'), { damage: [{ dieCount: 1, dieType: 6, label: 'Added to the check' }] }),
+  'feats/fake-it-til-you-make-it': patch(ofType('other'), { damage: [{ dieCount: 1, dieType: 4, label: 'Added to the roll' }], shortDesc: 'When you fail an ability check or saving throw or miss with an attack roll, spend a hit die to add {{ roll }} to the roll.' }),
+  'traits/aspiration': patch(ofType('other'), { damage: [{ dieCount: 1, dieType: 4, label: 'Added to the roll' }] }),
+  'traits/leadership': patch(ofType('reaction'), { damage: [{ dieCount: 1, dieType: 4, label: 'Added to the roll' }] }),
+  'species/avatar-sacrifice': patch(ofType('reaction'), { damage: [{ dieCount: 1, dieType: 10, bonus: { type: 'proficiency' }, label: 'Damage reduced' }] }),
+  'traits/fury-of-the-small': patch(ofType('other'), { damage: [{ bonus: { type: 'level' }, label: 'Extra damage' }] }),
+  'class-features/barbed-strikes': patch(ofType('bonus-action'), { damage: [{ dieCount: { type: 'progressive', value: { 1: 1, 5: 2, 11: 3, 17: 4 } }, dieType: 6, type: 'piercing' }] }),
+  'class-features/nanite-apotheosis': patch(m => m.type === 'other' && m.name === 'Nanite Apotheosis (regen)', { damage: [{ type: 'hp', mod: 'con', bonus: { type: 'flat', value: 5 } }] }),
+
+  // DCs, ranges and damage the text states.
+  'class-features/judgement': patch(ofType('reaction'), { dc: { base: 8, proficient: true, mod: 'con', save: 'wis' }, shortDesc: 'Whenever another creature makes an attack roll against you and misses, you may use your reaction to force the attacking creature to make a {{ dc }} Wisdom saving throw. On a failed save, the creature becomes frightened of you for 1 minute. The affected creature may roll another Wisdom saving throw at the end of each of their next turns. On a success, they\'re no longer frightened.' }),
+  'feats/poison-skin': patch(ofType('bonus-action'), { damage: [{ dieCount: 1, dieType: 4, type: 'poison' }], dc: { base: 13, proficient: false, save: 'con' }, shortDesc: 'Coat a weapon with your skin\'s poison. A creature that takes piercing or slashing damage from it takes {{ roll }} and must succeed on a DC 13 Constitution saving throw or be poisoned for 1 hour.' }),
+  'class-features/supply-pylon': patch(ofType('other'), {
+    name: 'Supply Pylon',
+    resource: { reset: 'long' },
+    range: { short: 10 },
+    // The engineer's power save DC (plan/31 decision 3d); the creature saves with advantage.
+    dc: { base: 8, proficient: true, mod: 'int', save: 'dex' },
+    damage: [{ dieCount: 4, dieType: 8, type: 'bludgeoning' }],
+    shortDesc: 'Call a supply pylon to a point within :distance{length="10"}; it lands at the start of your next turn. A creature in that spot makes a {{ dc }} Dexterity saving throw with advantage, or takes {{ roll }} and is knocked :condition{id="prone"}. It holds 5 resources you choose (restock with 5 omni-gel).',
+  }),
+  'gear/smoke-grenade': patch(ofType('action'), { range: { short: 30, aoe: { type: 'cube', size: 10 } }, shortDesc: 'Smoke heavily obscures a :distance{length="10" adj} cube centered on a point within range for 30 seconds (a moderate wind disperses it after 1 round).' }),
+  'class-features/injection': patch(ofType('bonus-action'), {
+    range: { short: 30 },
+    damage: [{ dieCount: { type: 'progressive', limit: 'infiltrator', value: SNEAK_DICE }, dieType: 6, type: 'poison' }],
+    shortDesc: 'If you haven\'t used your Sneak Attack this round, use your Cunning Action to fire a dart of poison at an enemy within :distance{length="30"}: {{ roll }}, and a Toxin if you choose. Targets hit have disadvantage on saving throws against Toxin effects.',
+  }),
+  // Half the Sneak Attack dice (rounded down), from 9th level.
+  'class-features/grab-and-toss': patch(ofType('reaction'), { damage: [{ dieCount: { type: 'progressive', limit: 'infiltrator', value: { 9: 2, 11: 3, 15: 4, 19: 5 } }, dieType: 6 }] }),
+
+  // Beast Master Commands: the Command die (and the save DC for the beast's kind).
+  'edges/BMCD_ambush': commandCard(),
+  'edges/BMCD_bait-and-switch': commandCard(),
+  'edges/BMCD_brace': commandCard(),
+  'edges/BMCD_commanding-presence': commandCard(),
+  'edges/BMCD_disarming-strike': commandCard({ notes: [COMMAND_DC_NOTE] }),
+  'edges/BMCD_distracting-strike': commandCard(),
+  'edges/BMCD_evasive-maneuvers': commandCard(),
+  'edges/BMCD_feinting-attack': commandCard(),
+  'edges/BMCD_grappling-strike': commandCard(),
+  'edges/BMCD_lunging-attack': commandCard(),
+  'edges/BMCD_maneuvering-attack': commandCard(),
+  'edges/BMCD_menacing-attack': commandCard({ notes: [COMMAND_DC_NOTE] }),
+  'edges/BMCD_pushing-attack': commandCard({ notes: [COMMAND_DC_NOTE] }),
+  'edges/BMCD_rally': patch(ofType('bonus-action'), { damage: [{ dieCount: 1, dieType: COMMAND_DIE, mod: 'cha', type: 'temp' }] }),
+  'edges/BMCD_trip-attack': commandCard({ notes: [COMMAND_DC_NOTE] }),
+
+  // Sneak Toxins: the Poisoner's power save DC, and what each does.
+  'edges/ST_death-toxin': patch(ofType('other'), { shortDesc: 'Forgo all your Sneak Attack dice: the target rolls a d20, and on 10 or under it drops to -1 hit points. It is immune to this toxin for 24 hours.' }),
+  'edges/ST_halucinating-toxin': toxin('Forgo any number of Sneak Attack dice: on a failed save, the target has disadvantage on attack rolls, skill checks and Wisdom saving throws for that many rounds.'),
+  'edges/ST_hindering-toxin': toxin('Forgo any number of Sneak Attack dice: on a failed save, the target\'s speed drops by :distance{length="5"} per die.'),
+  'edges/ST_mind-addling-toxin': toxin('Forgo any number of Sneak Attack dice: on a failed save, the target has disadvantage on concentration checks for that many rounds.'),
+  'edges/ST_neural-toxin': toxin('Forgo any number of Sneak Attack dice: on a failed save, a target that casts tech powers loses that many tech points.'),
+  'edges/ST_paralyzing-toxin': toxin('Forgo any number of Sneak Attack dice: on a failed save, the target is :condition{id="paralyzed"} for that many rounds.'),
+  'edges/ST_polonium-toxin': toxin('Forgo any number of Sneak Attack dice: on a failed save, a target that casts biotic powers loses one power slot of a level equal to half the dice forgone.'),
+  'edges/ST_vulnerability-toxin': toxin('Forgo half your Sneak Attack dice: on a failed save, the target is vulnerable to the next attack it takes.'),
+
+  // Rules for attacks (B58 toggles, B62 questions), in place of description-only cards.
+  'armor/delumcore-overlay': replaceWhere(ofType('other'), { type: 'attack-augment', attackLimit: { model: 'weapon', type: 'ranged' }, augmentTypes: ['damage'], addCritDie: 1 }),
+  'armor/kuwashii-visor': (mechanics) => {
+    if (mechanics.some(m => m.type === 'attack-augment')) return mechanics
+    return [...mechanics, { type: 'attack-augment', ask: 'Is the target marked by your Kuwashii Visor?', attackLimit: { model: 'weapon' }, augmentTypes: ['damage'], addDamage: [{ dieCount: 1, dieType: 6 }] }]
+  },
+  'class-features/biotic-bull-rush': (mechanics) => {
+    if (mechanics.some(m => m.type === 'attack-augment')) return mechanics
+    return [...mechanics, { type: 'attack-augment', ask: 'Bonus action attack after casting Charge?', attackLimit: { model: 'weapon' }, augmentTypes: ['damage'], bonus: { type: 'flat', value: 5 } }]
+  },
+  'feats/charger': (mechanics) => {
+    if (mechanics.some(m => m.type === 'attack-augment')) return mechanics
+    return [...mechanics, { type: 'attack-augment', ask: 'After a Dash of more than :distance{length="10"} in a straight line?', attackLimit: { type: 'melee' }, augmentTypes: ['damage'], bonus: { type: 'flat', value: 5 } }]
+  },
+  'class-features/prayer': (mechanics) => {
+    if (mechanics.some(m => m.type === 'attack-augment')) return mechanics
+    return [...mechanics, { type: 'attack-augment', ask: 'A critical hit on a turn you prayed to Amonkira?', augmentTypes: ['damage'], bonus: { type: 'level' } }]
+  },
+  'traits/savage-attacks': mechanics => (mechanics.length ? mechanics : [{ type: 'attack-augment', attackLimit: { model: 'weapon', type: 'melee' }, augmentTypes: ['damage'], addCritDie: 1 }]),
+  'traits/rally-point': mechanics => (mechanics.length ? mechanics : [toggle('rally-point', 'Speed reduced to 0 at the start of your turn: +proficiency to the DC of your next Burst Fire this turn.', [
+    { type: 'attack-augment', attackLimit: { model: 'weapon', special: 'bf' }, augmentTypes: ['dc'], bonus: { type: 'proficiency' } },
+  ])]),
+
+  // Uses and descriptions the cards lacked.
+  'class-features/advanced-weapon-holsters': mechanics => (mechanics.length ? mechanics : [{ type: 'me:weapon-slots', value: 2 }]),
+  'class-features/diagnostic-drone': mechanics => (mechanics.length ? mechanics : [{
+    type: 'other',
+    name: 'Diagnostic Drone',
+    resource: { reset: 'long', max: { type: 'progressive', limit: 'explorer', value: { 10: 1, 20: 2 } } },
+    shortDesc: 'When you take a short rest: recover half your expended power slots, split evenly between biotic and tech.',
+  }]),
+  'class-features/hologram': all(
+    patch(ofType('bonus-action'), { shortDesc: 'Create a hologram of yourself within :distance{length="15"} (AC {{ 14 + profBonus }}, 1 hit point, immune to conditions and priming). It moves :distance{length="25"} on your turn (no action). Your attacks and aimed combat powers can come from its position, as lightning damage.' }),
+    (mechanics) => {
+      if (mechanics.some(m => m.type === 'reaction')) return mechanics
+      return [...mechanics, {
+        type: 'reaction',
+        name: 'Hologram Opportunity Attack',
+        shortDesc: 'A creature moves through your hologram\'s threatened area: a melee attack from the hologram.',
+        attack: { type: 'melee', proficient: true, bonus: { type: 'modComparison', value: ['str', 'dex'] } },
+        range: { short: 5 },
+        damage: [{ dieCount: 1, dieType: 6, type: 'lightning', bonus: { type: 'modComparison', value: ['str', 'dex'] } }],
+      }]
+    },
+  ),
+  'traits/blood-rage': patch(ofType('other'), { resource: { reset: 'long' }, shortDesc: 'Reduced to 0 hit points but not killed: rage for 1 minute instead of falling unconscious (Attack or Dash only; immune to charmed and frightened; death saves continue).' }),
+  'traits/body-and-soul': patch(ofType('other'), { resource: { reset: 'long' }, shortDesc: 'After 10 minutes of prayer: the next time you drop to 0 hit points, you have advantage on death saving throws until you are stable or regain hit points.' }),
+  'traits/psychometry': patch(ofType('other'), { resource: { reset: 'long' }, shortDesc: 'Touch a creature or object and concentrate for 1 minute: learn basic facts about it and the events within :distance{length="30"} of it in the past 24 hours.' }),
+  'traits/saving-face': patch(ofType('other'), { shortDesc: 'When you miss an attack or fail an ability check or saving throw: add the number of allies you can see (at most +5).' }),
+
+  // Plasma Charge System: its splash hits the creatures around the target, not the target (the text wins, plan/31 decision 2).
+  'mods/plasma-charge-system': mechanics => mechanics.map((m) => {
+    if (m.type !== 'me:weapon-augment' || !m.addDamage) return m
+    const { addDamage: _, ...rest } = m
+    return rest
+  }),
+}
+
 /** Set bonuses keep mechanics per threshold. */
 const SET_BONUSES: Record<string, (bonuses: Rec[]) => Rec[]> = {
   'set-bonuses/pathfinder': bonuses => bonuses.map(b => ({ ...b, mechanics: replaceNote('Null Critical', { type: 'critical-immunity' })((b.mechanics ?? []) as Rec[], b) })),
@@ -317,6 +490,13 @@ export function convert(root: string) {
   for (const [rel, edit] of Object.entries(SET_BONUSES)) write(rel, a => ({ ...a, bonuses: edit((a.bonuses ?? []) as Rec[]) }))
   for (const [rel, edit] of Object.entries(PHASE4_CONVERSIONS)) write(rel, a => ({ ...a, mechanics: edit((a.mechanics ?? []) as Rec[], a) }))
   for (const [rel, edit] of Object.entries(POWER_AUGMENT_CONVERSIONS)) write(rel, a => ({ ...a, mechanics: edit((a.mechanics ?? []) as Rec[], a) }))
+  for (const [rel, edit] of Object.entries(CARD_CONVERSIONS)) write(rel, a => ({ ...a, mechanics: edit((a.mechanics ?? []) as Rec[], a) }))
+  // Maverick's set bonuses: one more crit die, then crits on 18–20, with weapon attacks.
+  write('set-bonuses/maverick', a => ({ ...a, bonuses: ((a.bonuses ?? []) as Rec[]).map(b => (b.threshold === 2
+    ? { ...b, mechanics: replaceWhere(ofType('other'), { type: 'attack-augment', attackLimit: { model: 'weapon' }, augmentTypes: ['damage'], addCritDie: 1 })((b.mechanics ?? []) as Rec[], b) }
+    : b.threshold === 4
+      ? { ...b, mechanics: replaceWhere(ofType('other'), { type: 'attack-augment', attackLimit: { model: 'weapon' }, augmentTypes: ['hit'], crit: 18 })((b.mechanics ?? []) as Rec[], b) }
+      : b)) }))
   return changed
 }
 
