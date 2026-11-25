@@ -238,6 +238,41 @@ export function legacyMigrationEntries(handler: FunctionHandler) {
   }
 }
 
+/**
+ * The content editor (plan/33 §1.4): a game whose content lives in a Git repo adds these with
+ * its `content-editor` function. Only the given Cognito groups may call them (the function
+ * checks the groups and paths again). Inputs and results are JSON (the engine's
+ * `editor/server` types); the engine's data layer calls them with plain GraphQL, so the
+ * client `Schema` type doesn't need them.
+ */
+export function contentEditorEntries(handler: FunctionHandler, groups: string[] = ['editors', 'admins']) {
+  return {
+    /** A content file at the base branch (or an editor PR's branch), with its blob sha and the open edits of it. */
+    editorFile: a.query()
+      .arguments({ path: a.string().required(), pr: a.integer() })
+      .returns(a.json())
+      .authorization(allow => [allow.groups(groups)])
+      .handler(a.handler.function(handler)),
+    /** Opens an editor pull request, or adds a commit to one (`SubmitInput` as JSON). */
+    editorSubmit: a.mutation()
+      .arguments({ input: a.json().required() })
+      .returns(a.json())
+      .authorization(allow => [allow.groups(groups)])
+      .handler(a.handler.function(handler)),
+    /** The caller's editor pull requests with their check, reviews and comments. */
+    editorMyEdits: a.query()
+      .returns(a.json())
+      .authorization(allow => [allow.groups(groups)])
+      .handler(a.handler.function(handler)),
+    /** A reply on an editor pull request, posted in the caller's name. */
+    editorComment: a.mutation()
+      .arguments({ pr: a.integer().required(), text: a.string().required() })
+      .returns(a.json())
+      .authorization(allow => [allow.groups(groups)])
+      .handler(a.handler.function(handler)),
+  }
+}
+
 export const schema = a.schema(schemaEntries)
 
 /** The client-side types of the schema (`generateClient<Schema>()`). */
